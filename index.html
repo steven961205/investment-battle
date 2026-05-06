@@ -74,10 +74,10 @@
         .ac-exch{font-size:10px;color:var(--text-muted);background:rgba(30,58,95,.8);padding:2px 6px;border-radius:4px;}
         .ac-spinner{padding:10px 14px;color:var(--text-muted);font-size:12px;text-align:center;}
         .history-section{margin-top:16px;border-top:1px solid var(--border);padding-top:14px;}
-        .history-table{width:100%;border-collapse:collapse;font-size:11px;}
-        .history-table th{color:var(--text-muted);font-weight:600;text-align:left;padding:4px 6px;letter-spacing:.04em;text-transform:uppercase;border-bottom:1px solid var(--border);}
-        .history-table td{padding:6px 6px;border-bottom:1px solid rgba(30,58,95,.4);color:var(--text-secondary);vertical-align:middle;}
-        .history-table tr:last-child td{border-bottom:none;}
+        .trade-card{background:var(--bg-input);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:6px;font-size:12px;}
+        .trade-card:last-child{margin-bottom:0;}
+        .trade-card-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;}
+        .trade-card-row:last-child{margin-bottom:0;}
         .profit-pos{color:var(--accent-green);font-weight:700;font-family:'JetBrains Mono',monospace;}
         .profit-neg{color:var(--accent-red);font-weight:700;font-family:'JetBrains Mono',monospace;}
         .currency-badge{font-size:10px;font-weight:700;letter-spacing:.06em;padding:2px 8px;border-radius:4px;background:rgba(59,130,246,.15);border:1px solid rgba(59,130,246,.3);color:var(--accent-blue);}
@@ -121,9 +121,8 @@
             <div><label class="modal-label">當前現金水位</label><input type="number" id="editCash" oninput="updateModalSummary()" class="modal-input" placeholder="0"></div>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
-            <div><label class="modal-label" style="color:var(--accent-amber)">槓桿使用率 (%，最高60)</label>
-                <input type="number" step="1" min="0" max="60" id="editLeverageRate" placeholder="0~60" oninput="clampLeverage();updateModalSummary();" class="modal-input" style="border-color:var(--accent-amber)"></div>
-            <div><label class="modal-label">帳戶淨值預覽</label><input type="text" id="displayNetValue" readonly class="modal-input net-preview"></div>
+            <div><label class="modal-label">帳戶淨值（初始本金 + 損益）</label><input type="text" id="displayNetValue" readonly class="modal-input net-preview"></div>
+            <div><label class="modal-label">當前淨值（現金 + 持股市值）</label><input type="text" id="displayCurrentValue" readonly class="modal-input" style="color:var(--accent-cyan);font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:600;"></div>
         </div>
         <hr class="divider">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
@@ -286,17 +285,21 @@ function renderDashboard(){
     const pdiv=document.getElementById('portfolios');pdiv.innerHTML='';
     participants.forEach(p=>{
         const initCap=getFixedInitialCapital(p.currency);
-        const rate=Math.min(Math.max(parseFloat(p.leverageRate)||0,0),60)/100;
         const stocks=Array.isArray(p.stocks)?p.stocks:[];
         const trades=Array.isArray(p.trades)?p.trades:[];
         let totalMV=0,totalUnPnl=0;
         stocks.forEach(s=>{const mv=(s.shares||0)*(s.currentPrice||0);const cost=(s.shares||0)*(s.buyPrice||0);totalMV+=mv;totalUnPnl+=(mv-cost);});
-        const borrowed=p.cash*rate;
         const realPnl=trades.reduce((sum,t)=>sum+(parseFloat(t.pnl)||0),0);
+        // 帳戶淨值 = 初始本金 + 已實現損益 + 未實現損益
         const netVal=initCap+realPnl+totalUnPnl;
         const retPct=(((netVal-initCap)/initCap)*100).toFixed(2);
         const valTWD=p.currency==='USD'?netVal*usdToTwd:netVal;
-        const levPct=rate*100;
+        // 當前淨值（現金 + 持股市值）
+        const currentVal=p.cash+totalMV;
+        // 槓桿使用率 = (持股總市值 / (初始本金 + 已實現損益)) - 1
+        const leverageBase = initCap + realPnl;
+        const actualLevPct = leverageBase > 0 ? ((totalMV / leverageBase) - 1) * 100 : 0;
+        const hasLev = actualLevPct > 0.01;
         lb.push({name:p.name,totalValueTWD:valTWD,returnPct:retPct,initCapStr:fmtRaw(initCap,p.currency),netValueStr:fmtRaw(netVal,p.currency)});
 
         const holdHTML=stocks.length===0
@@ -308,14 +311,38 @@ function renderDashboard(){
         const realSign=realPnl>=0?'+':'';const realCls=realPnl>=0?'profit-pos':'profit-neg';
         const upSign=totalUnPnl>=0?'+':'';const upCls=totalUnPnl<0?'text-red-400':'text-emerald-400';
         const tradeRows=trades.length===0
-            ?`<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:10px;">尚無歷史交易紀錄</td></tr>`
-            :trades.map((t,idx)=>{const pnl=parseFloat(t.pnl)||0;const cls=pnl>=0?'profit-pos':'profit-neg';
-                return`<tr><td class="mono text-cyan-300">${t.ticker||'--'}</td><td>${(t.shares||0).toLocaleString()}</td><td class="mono">${fmtRaw(t.buyPrice||0,p.currency,2)}</td><td class="mono">${fmtRaw(t.sellPrice||0,p.currency,2)}</td><td class="${cls}">${pnl>=0?'+':''}${fmtRaw(Math.abs(pnl),p.currency)}</td><td><button class="btn-del" onclick="deleteTrade('${p.name}',${idx})">✕</button></td></tr>`;
+            ?`<div style="text-align:center;color:var(--text-muted);padding:12px;font-size:12px;">尚無歷史交易紀錄</div>`
+            :trades.map((t,idx)=>{
+                const pnl=parseFloat(t.pnl)||0;
+                const cls=pnl>=0?'profit-pos':'profit-neg';
+                const bp=parseFloat(t.buyPrice)||0;
+                const sp=parseFloat(t.sellPrice)||0;
+                const pnlPct = bp>0 ? ((sp-bp)/bp*100).toFixed(2) : null;
+                const pnlPctStr = pnlPct!==null ? `${pnl>=0?'+':''}${pnlPct}%` : '--';
+                return`<div class="trade-card">
+                    <div class="trade-card-row">
+                        <span class="mono font-bold text-cyan-300" style="font-size:13px;">${t.ticker||'--'}</span>
+                        <div style="display:flex;align-items:center;gap:8px;">
+                            <span class="${cls}" style="font-size:13px;font-weight:700;">${pnl>=0?'+':''}${fmtRaw(Math.abs(pnl),p.currency)}</span>
+                            <span class="${cls}" style="font-size:11px;opacity:.85;">(${pnlPctStr})</span>
+                            <button class="btn-del" onclick="deleteTrade('${p.name}',${idx})" title="刪除">✕</button>
+                        </div>
+                    </div>
+                    <div class="trade-card-row" style="color:var(--text-secondary);font-size:11px;">
+                        <span>${(t.shares||0).toLocaleString()} 股</span>
+                        <span>買入 <span class="mono text-white">${fmtRaw(bp,p.currency,2)}</span></span>
+                        <span>賣出 <span class="mono text-white">${fmtRaw(sp,p.currency,2)}</span></span>
+                        ${t.date?`<span style="color:var(--text-muted)">${t.date}</span>`:''}
+                    </div>
+                </div>`;
               }).join('');
 
         pdiv.innerHTML+=`<div class="portfolio-card">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-                <h3 class="text-lg font-bold text-white">${p.name}</h3>
+                <div style="display:flex;align-items:center;gap:6px;">
+                    <h3 class="text-lg font-bold text-white" id="name-${p.name}">${p.name}</h3>
+                    <button onclick="editName('${p.name}')" title="修改名稱" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:13px;padding:2px 4px;transition:color .15s;" onmouseover="this.style.color='var(--accent-blue)'" onmouseout="this.style.color='var(--text-muted)'">✏️</button>
+                </div>
                 <div style="display:flex;align-items:center;gap:8px;"><span class="currency-badge">${p.currency}</span><button onclick="openModal('${p.name}')" class="btn-update">更改部位</button></div>
             </div>
             <div class="net-value-box" style="margin-bottom:16px;">
@@ -327,8 +354,14 @@ function renderDashboard(){
                 <div class="stat-row"><span class="stat-label">初始本金</span><span class="mono text-white text-xs">${fmtRaw(initCap,p.currency)}</span></div>
                 <div class="stat-row"><span class="stat-label">現金水位</span>${fmtC(p.cash,p.currency,true)}</div>
                 <div class="stat-row"><span class="stat-label">持股總市值</span>${fmtC(totalMV,p.currency,true)}</div>
-                <div class="stat-row"><span class="stat-label">已用槓桿 (${levPct.toFixed(0)}%)</span><span class="mono font-bold text-amber-400 text-sm">${borrowed>0?'−'+fmtRaw(borrowed,p.currency):fmtRaw(0,p.currency)}</span></div>
-                ${levPct>0?`<div class="leverage-bar-wrap"><div class="leverage-bar" style="width:${Math.min(levPct/60*100,100).toFixed(0)}%"></div></div>`:''}
+                <div class="stat-row"><span class="stat-label">當前淨值（現金+持股）</span><span class="mono font-bold text-cyan-400 text-sm">${fmtRaw(currentVal,p.currency)}</span></div>
+                <div class="stat-row">
+                    <span class="stat-label">槓桿使用率</span>
+                    <span class="mono font-bold text-sm ${hasLev?'text-amber-400':'text-slate-400'}">
+                        ${hasLev?'+'+actualLevPct.toFixed(1)+'%（借款/淨值）':'未使用槓桿'}
+                    </span>
+                </div>
+                ${hasLev?`<div class="leverage-bar-wrap"><div class="leverage-bar" style="width:${Math.min(actualLevPct,100).toFixed(0)}%"></div></div>`:''}
                 <div class="stat-row" style="margin-top:4px;"><span class="stat-label">已實現損益</span><span class="${realCls}">${realSign}${fmtRaw(Math.abs(realPnl),p.currency)}</span></div>
                 <div class="stat-row"><span class="stat-label">未實現損益（所有持股）</span><span class="font-bold mono ${upCls}">${upSign}${fmtRaw(totalUnPnl,p.currency)}</span></div>
             </div>
@@ -339,7 +372,7 @@ function renderDashboard(){
                     <h4 style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;">歷史交易紀錄</h4>
                     <button class="btn-add-trade" onclick="openTradeModal('${p.name}')">＋ 新增</button>
                 </div>
-                <table class="history-table"><thead><tr><th>代號</th><th>股數</th><th>買入價</th><th>賣出價</th><th>損益</th><th></th></tr></thead><tbody>${tradeRows}</tbody></table>
+                <div>${tradeRows}</div>
             </div>
         </div>`;
     });
@@ -361,13 +394,25 @@ function openModal(name){
     document.getElementById('editName').value=name;
     document.getElementById('editCurrency').value=p.currency;
     document.getElementById('editCash').value=p.cash;
-    document.getElementById('editLeverageRate').value=((parseFloat(p.leverageRate)||0)).toFixed(0);
     updateModalSummary();
     const container=document.getElementById('stockSlots');container.innerHTML='';
     const stocks=Array.isArray(p.stocks)?p.stocks:[];
     if(stocks.length===0)addStockSlot();else stocks.forEach(s=>addStockSlot(s));
     document.getElementById('editModal').classList.add('open');
 }
+function editName(oldName){
+    const newName = prompt(`請輸入新的參賽者名稱：`, oldName);
+    if(!newName || newName.trim()==='' || newName.trim()===oldName) return;
+    const trimmed = newName.trim();
+    // 檢查是否重複
+    if(participants.some(p=>p.name===trimmed)){alert('此名稱已被使用！');return;}
+    const pi = participants.findIndex(p=>p.name===oldName);
+    if(pi===-1) return;
+    const updated = {...participants[pi], name: trimmed};
+    db.ref('competitionData/'+pi).set(updated);
+    setStatus('loading','🟡 更新名稱中...');
+}
+
 function closeModal(){document.getElementById('editModal').classList.remove('open');document.getElementById('stockSlots').innerHTML='';}
 
 function addStockSlot(data={}){
@@ -447,30 +492,33 @@ async function selectSlot(id,idx){
     if(priceSpan) priceSpan.textContent = price!=null ? price.toFixed(2) : '取得失敗';
 }
 
-function clampLeverage(){const el=document.getElementById('editLeverageRate');let v=parseFloat(el.value);if(isNaN(v)||v<0)v=0;if(v>60)v=60;el.value=v;}
 function updateModalSummary(){
     const currency=document.getElementById('editCurrency').value;
     const initCap=getFixedInitialCapital(currency);
     document.getElementById('displayInitialCapital').value=fmtRaw(initCap,currency);
     const cash=parseFloat(document.getElementById('editCash').value)||0;
-    const lev=Math.min(Math.max(parseFloat(document.getElementById('editLeverageRate').value)||0,0),60);
-    const borrowed=cash*(lev/100);
     let stockValue=0;
     document.querySelectorAll('.stock-slot').forEach(slot=>{
         const shares=parseFloat(slot.querySelector('.slot-shares').value)||0;
         const price=parseFloat(slot.querySelector('.slot-cur-hidden').value)||0;
         stockValue+=shares*price;
     });
-    const netVal=stockValue-borrowed+cash;
+    // 帳戶淨值（從 Firebase 現有資料算，這裡簡化顯示初始本金+現金變化）
+    // Modal 中無法知道歷史損益，所以帳戶淨值欄位僅供參考顯示現金+持股
+    const currentVal=cash+stockValue;
+
+    // 帳戶淨值預覽（現金+持股市值，即當前掌握的總資產）
     const preview=document.getElementById('displayNetValue');
-    preview.value=(netVal<0?'-':'')+fmtRaw(Math.abs(netVal),currency);
-    preview.classList.toggle('net-negative',netVal<0);
+    if(preview){preview.value=fmtRaw(currentVal,currency);}
+
+    // 當前淨值（同上，清楚標示）
+    const curValEl=document.getElementById('displayCurrentValue');
+    if(curValEl){curValEl.value=fmtRaw(currentVal,currency);}
 }
 
 function saveData(){
     const name=document.getElementById('editName').value;
     const pi=participants.findIndex(p=>p.name===name);if(pi===-1)return;
-    const lv=Math.min(Math.max(parseFloat(document.getElementById('editLeverageRate').value)||0,0),60);
     const newStocks=[];
     document.querySelectorAll('.stock-slot').forEach(slot=>{
         const ticker=(slot.querySelector('.slot-ticker').value||'').toUpperCase().trim();
@@ -479,7 +527,7 @@ function saveData(){
         const currentPrice=parseFloat(slot.querySelector('.slot-cur-hidden').value)||0;
         if(ticker&&shares>0)newStocks.push({ticker,shares,buyPrice,currentPrice});
     });
-    const updated={...participants[pi],currency:document.getElementById('editCurrency').value,cash:parseFloat(document.getElementById('editCash').value)||0,leverageRate:lv,stocks:newStocks};
+    const updated={...participants[pi],currency:document.getElementById('editCurrency').value,cash:parseFloat(document.getElementById('editCash').value)||0,stocks:newStocks};
     db.ref('competitionData/'+pi).set(updated);
     closeModal();setStatus('loading','🟡 同步變更中...');
 }
