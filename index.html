@@ -304,8 +304,26 @@ function renderDashboard(){
 
         const holdHTML=stocks.length===0
             ?`<div class="holding-row text-center text-slate-500">目前無持股紀錄</div>`
-            :stocks.map(s=>{const mv=(s.shares||0)*(s.currentPrice||0);const cost=(s.shares||0)*(s.buyPrice||0);const pnl=mv-cost;const ps=pnl>=0?'+':'';const pc=pnl<0?'text-red-400':'text-emerald-400';
-                return`<div class="holding-row"><div style="display:flex;justify-content:space-between;margin-bottom:5px;"><span class="mono font-bold text-cyan-400">${s.ticker}</span><span class="text-white font-semibold">${(s.shares||0).toLocaleString()} 股</span></div><div style="display:flex;justify-content:space-between;" class="text-slate-400 text-xs"><span>買入 <span class="mono text-white">${fmtRaw(s.buyPrice||0,p.currency,2)}</span></span><span>現價 <span class="mono text-cyan-300 font-bold">${fmtRaw(s.currentPrice||0,p.currency,2)}</span></span><span class="font-bold mono ${pc}">${ps}${fmtRaw(pnl,p.currency)}</span></div></div>`;
+            :stocks.map(s=>{
+                const mv=(s.shares||0)*(s.currentPrice||0);
+                const cost=(s.shares||0)*(s.buyPrice||0);
+                const pnl=mv-cost;
+                const ps=pnl>=0?'+':'';
+                const pc=pnl<0?'text-red-400':'text-emerald-400';
+                // 損益% = 未實現損益 / 帳戶淨值
+                const pnlPct = netVal>0 ? ((pnl/netVal)*100).toFixed(2) : '0.00';
+                const pnlPctSign = pnl>=0?'+':'';
+                return`<div class="holding-row">
+                    <div style="display:flex;justify-content:space-between;margin-bottom:5px;">
+                        <span class="mono font-bold text-cyan-400">${s.ticker}</span>
+                        <span class="text-white font-semibold">${(s.shares||0).toLocaleString()} 股</span>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;align-items:center;" class="text-slate-400 text-xs">
+                        <span>買入 <span class="mono text-white">${fmtRaw(s.buyPrice||0,p.currency,2)}</span></span>
+                        <span>現價 <span class="mono text-cyan-300 font-bold">${fmtRaw(s.currentPrice||0,p.currency,2)}</span></span>
+                        <span class="font-bold mono ${pc}">${ps}${fmtRaw(pnl,p.currency)} <span style="opacity:.8">(${pnlPctSign}${pnlPct}%)</span></span>
+                    </div>
+                </div>`;
               }).join('');
 
         const realSign=realPnl>=0?'+':'';const realCls=realPnl>=0?'profit-pos':'profit-neg';
