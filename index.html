@@ -189,184 +189,31 @@ async function fetchFinnhubPrice(ticker){
     try{const r=await fetch(`https://finnhub.io/api/v1/quote?symbol=${encodeURIComponent(ticker)}&token=${FINNHUB_KEY}`,{signal:AbortSignal.timeout(8000)});const d=await r.json();return(d.c&&d.c>0)?d.c:(d.pc>0?d.pc:null);}catch(e){return null;}
 }
 async function fetchTWSEPrice(ticker){
-    const code=ticker.replace('.TW','').replace('.TWO','');
-    try{const r=await fetch(`https://mis.twse.com.tw/stock/api/getStockInfo.jsp?ex_ch=tse_${code}.tw&json=1&delay=0`,{signal:AbortSignal.timeout(8000)});const d=await r.json();const info=d?.msgArray?.[0];if(!info)throw new Error();const p=parseFloat(info.z!=='-'?info.z:info.y);return isNaN(p)?null:p;}
-    catch(e){try{const r2=await fetch(`https://mis.twse.com.tw/stock/api/getStockInfo.jsp?ex_ch=otc_${code}.tw&json=1&delay=0`,{signal:AbortSignal.timeout(6000)});const d2=await r2.json();const i2=d2?.msgArray?.[0];if(!i2)return null;const p2=parseFloat(i2.z!=='-'?i2.z:i2.y);return isNaN(p2)?null:p2;}catch{return null;}}
+    // 台股改用 Finnhub，代號格式：2330.TW → 直接送
+    // Finnhub 台股 exchange symbol 格式為 "TWSE:2330"
+    const code = ticker.replace('.TW','').replace('.TWO','');
+    const finnhubSymbol = `TWSE:${code}`;
+    try{
+        const r = await fetch(`https://finnhub.io/api/v1/quote?symbol=${encodeURIComponent(finnhubSymbol)}&token=${FINNHUB_KEY}`,{signal:AbortSignal.timeout(8000)});
+        const d = await r.json();
+        const price = (d.c && d.c > 0) ? d.c : (d.pc && d.pc > 0 ? d.pc : null);
+        if(price && price > 0){ console.log('台股Finnhub成功', finnhubSymbol, price); return price; }
+    }catch(e){ console.warn('台股Finnhub失敗', finnhubSymbol, e.message); }
+
+    // 備援：allorigins + Yahoo Finance v8
+    try{
+        const yfUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?interval=1d&range=5d`;
+        const r = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(yfUrl)}`,{signal:AbortSignal.timeout(8000)});
+        const outer = await r.json();
+        const raw = JSON.parse(outer.contents);
+        const meta = raw?.chart?.result?.[0]?.meta;
+        const price = meta?.regularMarketPrice || meta?.chartPreviousClose || null;
+        if(price && price > 0){ console.log('台股YF成功', ticker, price); return price; }
+    }catch(e){ console.warn('台股YF備援失敗', ticker, e.message); }
+
+    return null;
 }
 
-db.ref('competitionData').on('value',async snapshot=>{
-    const data=snapshot.val();
-    setStatus('loading','🔄 同步資料與股價中...');
-    if(!data){db.ref('competitionData').set(defaultData);return;}
-    participants=Array.isArray(data)?data:Object.values(data);
-    await fetchExchangeRate();
-    await Promise.all(participants.map(async(p,pi)=>{
-        const stocks=Array.isArray(p.stocks)?p.stocks:[];
-        await Promise.all(stocks.map(async(s,si)=>{
-            if(!s.ticker)return;
-            const price=await fetchStockPrice(s.ticker);
-            if(price!=null&&price>0)participants[pi].stocks[si].currentPrice=price;
-        }));
-    }));
-    renderDashboard();
-    setStatus('ok',`🟢 已連線｜1 USD = ${usdToTwd.toFixed(2)} TWD｜${new Date().toLocaleTimeString('zh-TW')}`);
-});
-
-function setStatus(type,msg){const el=document.getElementById('system-status');el.className=`status-pill status-${type}`;el.textContent=msg;}
-
-function fmtRaw(amount,currency,decimals=0){const abs=Math.abs(amount);if(currency==='TWD')return`NT$ ${abs.toLocaleString('zh-TW',{minimumFractionDigits:decimals,maximumFractionDigits:decimals})}`;return`$${abs.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}`;}
-function fmtC(amount,currency,white=false){const raw=fmtRaw(amount,currency);const neg=amount<0;const sign=neg?'-':'';if(white)return`<span class="mono font-bold text-white">${sign}${raw}</span>`;const cls=neg?'text-red-400 font-bold mono':(amount===0?'text-slate-400 mono':'text-emerald-400 font-bold mono');return`<span class="${cls}">${sign}${raw}</span>`;}
-
-function renderDashboard(){
-    let lb=[];
-    const pdiv=document.getElementById('portfolios');pdiv.innerHTML='';
-    participants.forEach(p=>{
-        const initCap=getFixedInitialCapital(p.currency);
-        const rate=Math.min(Math.max(parseFloat(p.leverageRate)||0,0),60)/100;
-        const stocks=Array.isArray(p.stocks)?p.stocks:[];
-        const trades=Array.isArray(p.trades)?p.trades:[];
-        let totalMV=0,totalUnPnl=0;
-        stocks.forEach(s=>{const mv=(s.shares||0)*(s.currentPrice||0);const cost=(s.shares||0)*(s.buyPrice||0);totalMV+=mv;totalUnPnl+=(mv-cost);});
-        const borrowed=p.cash*rate;
-        const realPnl=trades.reduce((sum,t)=>sum+(parseFloat(t.pnl)||0),0);
-        const netVal=initCap+realPnl+totalUnPnl;
-        const retPct=(((netVal-initCap)/initCap)*100).toFixed(2);
-        const valTWD=p.currency==='USD'?netVal*usdToTwd:netVal;
-        const levPct=rate*100;
-        lb.push({name:p.name,totalValueTWD:valTWD,returnPct:retPct,initCapStr:fmtRaw(initCap,p.currency),netValueStr:fmtRaw(netVal,p.currency)});
-
-        const holdHTML=stocks.length===0
-            ?`<div class="holding-row text-center text-slate-500">目前無持股紀錄</div>`
-            :stocks.map(s=>{
-                const mv=(s.shares||0)*(s.currentPrice||0);const cost=(s.shares||0)*(s.buyPrice||0);const pnl=mv-cost;
-                const ps=pnl>=0?'+':'';const pc=pnl<0?'text-red-400':'text-emerald-400';
-                return`<div class="holding-row"><div style="display:flex;justify-content:space-between;margin-bottom:5px;"><span class="mono font-bold text-cyan-400">${s.ticker}</span><span class="text-white font-semibold">${(s.shares||0).toLocaleString()} 股</span></div><div style="display:flex;justify-content:space-between;" class="text-slate-400 text-xs"><span>買入 <span class="mono text-white">${fmtRaw(s.buyPrice||0,p.currency,2)}</span></span><span>現價 <span class="mono text-cyan-300 font-bold">${fmtRaw(s.currentPrice||0,p.currency,2)}</span></span><span class="font-bold mono ${pc}">${ps}${fmtRaw(pnl,p.currency)}</span></div></div>`;
-              }).join('');
-
-        const realSign=realPnl>=0?'+':'';const realCls=realPnl>=0?'profit-pos':'profit-neg';
-        const upSign=totalUnPnl>=0?'+':'';const upCls=totalUnPnl<0?'text-red-400':'text-emerald-400';
-        const tradeRows=trades.length===0
-            ?`<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:10px;">尚無歷史交易紀錄</td></tr>`
-            :trades.map((t,idx)=>{const pnl=parseFloat(t.pnl)||0;const cls=pnl>=0?'profit-pos':'profit-neg';
-                return`<tr><td class="mono text-cyan-300">${t.ticker||'--'}</td><td>${(t.shares||0).toLocaleString()}</td><td class="mono">${fmtRaw(t.buyPrice||0,p.currency,2)}</td><td class="mono">${fmtRaw(t.sellPrice||0,p.currency,2)}</td><td class="${cls}">${pnl>=0?'+':''}${fmtRaw(Math.abs(pnl),p.currency)}</td><td><button class="btn-del" onclick="deleteTrade('${p.name}',${idx})">✕</button></td></tr>`;
-              }).join('');
-
-        pdiv.innerHTML+=`<div class="portfolio-card">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-                <h3 class="text-lg font-bold text-white">${p.name}</h3>
-                <div style="display:flex;align-items:center;gap:8px;"><span class="currency-badge">${p.currency}</span><button onclick="openModal('${p.name}')" class="btn-update">更改部位</button></div>
-            </div>
-            <div class="net-value-box" style="margin-bottom:16px;">
-                <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">帳戶淨值</div>
-                <div class="text-3xl">${fmtC(netVal,p.currency,true)}</div>
-                <div class="text-xs mono font-semibold ${parseFloat(retPct)>=0?'text-emerald-400':'text-red-400'}" style="margin-top:6px;">${parseFloat(retPct)>=0?'▲':'▼'} ${retPct}%（相對初始本金）</div>
-            </div>
-            <div class="space-y-1" style="margin-bottom:16px;">
-                <div class="stat-row"><span class="stat-label">初始本金</span><span class="mono text-white text-xs">${fmtRaw(initCap,p.currency)}</span></div>
-                <div class="stat-row"><span class="stat-label">現金水位</span>${fmtC(p.cash,p.currency,true)}</div>
-                <div class="stat-row"><span class="stat-label">持股總市值</span>${fmtC(totalMV,p.currency,true)}</div>
-                <div class="stat-row"><span class="stat-label">已用槓桿 (${levPct.toFixed(0)}%)</span><span class="mono font-bold text-amber-400 text-sm">${borrowed>0?'−'+fmtRaw(borrowed,p.currency):fmtRaw(0,p.currency)}</span></div>
-                ${levPct>0?`<div class="leverage-bar-wrap"><div class="leverage-bar" style="width:${Math.min(levPct/60*100,100).toFixed(0)}%"></div></div>`:''}
-                <div class="stat-row" style="margin-top:4px;"><span class="stat-label">已實現損益</span><span class="${realCls}">${realSign}${fmtRaw(Math.abs(realPnl),p.currency)}</span></div>
-                <div class="stat-row"><span class="stat-label">未實現損益（所有持股）</span><span class="font-bold mono ${upCls}">${upSign}${fmtRaw(totalUnPnl,p.currency)}</span></div>
-            </div>
-            <h4 style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">當前持倉（${stocks.length}/${MAX_STOCKS}）</h4>
-            ${holdHTML}
-            <div class="history-section">
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-                    <h4 style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;">歷史交易紀錄</h4>
-                    <button class="btn-add-trade" onclick="openTradeModal('${p.name}')">＋ 新增</button>
-                </div>
-                <table class="history-table"><thead><tr><th>代號</th><th>股數</th><th>買入價</th><th>賣出價</th><th>損益</th><th></th></tr></thead><tbody>${tradeRows}</tbody></table>
-            </div>
-        </div>`;
-    });
-
-    lb.sort((a,b)=>b.totalValueTWD-a.totalValueTWD);
-    const lbDiv=document.getElementById('leaderboard');lbDiv.innerHTML='';
-    const medals=['🥇','🥈','🥉'];
-    lb.forEach((d,idx)=>{const pos=parseFloat(d.returnPct)>=0;
-        lbDiv.innerHTML+=`<div class="rank-card rank-${idx+1}"><div style="display:flex;align-items:center;gap:12px;"><span style="font-size:1.6rem">${medals[idx]}</span><span class="font-bold text-lg text-white">${d.name}</span></div><div class="text-right"><div class="mono font-bold text-white">${fmtRaw(d.totalValueTWD,'TWD')}</div><div class="text-xs mono font-semibold ${pos?'text-emerald-400':'text-red-400'}">${pos?'+':''}${d.returnPct}% <span class="text-slate-500 font-normal ml-1">${d.initCapStr} → ${d.netValueStr}</span></div></div></div>`;
-    });
-}
-
-// ── 持倉 Modal ────────────────────────────
-let slotCounter=0,slotAcTimers={},slotAcItems={},slotAcIdx={};
-
-function openModal(name){
-    const p=participants.find(x=>x.name===name);if(!p)return;
-    document.getElementById('modalTitle').textContent=`更新 ${name} 的部位`;
-    document.getElementById('editName').value=name;
-    document.getElementById('editCurrency').value=p.currency;
-    document.getElementById('editCash').value=p.cash;
-    document.getElementById('editLeverageRate').value=((parseFloat(p.leverageRate)||0)).toFixed(0);
-    updateModalSummary();
-    const container=document.getElementById('stockSlots');container.innerHTML='';
-    const stocks=Array.isArray(p.stocks)?p.stocks:[];
-    if(stocks.length===0)addStockSlot();else stocks.forEach(s=>addStockSlot(s));
-    document.getElementById('editModal').classList.add('open');
-}
-function closeModal(){document.getElementById('editModal').classList.remove('open');document.getElementById('stockSlots').innerHTML='';}
-
-function addStockSlot(data={}){
-    const container=document.getElementById('stockSlots');
-    if(container.querySelectorAll('.stock-slot').length>=MAX_STOCKS){alert(`最多 ${MAX_STOCKS} 支持股`);return;}
-    const id=++slotCounter;slotAcItems[id]=[];slotAcIdx[id]=-1;
-    const num=container.querySelectorAll('.stock-slot').length+1;
-    const slot=document.createElement('div');slot.className='stock-slot';slot.dataset.slotId=id;
-    slot.innerHTML=`<div class="stock-slot-header"><span class="slot-num">持股 #${num}</span><button class="btn-del" onclick="removeSlot(this)">✕ 移除</button></div>
-        <div class="ac-wrap" style="margin-bottom:10px;">
-            <input type="text" class="modal-input slot-ticker" placeholder="搜尋股票代號或名稱..." autocomplete="off" value="${data.ticker||''}" style="text-transform:uppercase;"
-                oninput="onSlotInput(${id},this.value)" onkeydown="onSlotKey(event,${id})">
-            <div class="ac-list" id="ac-list-${id}"></div>
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-            <div><label class="modal-label">持有股數</label><input type="number" class="modal-input slot-shares" placeholder="0" value="${data.shares||''}"></div>
-            <div><label class="modal-label">買入均價</label><input type="number" step="0.01" class="modal-input slot-buyprice" placeholder="0.00" value="${data.buyPrice||''}"></div>
-        </div>
-        <div class="slot-price-info text-xs" style="margin-top:8px;color:var(--text-secondary);${data.currentPrice>0?'':'display:none'}">
-            <span class="price-dot"></span>即時股價：<span class="slot-cur-price mono font-bold" style="color:var(--accent-cyan)">${data.currentPrice>0?data.currentPrice.toFixed(2):''}</span>
-            <input type="hidden" class="slot-cur-hidden" value="${data.currentPrice||0}">
-        </div>`;
-    container.appendChild(slot);renumberSlots();
-}
-function removeSlot(btn){btn.closest('.stock-slot').remove();renumberSlots();}
-function renumberSlots(){document.querySelectorAll('.stock-slot').forEach((el,i)=>el.querySelector('.slot-num').textContent=`持股 #${i+1}`);}
-
-async function onSlotInput(id,val){
-    clearTimeout(slotAcTimers[id]);
-    const list=document.getElementById(`ac-list-${id}`);
-    if(!val||val.length<1){list.classList.remove('open');list.innerHTML='';return;}
-    list.innerHTML='<div class="ac-spinner">搜尋中...</div>';list.classList.add('open');
-    slotAcTimers[id]=setTimeout(async()=>{
-        const results=await searchTickers(val);slotAcItems[id]=results;slotAcIdx[id]=-1;
-        if(!results.length){list.innerHTML='<div class="ac-spinner">找不到相關股票</div>';return;}
-        list.innerHTML=results.map((q,i)=>`<div class="ac-item" onclick="selectSlot(${id},${i})"><div style="display:flex;align-items:center;gap:8px;"><span class="ac-ticker">${q.symbol}</span><span class="ac-name">${q.shortname||''}</span></div><span class="ac-exch">${q.exchDisp||''}</span></div>`).join('');
-    },350);
-}
-function onSlotKey(e,id){
-    const list=document.getElementById(`ac-list-${id}`);if(!list.classList.contains('open'))return;
-    const items=list.querySelectorAll('.ac-item');if(!items.length)return;
-    if(e.key==='ArrowDown'){e.preventDefault();slotAcIdx[id]=Math.min(slotAcIdx[id]+1,items.length-1);}
-    else if(e.key==='ArrowUp'){e.preventDefault();slotAcIdx[id]=Math.max(slotAcIdx[id]-1,0);}
-    else if(e.key==='Enter'&&slotAcIdx[id]>=0){e.preventDefault();selectSlot(id,slotAcIdx[id]);return;}
-    else if(e.key==='Escape'){list.classList.remove('open');return;}
-    items.forEach((el,i)=>el.classList.toggle('active',i===slotAcIdx[id]));
-    if(slotAcIdx[id]>=0)items[slotAcIdx[id]].scrollIntoView({block:'nearest'});
-}
-async function selectSlot(id,idx){
-    const q=slotAcItems[id]?.[idx];if(!q)return;
-    const slot=document.querySelector(`.stock-slot[data-slot-id="${id}"]`);if(!slot)return;
-    slot.querySelector('.slot-ticker').value=q.symbol;
-    document.getElementById(`ac-list-${id}`).classList.remove('open');
-    const priceInfo=slot.querySelector('.slot-price-info');
-    const priceSpan=slot.querySelector('.slot-cur-price');
-    const priceHidden=slot.querySelector('.slot-cur-hidden');
-    priceSpan.textContent='取得中...';priceInfo.style.display='';
-    const price=await fetchStockPrice(q.symbol);
-    if(price!=null){priceSpan.textContent=price.toFixed(2);priceHidden.value=price;}
-    else{priceSpan.textContent='取得失敗';priceHidden.value=0;}
-}
 async function searchTickers(query){
     if(!query)return[];
     try{const r=await fetch(`https://finnhub.io/api/v1/search?q=${encodeURIComponent(query)}&token=${FINNHUB_KEY}`,{signal:AbortSignal.timeout(5000)});const d=await r.json();
