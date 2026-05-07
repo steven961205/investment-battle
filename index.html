@@ -205,11 +205,13 @@ function getMarketSession(){
 }
 // 回傳 { price(收盤), postPrice(盤後), prePrice(夜盤), session } 物件
 async function fetchFinnhubPrice(ticker){
-    // === 策略1：Tiingo IEX（即時，含盤後，有CORS）===
+    const CF_PROXY2='https://yf-proxy.steven961205.workers.dev';
+    // === 策略1：Tiingo IEX via CF Worker（即時，含盤後）===
     try{
+        const tiingoUrl=`https://api.tiingo.com/iex/${encodeURIComponent(ticker)}?token=${TIINGO_KEY}`;
         const r=await fetch(
-            `https://api.tiingo.com/iex/${encodeURIComponent(ticker)}?token=${TIINGO_KEY}`,
-            {headers:{'Content-Type':'application/json'}, signal:AbortSignal.timeout(8000)}
+            `${CF_PROXY2}?url=${encodeURIComponent(tiingoUrl)}`,
+            {signal:AbortSignal.timeout(8000)}
         );
         if(r.ok){
             const data=await r.json();
@@ -250,10 +252,9 @@ async function fetchFinnhubPrice(ticker){
     }catch(e){console.warn(`Tiingo失敗(${ticker}):`,e.message);}
 
     // === 策略2：Yahoo Finance via CF Worker（備援）===
-    const CF_PROXY='https://yf-proxy.steven961205.workers.dev';
     const v8Url=`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?interval=1m&range=1d&includePrePost=true`;
     try{
-        const r=await fetch(`${CF_PROXY}?url=${encodeURIComponent(v8Url)}`,{signal:AbortSignal.timeout(10000)});
+        const r=await fetch(`${CF_PROXY2}?url=${encodeURIComponent(v8Url)}`,{signal:AbortSignal.timeout(10000)});
         if(r.ok){
             const raw=await r.json();
             const result=raw?.chart?.result?.[0];
