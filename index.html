@@ -167,6 +167,7 @@ const firebaseConfig={apiKey:"AIzaSyB0JZSBEgE11JQvPINRIHkztapNazgCrPU",authDomai
 if(!firebase.apps.length)firebase.initializeApp(firebaseConfig);
 const db=firebase.database();
 const FINNHUB_KEY='d7tibnpr01qugn0ann00d7tibnpr01qugn0ann0g';
+const TIINGO_KEY='7329af027abffaca87bb56a2764ef4e81c78f481';
 const FUGLE_KEY='NTYwZmE2MjMtMTY3Ny00N2U3LTlkOGMtMTUxMmIxNTYyNmI4IDFhN2I2ZGQ2LTY2MzQtNGI0Yi1hYmE0LTI5YzZmYTE1ZjM4Zg==';
 const MAX_STOCKS=20;
 let participants=[],usdToTwd=32.5;
@@ -202,87 +203,63 @@ function getMarketSession(){
     if(totalMin>=960&&totalMin<1200) return '🌆 盤後';   // 16:00~20:00 ET
     return '💤 休市';
 }
-// 回傳 { price(收盤), extPrice(盤後/夜盤), session } 物件
+// 回傳 { price, postPrice, prePrice, session }
 async function fetchFinnhubPrice(ticker){
-    const CF_PROXY='https://yf-proxy.steven961205.workers.dev';
+    const CF='https://yf-proxy.steven961205.workers.dev';
 
-    const v8Url=`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?interval=1m&range=1d&includePrePost=true`;
+    // Yahoo Finance v8 — 1分鐘K線含盤後/夜盤
+    const yfUrl=`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?interval=1m&range=1d&includePrePost=true`;
     try{
-        const r=await fetch(`${CF_PROXY}?url=${encodeURIComponent(v8Url)}`,{signal:AbortSignal.timeout(10000)});
+        const r=await fetch(`${CF}?url=${encodeURIComponent(yfUrl)}`,{signal:AbortSignal.timeout(10000)});
         if(r.ok){
             const raw=await r.json();
             const result=raw?.chart?.result?.[0];
             const meta=result?.meta;
             if(meta){
-                // 用 tradingPeriods（歷史資料）而非 currentTradingPeriod（未來時段）
-                const tpPre    = meta.tradingPeriods?.pre?.[0]?.[0];
-                const tpPost   = meta.tradingPeriods?.post?.[0]?.[0];
-                const tpReg    = meta.tradingPeriods?.regular?.[0]?.[0];
-                const closes   = result?.indicators?.quote?.[0]?.close||[];
-                const volumes  = result?.indicators?.quote?.[0]?.volume||[];
-                const timestamps = result?.timestamp||[];
+                // 用 tradingPeriods（含昨日實際資料時段）比對 timestamp
+                const tpPost=meta.tradingPeriods?.post?.[0]?.[0];
+                const tpReg =meta.tradingPeriods?.regular?.[0]?.[0];
+                const tpPre =meta.tradingPeriods?.pre?.[0]?.[0];
+                const closes=result?.indicators?.quote?.[0]?.close||[];
+                const timestamps=result?.timestamp||[];
+                const regularPrice=meta.regularMarketPrice||null;
 
-                const regularPrice = meta.regularMarketPrice||null;
                 let lastRegularClose=null, lastPostClose=null, lastPreClose=null;
-
                 for(let i=timestamps.length-1;i>=0;i--){
-                    const ts=timestamps[i];
-                    const c=closes[i];
+                    const ts=timestamps[i]; const c=closes[i];
                     if(!c||c<=0) continue;
-
-                    if(tpPost && ts>=tpPost.start && ts<=tpPost.end){
-                        if(!lastPostClose) lastPostClose=c;
-                    } else if(tpReg && ts>=tpReg.start && ts<=tpReg.end){
-                        if(!lastRegularClose) lastRegularClose=c;
-                    } else if(tpPre && ts>=tpPre.start && ts<tpPre.end){
-                        if(!lastPreClose) lastPreClose=c;
-                    }
+                    if(tpPost&&ts>=tpPost.start&&ts<=tpPost.end){ if(!lastPostClose) lastPostClose=c; }
+                    else if(tpReg&&ts>=tpReg.start&&ts<=tpReg.end){ if(!lastRegularClose) lastRegularClose=c; }
+                    else if(tpPre&&ts>=tpPre.start&&ts<tpPre.end){ if(!lastPreClose) lastPreClose=c; }
                     if(lastPostClose&&lastRegularClose&&lastPreClose) break;
                 }
 
-                // currentTradingPeriod 用來判斷「現在」是哪個時段
-                const pre    = meta.currentTradingPeriod?.pre;
-                const post   = meta.currentTradingPeriod?.post;
-                const regular = meta.currentTradingPeriod?.regular;
-
-                // 判斷目前時段（用美東時間 Unix timestamp）
+                // 判斷現在時段
                 const nowSec=Date.now()/1000;
+                const ctPost=meta.currentTradingPeriod?.post;
+                const ctReg =meta.currentTradingPeriod?.regular;
+                const ctPre =meta.currentTradingPeriod?.pre;
                 let session='💤 休市';
-                let extPrice=null;
-                let currentPrice=regularPrice;
+                let currentPrice=regularPrice||lastRegularClose;
 
-                if(regular && nowSec>=regular.start && nowSec<=regular.end){
-                    // 盤中：用時間序列最後收盤（最即時）
+                if(ctReg&&nowSec>=ctReg.start&&nowSec<=ctReg.end){
                     session='🔔 盤中';
                     if(lastRegularClose) currentPrice=lastRegularClose;
-                } else if(pre && nowSec>=pre.start && nowSec<pre.end){
-                    // 夜盤/盤前
+                } else if(ctPre&&nowSec>=ctPre.start&&nowSec<ctPre.end){
                     session='🌙 夜盤';
-                    if(lastPreClose&&lastPreClose!==regularPrice) extPrice=lastPreClose;
-                } else if(post && nowSec>=post.start && nowSec<=post.end){
-                    // 盤後
+                } else if(ctPost&&nowSec>=ctPost.start&&nowSec<=ctPost.end){
                     session='🌆 盤後';
-                    if(lastPostClose&&lastPostClose!==regularPrice) extPrice=lastPostClose;
-                } else {
-                    // 休市：只要有盤後資料就顯示（不管是否等於regularPrice）
-                    if(lastPostClose&&lastPostClose>0){
-                        extPrice=lastPostClose;
-                        session='🌆 盤後';
-                    }
+                } else if(lastPostClose){
+                    session='🌆 盤後';
                 }
 
                 if(currentPrice>0){
-                    console.log(`[${ticker}] 現價:${currentPrice} 盤後:${lastPostClose} 夜盤:${lastPreClose} (${session})`);
-                    return {
-                        price: currentPrice,
-                        postPrice: lastPostClose||null,
-                        prePrice:  lastPreClose ||null,
-                        session
-                    };
+                    console.log(`[YF] ${ticker} 現價:${currentPrice} 盤後:${lastPostClose} 夜盤:${lastPreClose} (${session})`);
+                    return { price:currentPrice, postPrice:lastPostClose||null, prePrice:lastPreClose||null, session };
                 }
             }
         }
-    }catch(e){console.warn(`CF v8失敗(${ticker}):`,e.message);}
+    }catch(e){console.warn(`YF失敗(${ticker}):`,e.message);}
 
     // Finnhub 備援
     try{
@@ -293,6 +270,7 @@ async function fetchFinnhubPrice(ticker){
     }catch(e){}
     return null;
 }
+
 async function fetchTWSEPrice(ticker){
     const code = ticker.replace('.TW','').replace('.TWO','');
 
