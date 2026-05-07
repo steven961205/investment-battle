@@ -263,10 +263,10 @@ async function fetchFinnhubPrice(ticker){
                     session='🌆 盤後';
                     if(lastPostClose&&lastPostClose!==regularPrice) extPrice=lastPostClose;
                 } else {
-                    // 休市但有盤後資料，仍顯示
-                    if(lastPostClose&&lastPostClose!==regularPrice){
+                    // 休市：只要有盤後資料就顯示（不管是否等於regularPrice）
+                    if(lastPostClose&&lastPostClose>0){
                         extPrice=lastPostClose;
-                        session='🌆 盤後（已結束）';
+                        session='🌆 盤後';
                     }
                 }
 
@@ -274,8 +274,8 @@ async function fetchFinnhubPrice(ticker){
                     console.log(`[${ticker}] 現價:${currentPrice} 盤後:${lastPostClose} 夜盤:${lastPreClose} (${session})`);
                     return {
                         price: currentPrice,
-                        postPrice: (lastPostClose&&lastPostClose!==regularPrice)?lastPostClose:null,
-                        prePrice:  (lastPreClose &&lastPreClose !==regularPrice)?lastPreClose :null,
+                        postPrice: lastPostClose||null,
+                        prePrice:  lastPreClose ||null,
                         session
                     };
                 }
@@ -449,17 +449,23 @@ function renderDashboard(){
                         <span class="mono font-bold text-cyan-400">${s.ticker}</span>
                         <span class="text-white font-semibold">${(s.shares||0).toLocaleString()} 股</span>
                     </div>
+                    <!-- 主要行：買入價 / 最新價（含標籤）/ 損益 -->
                     <div style="display:flex;justify-content:space-between;align-items:center;" class="text-slate-400 text-xs">
                         <span>買入 <span class="mono text-white">${fmtRaw(s.buyPrice||0,p.currency,2)}</span></span>
-                        <span>${s.prePrice?'🌙 夜盤':s.postPrice?'🌆 盤後':'收盤'} <span class="mono text-cyan-300 font-bold">${fmtRaw(latestPrice,p.currency,2)}</span></span>
+                        <span>收盤 <span class="mono text-cyan-300 font-bold">${fmtRaw(s.currentPrice||0,p.currency,2)}</span></span>
                         <span class="font-bold mono ${pc}">${ps}${fmtRaw(pnl,p.currency)} <span style="opacity:.8">(${pnlPctSign}${pnlPct}%)</span></span>
                     </div>
-                    ${(postPrice&&!prePrice)?`<div style="display:flex;justify-content:space-between;align-items:center;margin-top:5px;padding-top:5px;border-top:1px solid rgba(30,58,95,.5);" class="text-xs">
-                        <span style="color:var(--text-muted);">收盤 ${fmtRaw(s.currentPrice||0,p.currency,2)}</span>
+                    <!-- 盤後行 -->
+                    ${postPrice?`<div style="display:flex;justify-content:space-between;align-items:center;margin-top:5px;padding-top:5px;border-top:1px solid rgba(30,58,95,.4);" class="text-xs">
+                        <span style="color:var(--accent-amber);font-weight:600;">🌆 盤後</span>
+                        <span class="mono font-bold" style="color:var(--accent-amber);">${fmtRaw(postPrice,p.currency,2)}</span>
+                        <span class="font-bold mono ${postPc}">${postSign}${fmtRaw(Math.abs(postPnl||0),p.currency)}</span>
                     </div>`:''}
-                    ${(postPrice&&prePrice)?`<div style="display:flex;justify-content:space-between;align-items:center;margin-top:5px;padding-top:5px;border-top:1px solid rgba(30,58,95,.5);" class="text-xs">
-                        <span style="color:var(--text-muted);">盤後 ${fmtRaw(postPrice,p.currency,2)}</span>
-                        <span style="color:var(--text-muted);">收盤 ${fmtRaw(s.currentPrice||0,p.currency,2)}</span>
+                    <!-- 夜盤行 -->
+                    ${prePrice?`<div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;padding-top:4px;border-top:1px solid rgba(30,58,95,.3);" class="text-xs">
+                        <span style="color:#a78bfa;font-weight:600;">🌙 夜盤</span>
+                        <span class="mono font-bold" style="color:#a78bfa;">${fmtRaw(prePrice,p.currency,2)}</span>
+                        <span class="font-bold mono ${prePc}">${preSign}${fmtRaw(Math.abs(prePnl||0),p.currency)}</span>
                     </div>`:''}
                 </div>`;
               }).join('');
