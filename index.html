@@ -758,7 +758,7 @@ async function refreshPrices(){
             }
         }));
     }));
-    if(anyUpdate) renderDashboard();
+    renderDashboard(); // 每次刷新都重新渲染確保盤後/夜盤顯示
     const session = getMarketSession();
     setStatus('ok', `🟢 已連線｜1 USD = ${usdToTwd.toFixed(2)} TWD｜美股 ${session}｜${new Date().toLocaleTimeString('zh-TW')}`);
 }
