@@ -214,35 +214,36 @@ async function fetchFinnhubPrice(ticker){
             const result=raw?.chart?.result?.[0];
             const meta=result?.meta;
             if(meta){
-                const pre=meta.currentTradingPeriod?.pre;
-                const post=meta.currentTradingPeriod?.post;
-                const regular=meta.currentTradingPeriod?.regular;
-                const closes=result?.indicators?.quote?.[0]?.close||[];
-                const volumes=result?.indicators?.quote?.[0]?.volume||[];
-                const timestamps=result?.timestamp||[];
+                // 用 tradingPeriods（歷史資料）而非 currentTradingPeriod（未來時段）
+                const tpPre    = meta.tradingPeriods?.pre?.[0]?.[0];
+                const tpPost   = meta.tradingPeriods?.post?.[0]?.[0];
+                const tpReg    = meta.tradingPeriods?.regular?.[0]?.[0];
+                const closes   = result?.indicators?.quote?.[0]?.close||[];
+                const volumes  = result?.indicators?.quote?.[0]?.volume||[];
+                const timestamps = result?.timestamp||[];
 
-                // 收盤價 = meta.regularMarketPrice（最可靠）
-                const regularPrice=meta.regularMarketPrice||null;
-
-                // 分別找各時段最後一筆有效收盤價（不管現在幾點）
+                const regularPrice = meta.regularMarketPrice||null;
                 let lastRegularClose=null, lastPostClose=null, lastPreClose=null;
 
                 for(let i=timestamps.length-1;i>=0;i--){
                     const ts=timestamps[i];
                     const c=closes[i];
-                    const v=volumes[i];
                     if(!c||c<=0) continue;
 
-                    if(post && ts>=post.start && ts<=post.end){
+                    if(tpPost && ts>=tpPost.start && ts<=tpPost.end){
                         if(!lastPostClose) lastPostClose=c;
-                    } else if(regular && ts>=regular.start && ts<=regular.end){
+                    } else if(tpReg && ts>=tpReg.start && ts<=tpReg.end){
                         if(!lastRegularClose) lastRegularClose=c;
-                    } else if(pre && ts>=pre.start && ts<pre.end){
+                    } else if(tpPre && ts>=tpPre.start && ts<tpPre.end){
                         if(!lastPreClose) lastPreClose=c;
                     }
-                    // 三個都找到就停
                     if(lastPostClose&&lastRegularClose&&lastPreClose) break;
                 }
+
+                // currentTradingPeriod 用來判斷「現在」是哪個時段
+                const pre    = meta.currentTradingPeriod?.pre;
+                const post   = meta.currentTradingPeriod?.post;
+                const regular = meta.currentTradingPeriod?.regular;
 
                 // 判斷目前時段（用美東時間 Unix timestamp）
                 const nowSec=Date.now()/1000;
