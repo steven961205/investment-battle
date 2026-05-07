@@ -205,48 +205,49 @@ function getMarketSession(){
 // 回傳 { price(收盤), extPrice(盤後/夜盤), session } 物件
 async function fetchFinnhubPrice(ticker){
     const CF_PROXY='https://yf-proxy.steven961205.workers.dev';
-    const v7Url=`https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(ticker)}&fields=regularMarketPrice,preMarketPrice,postMarketPrice,marketState`;
 
-    // 主力：Cloudflare Worker proxy（自架，穩定無限制）
+    // Yahoo Finance v8 chart — 使用 2m interval 抓最新價格（含盤後/夜盤）
+    const v8Url=`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?interval=2m&range=1d&includePrePost=true`;
     try{
-        const r=await fetch(`${CF_PROXY}?url=${encodeURIComponent(v7Url)}`,{signal:AbortSignal.timeout(8000)});
+        const r=await fetch(`${CF_PROXY}?url=${encodeURIComponent(v8Url)}`,{signal:AbortSignal.timeout(10000)});
         if(r.ok){
             const raw=await r.json();
-            const q=raw?.quoteResponse?.result?.[0];
-            if(q){
-                const state=q.marketState||'CLOSED';
-                const regularPrice=q.regularMarketPrice||null;
-                const prePrice=q.preMarketPrice||null;
-                const postPrice=q.postMarketPrice||null;
-                let extPrice=null, session='';
-                if(state==='PRE'&&prePrice>0){ extPrice=prePrice; session='🌙 夜盤'; }
-                else if(state==='POST'&&postPrice>0){ extPrice=postPrice; session='🌆 盤後'; }
-                else if(state==='REGULAR'){ session='🔔 盤中'; }
-                else{
-                    if(postPrice>0){ extPrice=postPrice; session='🌆 盤後'; }
-                    else{ session='💤 休市'; }
+            const result=raw?.chart?.result?.[0];
+            const meta=result?.meta;
+            if(meta){
+                const regularPrice=meta.regularMarketPrice||meta.chartPreviousClose||null;
+                // 判斷目前時段
+                const now=Date.now()/1000;
+                const pre=meta.currentTradingPeriod?.pre;
+                const post=meta.currentTradingPeriod?.post;
+                const regular=meta.currentTradingPeriod?.regular;
+                let extPrice=null, session='💤 休市';
+
+                if(pre && now>=pre.start && now<=pre.end){
+                    // 現在是盤前/夜盤時段，取最後一筆 close
+                    const closes=result?.indicators?.quote?.[0]?.close||[];
+                    const lastClose=closes.filter(v=>v!=null).pop();
+                    if(lastClose&&lastClose!==regularPrice){ extPrice=lastClose; session='🌙 夜盤'; }
+                    else session='🌙 夜盤';
+                } else if(post && now>=post.start && now<=post.end){
+                    // 現在是盤後時段
+                    const closes=result?.indicators?.quote?.[0]?.close||[];
+                    const lastClose=closes.filter(v=>v!=null).pop();
+                    if(lastClose&&lastClose!==regularPrice){ extPrice=lastClose; session='🌆 盤後'; }
+                    else session='🌆 盤後';
+                } else if(regular && now>=regular.start && now<=regular.end){
+                    session='🔔 盤中';
                 }
+
                 if(regularPrice>0){
-                    console.log(`[${ticker}] ${session} 收盤:${regularPrice} 延伸:${extPrice}`);
+                    console.log(`[${ticker}] 收盤:${regularPrice} 延伸:${extPrice} (${session})`);
                     return {price:regularPrice, extPrice, session};
                 }
             }
         }
-    }catch(e){console.warn(`CF Worker失敗(${ticker}):`,e.message);}
+    }catch(e){console.warn(`CF v8失敗(${ticker}):`,e.message);}
 
-    // v8 備援
-    const v8Url=`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?interval=1d&range=1d`;
-    try{
-        const r=await fetch(`${CF_PROXY}?url=${encodeURIComponent(v8Url)}`,{signal:AbortSignal.timeout(8000)});
-        if(r.ok){
-            const raw=await r.json();
-            const meta=raw?.chart?.result?.[0]?.meta;
-            const price=meta?.regularMarketPrice||meta?.chartPreviousClose||null;
-            if(price>0) return {price, extPrice:null, session:'💤 休市'};
-        }
-    }catch(e){}
-
-    // Finnhub 最終備援
+    // Finnhub 備援（只有收盤價）
     try{
         const r=await fetch(`https://finnhub.io/api/v1/quote?symbol=${encodeURIComponent(ticker)}&token=${FINNHUB_KEY}`,{signal:AbortSignal.timeout(8000)});
         const d=await r.json();
