@@ -102,6 +102,43 @@
         <div id="leaderboard" class="flex flex-col gap-3"></div>
     </section>
     <section class="grid grid-cols-1 md:grid-cols-3 gap-5" id="portfolios"></section>
+
+    <!-- 璽子打牌身涯紀錄 -->
+    <section class="card p-6 mt-8" id="poker-section">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+            <h2 class="text-lg font-bold text-white flex items-center gap-2">
+                <span>🃏</span> 璽子打牌身涯紀錄
+            </h2>
+            <button onclick="openPokerModal()" class="btn-add-trade" style="font-size:12px;padding:6px 14px;">＋ 新增紀錄</button>
+        </div>
+        <div id="poker-records"></div>
+        <div id="poker-total" style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
+            <span class="text-slate-400 font-semibold">身涯總計</span>
+            <span id="poker-total-value" class="mono font-bold text-2xl">NT$ 0</span>
+        </div>
+    </section>
+</div>
+
+<!-- 打牌紀錄 Modal -->
+<div id="pokerModal" class="modal-overlay" style="z-index:70">
+    <div class="modal-box" style="width:380px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+            <h2 class="text-lg font-bold text-white">新增打牌紀錄</h2>
+            <button onclick="closePokerModal()" class="text-slate-500 hover:text-white text-xl leading-none">&times;</button>
+        </div>
+        <div class="mb-3">
+            <label class="modal-label">日期</label>
+            <input type="date" id="pokerDate" class="modal-input">
+        </div>
+        <div class="mb-5">
+            <label class="modal-label">金額（正數=贏 負數=輸）</label>
+            <input type="number" id="pokerAmount" placeholder="例：500 或 -200" class="modal-input">
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:10px;">
+            <button onclick="closePokerModal()" class="btn-cancel">取消</button>
+            <button onclick="savePokerRecord()" class="btn-save">＋ 新增</button>
+        </div>
+    </div>
 </div>
 
 <!-- 持倉 Modal -->
@@ -715,7 +752,70 @@ function deleteTrade(name,idx){
     db.ref('competitionData/'+pi+'/trades').set(t);
 }
 
-document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal();closeTradeModal();}});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal();closeTradeModal();closePokerModal();}});
+
+// ── 璽子打牌紀錄 ──────────────────────────
+function openPokerModal(){
+    // 預設今天日期
+    document.getElementById('pokerDate').value = new Date().toISOString().slice(0,10);
+    document.getElementById('pokerAmount').value = '';
+    document.getElementById('pokerModal').classList.add('open');
+}
+function closePokerModal(){ document.getElementById('pokerModal').classList.remove('open'); }
+
+function savePokerRecord(){
+    const date   = document.getElementById('pokerDate').value;
+    const amount = parseFloat(document.getElementById('pokerAmount').value);
+    if(!date || isNaN(amount)){ alert('請填入日期和金額'); return; }
+    const newRecord = { date, amount };
+    db.ref('pokerRecords').push(newRecord);
+    closePokerModal();
+}
+
+function deletePokerRecord(key){
+    if(!confirm('確定刪除這筆紀錄？')) return;
+    db.ref('pokerRecords/' + key).remove();
+}
+
+// 監聽打牌紀錄
+db.ref('pokerRecords').on('value', snapshot=>{
+    const data = snapshot.val();
+    const records = data ? Object.entries(data).map(([k,v])=>({key:k,...v})) : [];
+    // 依日期排序（新→舊）
+    records.sort((a,b)=> b.date.localeCompare(a.date));
+
+    const container = document.getElementById('poker-records');
+    const totalEl   = document.getElementById('poker-total-value');
+
+    if(records.length === 0){
+        container.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:16px;font-size:13px;">尚無紀錄</div>';
+        totalEl.textContent = 'NT$ 0';
+        totalEl.style.color = 'var(--text-secondary)';
+        return;
+    }
+
+    // 渲染紀錄列表
+    container.innerHTML = records.map(r=>{
+        const pos = r.amount >= 0;
+        const sign = pos ? '+' : '';
+        const color = pos ? 'var(--accent-green)' : 'var(--accent-red)';
+        const abs = Math.abs(r.amount).toLocaleString('zh-TW');
+        return `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid rgba(30,58,95,.4);">
+            <span style="color:var(--text-secondary);font-size:13px;">${r.date}</span>
+            <div style="display:flex;align-items:center;gap:12px;">
+                <span class="mono font-bold" style="color:${color};font-size:15px;">${sign}NT$ ${abs}</span>
+                <button class="btn-del" onclick="deletePokerRecord('${r.key}')" title="刪除">✕</button>
+            </div>
+        </div>`;
+    }).join('');
+
+    // 計算總計
+    const total = records.reduce((sum,r)=>sum+(r.amount||0), 0);
+    const totalSign = total >= 0 ? '+' : '';
+    const totalAbs  = Math.abs(total).toLocaleString('zh-TW');
+    totalEl.textContent = `${totalSign}NT$ ${totalAbs}`;
+    totalEl.style.color = total > 0 ? 'var(--accent-green)' : total < 0 ? 'var(--accent-red)' : 'var(--text-secondary)';
+});
 
 const endDate=new Date('2026-11-04T00:00:00').getTime();
 (function tick(){const d=endDate-Date.now();if(d<0){document.getElementById('countdown').textContent='比賽已結束！';return;}
