@@ -440,7 +440,7 @@ function renderDashboard(){
                     <!-- 主要行：買入價 / 最新價（含標籤）/ 損益 -->
                     <div style="display:flex;justify-content:space-between;align-items:center;" class="text-slate-400 text-xs">
                         <span>買入 <span class="mono text-white">${fmtRaw(s.buyPrice||0,p.currency,2)}</span></span>
-                        <span>收盤 <span class="mono text-cyan-300 font-bold">${fmtRaw(s.currentPrice||0,p.currency,2)}</span></span>
+                        <span>${sess2==='🔔 盤中'?'即時':'收盤'} <span class="mono text-cyan-300 font-bold">${fmtRaw(latestPrice,p.currency,2)}</span></span>
                         <span class="font-bold mono ${pc}">${ps}${fmtRaw(pnl,p.currency)} <span style="opacity:.8">(${pnlPctSign}${pnlPct}%)</span></span>
                     </div>
                     <!-- 依時段顯示延伸價格行 -->
