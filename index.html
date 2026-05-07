@@ -234,23 +234,26 @@ async function fetchFinnhubPrice(ticker){
                     if(lastPostClose&&lastRegularClose&&lastPreClose) break;
                 }
 
-                // 判斷現在時段
-                const nowSec=Date.now()/1000;
-                const ctPost=meta.currentTradingPeriod?.post;
-                const ctReg =meta.currentTradingPeriod?.regular;
-                const ctPre =meta.currentTradingPeriod?.pre;
+                // 用美東時間判斷現在時段（不依賴 currentTradingPeriod）
+                const etNow=new Date(new Date().toLocaleString('en-US',{timeZone:'America/New_York'}));
+                const h=etNow.getHours(), m=etNow.getMinutes(), day=etNow.getDay();
+                const totalMin=h*60+m;
+                const isWeekday=day>=1&&day<=5;
                 let session='💤 休市';
                 let currentPrice=regularPrice||lastRegularClose;
 
-                if(ctReg&&nowSec>=ctReg.start&&nowSec<=ctReg.end){
-                    session='🔔 盤中';
-                    if(lastRegularClose) currentPrice=lastRegularClose;
-                } else if(ctPre&&nowSec>=ctPre.start&&nowSec<ctPre.end){
-                    session='🌙 夜盤';
-                } else if(ctPost&&nowSec>=ctPost.start&&nowSec<=ctPost.end){
-                    session='🌆 盤後';
-                } else if(lastPostClose){
-                    session='🌆 盤後';
+                if(isWeekday){
+                    if(totalMin>=570&&totalMin<960){
+                        // 09:30~16:00 盤中
+                        session='🔔 盤中';
+                        if(lastRegularClose) currentPrice=lastRegularClose;
+                    } else if(totalMin>=960&&totalMin<1200){
+                        // 16:00~20:00 盤後
+                        session='🌆 盤後';
+                    } else if(totalMin>=240&&totalMin<570){
+                        // 04:00~09:30 夜盤（盤前）
+                        session='🌙 夜盤';
+                    }
                 }
 
                 if(currentPrice>0){
@@ -376,8 +379,11 @@ function renderDashboard(){
         const trades=Array.isArray(p.trades)?p.trades:[];
         let totalMV=0,totalUnPnl=0;
         stocks.forEach(s=>{
-            // 最新價優先順序：夜盤 > 盤後 > 收盤
-            const latestPrice=s.prePrice||s.postPrice||s.currentPrice||0;
+            // 依時段選最新價
+            const sess=s.session||'';
+            const latestPrice=(sess==='🌙 夜盤'&&s.prePrice)?s.prePrice:
+                              (sess==='🌆 盤後'&&s.postPrice)?s.postPrice:
+                              s.currentPrice||0;
             const mv=(s.shares||0)*latestPrice;
             const cost=(s.shares||0)*(s.buyPrice||0);
             totalMV+=mv;
@@ -399,8 +405,11 @@ function renderDashboard(){
         const holdHTML=stocks.length===0
             ?`<div class="holding-row text-center text-slate-500">目前無持股紀錄</div>`
             :stocks.map(s=>{
-                // 最新價優先順序：夜盤 > 盤後 > 收盤
-                const latestPrice=s.prePrice||s.postPrice||s.currentPrice||0;
+                // 依時段選最新價
+                const sess2=s.session||'';
+                const latestPrice=(sess2==='🌙 夜盤'&&s.prePrice)?s.prePrice:
+                                  (sess2==='🌆 盤後'&&s.postPrice)?s.postPrice:
+                                  s.currentPrice||0;
                 const mv=(s.shares||0)*latestPrice;
                 const cost=(s.shares||0)*(s.buyPrice||0);
                 const pnl=mv-cost;
@@ -434,14 +443,13 @@ function renderDashboard(){
                         <span>收盤 <span class="mono text-cyan-300 font-bold">${fmtRaw(s.currentPrice||0,p.currency,2)}</span></span>
                         <span class="font-bold mono ${pc}">${ps}${fmtRaw(pnl,p.currency)} <span style="opacity:.8">(${pnlPctSign}${pnlPct}%)</span></span>
                     </div>
-                    <!-- 盤後行 -->
-                    ${postPrice?`<div style="display:flex;justify-content:space-between;align-items:center;margin-top:5px;padding-top:5px;border-top:1px solid rgba(30,58,95,.4);" class="text-xs">
+                    <!-- 依時段顯示延伸價格行 -->
+                    ${(session==='🌆 盤後'&&postPrice)?`<div style="display:flex;justify-content:space-between;align-items:center;margin-top:5px;padding-top:5px;border-top:1px solid rgba(30,58,95,.4);" class="text-xs">
                         <span style="color:var(--accent-amber);font-weight:600;">🌆 盤後</span>
                         <span class="mono font-bold" style="color:var(--accent-amber);">${fmtRaw(postPrice,p.currency,2)}</span>
                         <span class="font-bold mono ${postPc}">${postSign}${fmtRaw(Math.abs(postPnl||0),p.currency)}</span>
                     </div>`:''}
-                    <!-- 夜盤行 -->
-                    ${prePrice?`<div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;padding-top:4px;border-top:1px solid rgba(30,58,95,.3);" class="text-xs">
+                    ${(session==='🌙 夜盤'&&prePrice)?`<div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;padding-top:4px;border-top:1px solid rgba(30,58,95,.3);" class="text-xs">
                         <span style="color:#a78bfa;font-weight:600;">🌙 夜盤</span>
                         <span class="mono font-bold" style="color:#a78bfa;">${fmtRaw(prePrice,p.currency,2)}</span>
                         <span class="font-bold mono ${prePc}">${preSign}${fmtRaw(Math.abs(prePnl||0),p.currency)}</span>
