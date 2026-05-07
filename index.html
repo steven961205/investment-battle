@@ -206,7 +206,8 @@ function getMarketSession(){
 async function fetchFinnhubPrice(ticker){
     const CF_PROXY='https://yf-proxy.steven961205.workers.dev';
 
-    // Yahoo Finance v8 chart — 使用 1m interval 抓最新即時價格（含盤後/夜盤）
+    // 策略：從 timestamp 陣列判斷今日資料，取最新一筆 close
+    // 同時抓盤前/盤後時段的延伸交易價格
     const v8Url=`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?interval=1m&range=1d&includePrePost=true`;
     try{
         const r=await fetch(`${CF_PROXY}?url=${encodeURIComponent(v8Url)}`,{signal:AbortSignal.timeout(10000)});
@@ -220,41 +221,59 @@ async function fetchFinnhubPrice(ticker){
                 const post=meta.currentTradingPeriod?.post;
                 const regular=meta.currentTradingPeriod?.regular;
 
-                // 取時間序列最後一筆作為最新價（最即時）
                 const closes=result?.indicators?.quote?.[0]?.close||[];
+                const volumes=result?.indicators?.quote?.[0]?.volume||[];
                 const timestamps=result?.timestamp||[];
-                const lastClose=closes.filter(v=>v!=null).pop();
-                const lastTS=timestamps[timestamps.length-1]||0;
 
-                // regularMarketPrice 是收盤/最新成交
-                const regularPrice=meta.regularMarketPrice||meta.chartPreviousClose||null;
+                // 找有成交量的最後一筆（排除 volume=0 的空資料）
+                let lastValidClose=null, lastValidTS=0;
+                let lastPreClose=null, lastPostClose=null;
 
-                let currentPrice=regularPrice;
-                let extPrice=null, session='💤 休市';
+                for(let i=timestamps.length-1;i>=0;i--){
+                    const ts=timestamps[i];
+                    const c=closes[i];
+                    const v=volumes[i];
+                    if(!c||c<=0) continue;
 
-                if(regular && now>=regular.start && now<=regular.end){
-                    // 盤中：用時間序列最後一筆（最即時）
-                    session='🔔 盤中';
-                    if(lastClose&&lastClose>0) currentPrice=lastClose;
-                } else if(pre && now>=pre.start && now<=pre.end){
-                    // 夜盤/盤前：延伸價用時間序列最後一筆
-                    session='🌙 夜盤';
-                    if(lastClose&&lastClose>0&&lastClose!==regularPrice){ extPrice=lastClose; }
-                } else if(post && now>=post.start && now<=post.end){
-                    // 盤後：延伸價用時間序列最後一筆
-                    session='🌆 盤後';
-                    if(lastClose&&lastClose>0&&lastClose!==regularPrice){ extPrice=lastClose; }
+                    // 判斷這筆資料屬於哪個時段
+                    if(regular && ts>=regular.start && ts<=regular.end){
+                        if(!lastValidClose){ lastValidClose=c; lastValidTS=ts; }
+                    } else if(post && ts>=post.start){
+                        if(v>0&&!lastPostClose) lastPostClose=c;
+                        if(!lastValidClose){ lastValidClose=c; lastValidTS=ts; }
+                    } else if(pre && ts>=pre.start && ts<pre.end){
+                        if(v>0&&!lastPreClose) lastPreClose=c;
+                        if(!lastValidClose){ lastValidClose=c; lastValidTS=ts; }
+                    }
+                    if(lastValidClose&&lastPostClose) break;
                 }
 
+                // 最終收盤價用 meta.regularMarketPrice（最可靠）
+                const regularPrice=meta.regularMarketPrice||lastValidClose||null;
+
+                let extPrice=null, session='💤 休市';
+                if(regular && now>=regular.start && now<=regular.end){
+                    session='🔔 盤中';
+                } else if(pre && now>=pre.start && now<pre.end){
+                    session='🌙 夜盤';
+                    if(lastPreClose&&lastPreClose!==regularPrice) extPrice=lastPreClose;
+                } else if(post && now>=post.start && now<=post.end){
+                    session='🌆 盤後';
+                    if(lastPostClose&&lastPostClose!==regularPrice) extPrice=lastPostClose;
+                }
+
+                // 盤中用 lastValidClose 最即時，其他時段用 regularMarketPrice
+                const currentPrice=(session==='🔔 盤中'&&lastValidClose)?lastValidClose:regularPrice;
+
                 if(currentPrice>0){
-                    console.log(`[${ticker}] 現價:${currentPrice} 收盤:${regularPrice} 延伸:${extPrice} (${session})`);
+                    console.log(`[${ticker}] 現價:${currentPrice} 延伸:${extPrice} (${session}) ts:${new Date(lastValidTS*1000).toLocaleTimeString()}`);
                     return {price:currentPrice, extPrice, session};
                 }
             }
         }
     }catch(e){console.warn(`CF v8失敗(${ticker}):`,e.message);}
 
-    // Finnhub 備援（只有收盤價）
+    // Finnhub 備援
     try{
         const r=await fetch(`https://finnhub.io/api/v1/quote?symbol=${encodeURIComponent(ticker)}&token=${FINNHUB_KEY}`,{signal:AbortSignal.timeout(8000)});
         const d=await r.json();
