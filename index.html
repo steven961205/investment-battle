@@ -206,8 +206,8 @@ function getMarketSession(){
 async function fetchFinnhubPrice(ticker){
     const CF_PROXY='https://yf-proxy.steven961205.workers.dev';
 
-    // Yahoo Finance v8 chart — 使用 2m interval 抓最新價格（含盤後/夜盤）
-    const v8Url=`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?interval=2m&range=1d&includePrePost=true`;
+    // Yahoo Finance v8 chart — 使用 1m interval 抓最新即時價格（含盤後/夜盤）
+    const v8Url=`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?interval=1m&range=1d&includePrePost=true`;
     try{
         const r=await fetch(`${CF_PROXY}?url=${encodeURIComponent(v8Url)}`,{signal:AbortSignal.timeout(10000)});
         if(r.ok){
@@ -215,33 +215,40 @@ async function fetchFinnhubPrice(ticker){
             const result=raw?.chart?.result?.[0];
             const meta=result?.meta;
             if(meta){
-                const regularPrice=meta.regularMarketPrice||meta.chartPreviousClose||null;
-                // 判斷目前時段
                 const now=Date.now()/1000;
                 const pre=meta.currentTradingPeriod?.pre;
                 const post=meta.currentTradingPeriod?.post;
                 const regular=meta.currentTradingPeriod?.regular;
+
+                // 取時間序列最後一筆作為最新價（最即時）
+                const closes=result?.indicators?.quote?.[0]?.close||[];
+                const timestamps=result?.timestamp||[];
+                const lastClose=closes.filter(v=>v!=null).pop();
+                const lastTS=timestamps[timestamps.length-1]||0;
+
+                // regularMarketPrice 是收盤/最新成交
+                const regularPrice=meta.regularMarketPrice||meta.chartPreviousClose||null;
+
+                let currentPrice=regularPrice;
                 let extPrice=null, session='💤 休市';
 
-                if(pre && now>=pre.start && now<=pre.end){
-                    // 現在是盤前/夜盤時段，取最後一筆 close
-                    const closes=result?.indicators?.quote?.[0]?.close||[];
-                    const lastClose=closes.filter(v=>v!=null).pop();
-                    if(lastClose&&lastClose!==regularPrice){ extPrice=lastClose; session='🌙 夜盤'; }
-                    else session='🌙 夜盤';
-                } else if(post && now>=post.start && now<=post.end){
-                    // 現在是盤後時段
-                    const closes=result?.indicators?.quote?.[0]?.close||[];
-                    const lastClose=closes.filter(v=>v!=null).pop();
-                    if(lastClose&&lastClose!==regularPrice){ extPrice=lastClose; session='🌆 盤後'; }
-                    else session='🌆 盤後';
-                } else if(regular && now>=regular.start && now<=regular.end){
+                if(regular && now>=regular.start && now<=regular.end){
+                    // 盤中：用時間序列最後一筆（最即時）
                     session='🔔 盤中';
+                    if(lastClose&&lastClose>0) currentPrice=lastClose;
+                } else if(pre && now>=pre.start && now<=pre.end){
+                    // 夜盤/盤前：延伸價用時間序列最後一筆
+                    session='🌙 夜盤';
+                    if(lastClose&&lastClose>0&&lastClose!==regularPrice){ extPrice=lastClose; }
+                } else if(post && now>=post.start && now<=post.end){
+                    // 盤後：延伸價用時間序列最後一筆
+                    session='🌆 盤後';
+                    if(lastClose&&lastClose>0&&lastClose!==regularPrice){ extPrice=lastClose; }
                 }
 
-                if(regularPrice>0){
-                    console.log(`[${ticker}] 收盤:${regularPrice} 延伸:${extPrice} (${session})`);
-                    return {price:regularPrice, extPrice, session};
+                if(currentPrice>0){
+                    console.log(`[${ticker}] 現價:${currentPrice} 收盤:${regularPrice} 延伸:${extPrice} (${session})`);
+                    return {price:currentPrice, extPrice, session};
                 }
             }
         }
