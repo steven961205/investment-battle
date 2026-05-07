@@ -182,11 +182,85 @@ async function fetchExchangeRate(){try{const r=await fetch('https://open.er-api.
 
 async function fetchStockPrice(ticker){
     if(!ticker)return null;
-    if(ticker.endsWith('.TW')||ticker.endsWith('.TWO'))return fetchTWSEPrice(ticker);
+    if(ticker.endsWith('.TW')||ticker.endsWith('.TWO')){
+        const p=await fetchTWSEPrice(ticker);
+        return p!=null?{price:p,extPrice:null,session:''}:null;
+    }
     return fetchFinnhubPrice(ticker);
 }
+
+// 取得目前美股市場時段（台灣時間）
+function getMarketSession(){
+    const now = new Date();
+    // 轉成美東時間
+    const et = new Date(now.toLocaleString('en-US',{timeZone:'America/New_York'}));
+    const h=et.getHours(), m=et.getMinutes(), day=et.getDay();
+    if(day===0||day===6) return '週末';
+    const totalMin=h*60+m;
+    if(totalMin>=240&&totalMin<570)  return '🌙 夜盤';   // 04:00~09:30 ET
+    if(totalMin>=570&&totalMin<960)  return '🔔 盤中';   // 09:30~16:00 ET
+    if(totalMin>=960&&totalMin<1200) return '🌆 盤後';   // 16:00~20:00 ET
+    return '💤 休市';
+}
+// 回傳 { price(收盤), extPrice(盤後/夜盤), session } 物件
 async function fetchFinnhubPrice(ticker){
-    try{const r=await fetch(`https://finnhub.io/api/v1/quote?symbol=${encodeURIComponent(ticker)}&token=${FINNHUB_KEY}`,{signal:AbortSignal.timeout(8000)});const d=await r.json();return(d.c&&d.c>0)?d.c:(d.pc>0?d.pc:null);}catch(e){return null;}
+    const proxies=[
+        u=>`https://api.allorigins.win/get?url=${encodeURIComponent(u)}`,
+        u=>`https://corsproxy.io/?url=${encodeURIComponent(u)}`,
+    ];
+    const v7Url=`https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(ticker)}&fields=regularMarketPrice,preMarketPrice,postMarketPrice,marketState`;
+
+    for(let i=0;i<proxies.length;i++){
+        try{
+            const r=await fetch(proxies[i](v7Url),{signal:AbortSignal.timeout(8000)});
+            if(!r.ok)continue;
+            let raw;
+            if(i===0){const outer=await r.json();raw=JSON.parse(outer.contents);}
+            else{raw=await r.json();}
+            const q=raw?.quoteResponse?.result?.[0];
+            if(!q)continue;
+            const state=q.marketState||'CLOSED';
+            const regularPrice=q.regularMarketPrice||null;
+            const prePrice=q.preMarketPrice||null;
+            const postPrice=q.postMarketPrice||null;
+            let extPrice=null, session='';
+            if(state==='PRE'&&prePrice>0){ extPrice=prePrice; session='🌙 夜盤'; }
+            else if(state==='POST'&&postPrice>0){ extPrice=postPrice; session='🌆 盤後'; }
+            else if(state==='REGULAR'){ session='🔔 盤中'; }
+            else{
+                if(postPrice>0){ extPrice=postPrice; session='🌆 盤後'; }
+                else{ session='💤 休市'; }
+            }
+            if(regularPrice>0){
+                console.log(`[${ticker}] 收盤:${regularPrice} 延伸:${extPrice} (${session})`);
+                return {price:regularPrice, extPrice, session};
+            }
+        }catch(e){console.warn(`YF v7 proxy${i}失敗(${ticker}):`,e.message);}
+    }
+
+    // v8 備援（只能拿到收盤價）
+    const v8Url=`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?interval=1d&range=1d`;
+    for(let i=0;i<proxies.length;i++){
+        try{
+            const r=await fetch(proxies[i](v8Url),{signal:AbortSignal.timeout(8000)});
+            if(!r.ok)continue;
+            let raw;
+            if(i===0){const outer=await r.json();raw=JSON.parse(outer.contents);}
+            else{raw=await r.json();}
+            const meta=raw?.chart?.result?.[0]?.meta;
+            const price=meta?.regularMarketPrice||meta?.chartPreviousClose||null;
+            if(price>0) return {price, extPrice:null, session:'💤 休市'};
+        }catch(e){}
+    }
+
+    // Finnhub 最終備援
+    try{
+        const r=await fetch(`https://finnhub.io/api/v1/quote?symbol=${encodeURIComponent(ticker)}&token=${FINNHUB_KEY}`,{signal:AbortSignal.timeout(8000)});
+        const d=await r.json();
+        const price=(d.c&&d.c>0)?d.c:(d.pc>0?d.pc:null);
+        if(price) return {price, extPrice:null, session:'💤 休市'};
+    }catch(e){}
+    return null;
 }
 async function fetchTWSEPrice(ticker){
     const code = ticker.replace('.TW','').replace('.TWO','');
@@ -265,8 +339,11 @@ db.ref('competitionData').on('value',async snapshot=>{
         const stocks=Array.isArray(p.stocks)?p.stocks:[];
         await Promise.all(stocks.map(async(s,si)=>{
             if(!s.ticker)return;
-            const price=await fetchStockPrice(s.ticker);
-            if(price!=null&&price>0)participants[pi].stocks[si].currentPrice=price;
+            const result=await fetchStockPrice(s.ticker);
+            if(!result)return;
+            participants[pi].stocks[si].currentPrice=result.price;
+            participants[pi].stocks[si].extPrice=result.extPrice||null;
+            participants[pi].stocks[si].session=result.session||'';
         }));
     }));
     renderDashboard();
@@ -313,6 +390,11 @@ function renderDashboard(){
                 // 損益% = 未實現損益 / 帳戶淨值
                 const pnlPct = netVal>0 ? ((pnl/netVal)*100).toFixed(2) : '0.00';
                 const pnlPctSign = pnl>=0?'+':'';
+                const extPrice=s.extPrice||null;
+                const session=s.session||'';
+                const extPnl=extPrice?((extPrice-s.buyPrice)*(s.shares||0)):null;
+                const extPc=extPnl!=null?(extPnl>=0?'text-emerald-400':'text-red-400'):'';
+                const extSign=extPnl!=null?(extPnl>=0?'+':''):'';
                 return`<div class="holding-row">
                     <div style="display:flex;justify-content:space-between;margin-bottom:5px;">
                         <span class="mono font-bold text-cyan-400">${s.ticker}</span>
@@ -320,9 +402,14 @@ function renderDashboard(){
                     </div>
                     <div style="display:flex;justify-content:space-between;align-items:center;" class="text-slate-400 text-xs">
                         <span>買入 <span class="mono text-white">${fmtRaw(s.buyPrice||0,p.currency,2)}</span></span>
-                        <span>現價 <span class="mono text-cyan-300 font-bold">${fmtRaw(s.currentPrice||0,p.currency,2)}</span></span>
+                        <span>收盤 <span class="mono text-cyan-300 font-bold">${fmtRaw(s.currentPrice||0,p.currency,2)}</span></span>
                         <span class="font-bold mono ${pc}">${ps}${fmtRaw(pnl,p.currency)} <span style="opacity:.8">(${pnlPctSign}${pnlPct}%)</span></span>
                     </div>
+                    ${extPrice?`<div style="display:flex;justify-content:space-between;align-items:center;margin-top:5px;padding-top:5px;border-top:1px solid rgba(30,58,95,.5);" class="text-xs">
+                        <span style="color:var(--accent-amber);font-weight:600;">${session}</span>
+                        <span>延伸價 <span class="mono font-bold" style="color:var(--accent-amber)">${fmtRaw(extPrice,p.currency,2)}</span></span>
+                        <span class="font-bold mono ${extPc}">${extSign}${fmtRaw(Math.abs(extPnl),p.currency)}</span>
+                    </div>`:''}
                 </div>`;
               }).join('');
 
@@ -589,6 +676,84 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal();closeT
 const endDate=new Date('2026-11-04T00:00:00').getTime();
 (function tick(){const d=endDate-Date.now();if(d<0){document.getElementById('countdown').textContent='比賽已結束！';return;}
 document.getElementById('countdown').textContent=`${Math.floor(d/86400000)} 天 ${Math.floor(d%86400000/3600000)} 時 ${Math.floor(d%3600000/60000)} 分`;setTimeout(tick,60000);})();
+
+// ── 自動刷新股價（每 60 秒，支援美股夜盤 24 小時即時）────────────────
+const REFRESH_INTERVAL = 60; // 秒
+let refreshTimer = null;
+let nextRefreshIn = REFRESH_INTERVAL;
+
+// 更新右上角狀態列的倒數
+function updateRefreshCountdown(){
+    const statusEl = document.getElementById('system-status');
+    if(statusEl && statusEl.className.includes('status-ok')){
+        const base = `🟢 已連線｜1 USD = ${usdToTwd.toFixed(2)} TWD`;
+        statusEl.textContent = `${base}｜${new Date().toLocaleTimeString('zh-TW')}｜下次刷新：${nextRefreshIn}s`;
+    }
+}
+
+async function refreshPrices(){
+    if(participants.length === 0) return;
+    setStatus('loading','🔄 刷新股價中...');
+    let anyUpdate = false;
+    await Promise.all(participants.map(async(p, pi)=>{
+        const stocks = Array.isArray(p.stocks) ? p.stocks : [];
+        await Promise.all(stocks.map(async(s, si)=>{
+            if(!s.ticker) return;
+            // 台股只在交易時間更新（週一~五 09:00~13:30 台灣時間）
+            const isTW = s.ticker.endsWith('.TW') || s.ticker.endsWith('.TWO');
+            if(isTW){
+                const now = new Date();
+                const twHour = new Date(now.toLocaleString('en-US',{timeZone:'Asia/Taipei'}));
+                const h = twHour.getHours(), m = twHour.getMinutes(), day = twHour.getDay();
+                const isWeekday = day>=1 && day<=5;
+                const isMarketHour = (h===9&&m>=0)||(h>=10&&h<=12)||(h===13&&m<=30);
+                if(!isWeekday || !isMarketHour) return; // 台股非交易時間不刷新
+            }
+            const result = await fetchStockPrice(s.ticker);
+            if(!result) return;
+            if(result.price !== participants[pi].stocks[si].currentPrice ||
+               result.extPrice !== participants[pi].stocks[si].extPrice){
+                participants[pi].stocks[si].currentPrice = result.price;
+                participants[pi].stocks[si].extPrice = result.extPrice||null;
+                participants[pi].stocks[si].session = result.session||'';
+                anyUpdate = true;
+            }
+        }));
+    }));
+    if(anyUpdate) renderDashboard();
+    const session = getMarketSession();
+    setStatus('ok', `🟢 已連線｜1 USD = ${usdToTwd.toFixed(2)} TWD｜美股 ${session}｜${new Date().toLocaleTimeString('zh-TW')}`);
+}
+
+// 倒數計時器（每秒更新顯示）
+function startRefreshCountdown(){
+    clearInterval(refreshTimer);
+    nextRefreshIn = REFRESH_INTERVAL;
+    refreshTimer = setInterval(async()=>{
+        nextRefreshIn--;
+        updateRefreshCountdown();
+        if(nextRefreshIn <= 0){
+            nextRefreshIn = REFRESH_INTERVAL;
+            await refreshPrices();
+        }
+    }, 1000);
+}
+
+// Firebase 資料載入完成後啟動自動刷新
+db.ref('competitionData').on('value', ()=>{
+    // 資料有更新時重置倒數
+    startRefreshCountdown();
+}, { onlyOnce: false });
+
+// 頁面可見性 API：切回前台時立即刷新
+document.addEventListener('visibilitychange', ()=>{
+    if(document.visibilityState === 'visible'){
+        refreshPrices();
+        startRefreshCountdown();
+    } else {
+        clearInterval(refreshTimer);
+    }
+});
 </script>
 </body>
 </html>
