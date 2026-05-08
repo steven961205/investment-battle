@@ -103,7 +103,7 @@
     </section>
     <section class="grid grid-cols-1 md:grid-cols-3 gap-5" id="portfolios"></section>
 
-    <!-- 璽子打牌身涯紀錄 -->
+    <!-- 璽子打牌生涯紀錄 -->
     <section class="card p-6 mt-8" id="poker-section">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
             <h2 class="text-lg font-bold text-white flex items-center gap-2">
@@ -113,7 +113,7 @@
         </div>
         <div id="poker-records"></div>
         <div id="poker-total" style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
-            <span class="text-slate-400 font-semibold">身涯總計</span>
+            <span class="text-slate-400 font-semibold">生涯總計</span>
             <span id="poker-total-value" class="mono font-bold text-2xl">NT$ 0</span>
         </div>
     </section>
@@ -293,7 +293,8 @@ async function fetchFinnhubPrice(ticker){
                     }
                 }
 
-                const prevClose = meta.chartPreviousClose||meta.previousClose||null;
+                // regularMarketPreviousClose = 昨日正式收盤價（最準確）
+                const prevClose = meta.regularMarketPreviousClose||meta.chartPreviousClose||meta.previousClose||null;
                 if(currentPrice>0){
                     console.log(`[YF] ${ticker} 昨收:${prevClose} 現價:${currentPrice} 盤後:${lastPostClose} 夜盤:${lastPreClose} (${session})`);
                     return { price:currentPrice, prevClose, postPrice:lastPostClose||null, prePrice:lastPreClose||null, session };
@@ -446,7 +447,18 @@ function renderDashboard(){
         const holdHTML=stocks.length===0
             ?`<div class="holding-row text-center text-slate-500">目前無持股紀錄</div>`
             :stocks.map(s=>{
-                const sess2=s.session||'';
+                // 若 session 未載入，用美東時間即時判斷
+                let sess2=s.session||'';
+                if(!sess2){
+                    const etNow=new Date(new Date().toLocaleString('en-US',{timeZone:'America/New_York'}));
+                    const hh=etNow.getHours(),mm=etNow.getMinutes(),dd=etNow.getDay();
+                    const tm=hh*60+mm;
+                    if(dd>=1&&dd<=5){
+                        if(tm>=570&&tm<960) sess2='🔔 盤中';
+                        else if(tm>=960&&tm<1200) sess2='🌆 盤後';
+                        else if(tm>=240&&tm<570) sess2='🌙 夜盤';
+                    }
+                }
                 const latestPrice=(sess2==='🌙 夜盤'&&s.prePrice)?s.prePrice:
                                   (sess2==='🌆 盤後'&&s.postPrice)?s.postPrice:
                                   s.currentPrice||0;
