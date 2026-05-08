@@ -221,8 +221,7 @@ async function fetchExchangeRate(){try{const r=await fetch('https://open.er-api.
 async function fetchStockPrice(ticker){
     if(!ticker)return null;
     if(ticker.endsWith('.TW')||ticker.endsWith('.TWO')){
-        const p=await fetchTWSEPrice(ticker);
-        return p!=null?{price:p,postPrice:null,prePrice:null,session:''}:null;
+        return await fetchTWSEPrice(ticker);
     }
     return fetchFinnhubPrice(ticker);
 }
@@ -293,11 +292,10 @@ async function fetchFinnhubPrice(ticker){
                     }
                 }
 
-                // regularMarketPreviousClose = 昨日正式收盤價（最準確）
                 const prevClose = meta.regularMarketPreviousClose||meta.chartPreviousClose||meta.previousClose||null;
                 if(currentPrice>0){
-                    console.log(`[YF] ${ticker} 昨收:${prevClose} 現價:${currentPrice} 盤後:${lastPostClose} 夜盤:${lastPreClose} (${session})`);
-                    return { price:currentPrice, prevClose, postPrice:lastPostClose||null, prePrice:lastPreClose||null, session };
+                    console.log(`[YF] ${ticker} 昨收:${prevClose} 現價:${currentPrice} 盤後:${lastPostClose} (${session})`);
+                    return { price:currentPrice, prevClose, postPrice:lastPostClose||null, prePrice:lastPreClose||null, session, name:meta.longName||meta.shortName||null };
                 }
             }
         }
@@ -308,13 +306,19 @@ async function fetchFinnhubPrice(ticker){
         const r=await fetch(`https://finnhub.io/api/v1/quote?symbol=${encodeURIComponent(ticker)}&token=${FINNHUB_KEY}`,{signal:AbortSignal.timeout(8000)});
         const d=await r.json();
         const price=(d.c&&d.c>0)?d.c:(d.pc>0?d.pc:null);
-        if(price) return {price, prevClose:d.pc||null, postPrice:null, prePrice:null, session:'💤 休市'};
+        if(price) return {price, prevClose:d.pc||null, postPrice:null, prePrice:null, session:'💤 休市', name:null};
     }catch(e){}
     return null;
 }
 
 async function fetchTWSEPrice(ticker){
     const code = ticker.replace('.TW','').replace('.TWO','');
+
+    // 判斷台股是否開盤（台北時間 09:00~13:30 週一到週五）
+    const tpNow = new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Taipei'}));
+    const tpH=tpNow.getHours(), tpM=tpNow.getMinutes(), tpD=tpNow.getDay();
+    const tpMin=tpH*60+tpM;
+    const twOpen = tpD>=1&&tpD<=5&&tpMin>=540&&tpMin<810; // 09:00~13:30
 
     // 策略1：Fugle 即時報價（盤中）
     try{
@@ -324,17 +328,22 @@ async function fetchTWSEPrice(ticker){
         );
         if(r.ok){
             const d = await r.json();
-            // closePrice=收盤, lastPrice=最新成交, previousClose=昨收
-            const price = d.closePrice || d.lastPrice || d.previousClose || null;
-            if(price && price > 0){ console.log('台股Fugle即時成功', code, price); return price; }
+            const name = d.name || d.longName || null;
+            const prevClose = d.previousClose || null;
+            // 盤中用 lastPrice，收盤後用 closePrice
+            const price = twOpen ? (d.lastPrice||d.closePrice||null) : (d.closePrice||d.lastPrice||null);
+            const session = twOpen ? '🔔 盤中' : '💤 休市';
+            if(price && price > 0){
+                console.log('台股Fugle成功', code, price, session);
+                return { price, prevClose, postPrice:null, prePrice:null, session, name };
+            }
         }
     }catch(e){ console.warn('Fugle即時失敗', code, e.message); }
 
-    // 策略2：Fugle 歷史收盤（收盤後/非交易時間）
+    // 策略2：Fugle 歷史收盤（備援）
     try{
         const today = new Date();
         const dateStr = today.toISOString().slice(0,10);
-        // 往前抓5天確保有資料
         const past = new Date(today); past.setDate(past.getDate()-7);
         const pastStr = past.toISOString().slice(0,10);
         const r = await fetch(
@@ -343,12 +352,15 @@ async function fetchTWSEPrice(ticker){
         );
         if(r.ok){
             const d = await r.json();
-            // candles 陣列最後一筆是最新交易日
             const candles = d.data || d.candles || [];
             if(candles.length > 0){
                 const last = candles[candles.length-1];
                 const price = last.close || null;
-                if(price && price > 0){ console.log('台股Fugle歷史成功', code, price); return price; }
+                const prevClose = candles.length>1 ? candles[candles.length-2].close : null;
+                if(price && price > 0){
+                    console.log('台股Fugle歷史成功', code, price);
+                    return { price, prevClose, postPrice:null, prePrice:null, session:'💤 休市', name:null };
+                }
             }
         }
     }catch(e){ console.warn('Fugle歷史失敗', code, e.message); }
@@ -397,6 +409,7 @@ db.ref('competitionData').on('value',async snapshot=>{
             participants[pi].stocks[si].postPrice=result.postPrice||null;
             participants[pi].stocks[si].prePrice=result.prePrice||null;
             participants[pi].stocks[si].session=result.session||'';
+            if(result.name) participants[pi].stocks[si].stockName=result.name;
         }));
     }));
     renderDashboard();
@@ -419,15 +432,13 @@ function renderDashboard(){
         const trades=Array.isArray(p.trades)?p.trades:[];
         let totalMV=0,totalUnPnl=0;
         stocks.forEach(s=>{
+            // 依時段選最新價
             const sess=s.session||'';
             const latestPrice=(sess==='🌙 夜盤'&&s.prePrice)?s.prePrice:
                               (sess==='🌆 盤後'&&s.postPrice)?s.postPrice:
                               s.currentPrice||0;
-            // 個股幣別換算：如果持股是USD但帳戶是TWD，需換算
-            const sCurr=s.currency||p.currency;
-            const rate=(sCurr==='USD'&&p.currency==='TWD')?usdToTwd:(sCurr==='TWD'&&p.currency==='USD')?(1/usdToTwd):1;
-            const mv=(s.shares||0)*latestPrice*rate;
-            const cost=(s.shares||0)*(s.buyPrice||0)*rate;
+            const mv=(s.shares||0)*latestPrice;
+            const cost=(s.shares||0)*(s.buyPrice||0);
             totalMV+=mv;
             totalUnPnl+=(mv-cost);
         });
@@ -447,18 +458,8 @@ function renderDashboard(){
         const holdHTML=stocks.length===0
             ?`<div class="holding-row text-center text-slate-500">目前無持股紀錄</div>`
             :stocks.map(s=>{
-                // 若 session 未載入，用美東時間即時判斷
-                let sess2=s.session||'';
-                if(!sess2){
-                    const etNow=new Date(new Date().toLocaleString('en-US',{timeZone:'America/New_York'}));
-                    const hh=etNow.getHours(),mm=etNow.getMinutes(),dd=etNow.getDay();
-                    const tm=hh*60+mm;
-                    if(dd>=1&&dd<=5){
-                        if(tm>=570&&tm<960) sess2='🔔 盤中';
-                        else if(tm>=960&&tm<1200) sess2='🌆 盤後';
-                        else if(tm>=240&&tm<570) sess2='🌙 夜盤';
-                    }
-                }
+                // 依時段選最新價
+                const sess2=s.session||'';
                 const latestPrice=(sess2==='🌙 夜盤'&&s.prePrice)?s.prePrice:
                                   (sess2==='🌆 盤後'&&s.postPrice)?s.postPrice:
                                   s.currentPrice||0;
@@ -485,39 +486,64 @@ function renderDashboard(){
                 const preSign=prePnl!=null?(prePnl>=0?'+':''):'';
 
                 const sCurrency = s.currency || p.currency;
-                const prevClose = s.prevClose || null;
-                const timeStr = new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
-                // 延伸價格（盤後/夜盤）相對買入的損益
-                const extPrice = sess2==='🌆 盤後'?postPrice : sess2==='🌙 夜盤'?prePrice : null;
-                const extPnl = extPrice?((extPrice-(s.buyPrice||0))*(s.shares||0)):null;
-                const extPc = extPnl!=null?(extPnl>=0?'text-emerald-400':'text-red-400'):'';
-                const extSign = extPnl!=null?(extPnl>=0?'+':''):'';
-                const extColor = sess2==='🌆 盤後'?'var(--accent-amber)':'#a78bfa';
-                const extLabel = sess2==='🌆 盤後'?'🌆 盤後':'🌙 夜盤';
+                const prevClose  = s.prevClose || null;
+                const stockName  = s.stockName || null;
+                const timeStr    = new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
+                const isTW       = (s.ticker||'').endsWith('.TW')||(s.ticker||'').endsWith('.TWO');
 
-                return`<div class="holding-row">
+                // 判斷時段（用於決定標籤和延伸行）
+                // sess2 從 s.session 取，若空則即時判斷
+                const _sess = sess2 || (()=>{
+                    if(isTW){
+                        const tn=new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Taipei'}));
+                        const tm=tn.getHours()*60+tn.getMinutes(), td=tn.getDay();
+                        return (td>=1&&td<=5&&tm>=540&&tm<810)?'🔔 盤中':'💤 休市';
+                    } else {
+                        const en=new Date(new Date().toLocaleString('en-US',{timeZone:'America/New_York'}));
+                        const tm=en.getHours()*60+en.getMinutes(), td=en.getDay();
+                        if(td>=1&&td<=5){
+                            if(tm>=570&&tm<960) return '🔔 盤中';
+                            if(tm>=960&&tm<1200) return '🌆 盤後';
+                            if(tm>=240&&tm<570) return '🌙 夜盤';
+                        }
+                        return '💤 休市';
+                    }
+                })();
+
+                // 昨收標籤：台股盤中→「現價」，其他→「昨收」
+                const prevLabel = (_sess==='🔔 盤中') ? '現價' : '昨收';
+                // 顯示在昨收欄的值：台股盤中顯示 latestPrice，否則顯示 prevClose
+                const prevDisplay = (_sess==='🔔 盤中'&&isTW) ? latestPrice : (prevClose||null);
+
+                // 美股延伸價
+                const extPrice = _sess==='🌆 盤後'?postPrice : _sess==='🌙 夜盤'?prePrice : null;
+                const extColor = _sess==='🌆 盤後'?'var(--accent-amber)':'#a78bfa';
+                const extLabel = _sess==='🌆 盤後'?'🌆 盤後':'🌙 夜盤';
+
+                return\`<div class="holding-row">
                     <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
-                        <span class="mono font-bold text-cyan-400">${s.ticker}</span>
-                        <span class="text-white font-semibold">${(s.shares||0).toLocaleString()} 股</span>
+                        <div>
+                            <span class="mono font-bold text-cyan-400">\${s.ticker}</span>
+                            \${stockName?\`<span style="font-size:11px;color:var(--text-muted);margin-left:6px;">\${stockName}</span>\`:''}
+                        </div>
+                        <span class="text-white font-semibold">\${(s.shares||0).toLocaleString()} 股</span>
                     </div>
-                    <!-- 昨日收盤行 -->
                     <div style="display:flex;justify-content:space-between;align-items:center;" class="text-slate-400 text-xs">
-                        <span>買入 <span class="mono text-white">${fmtRaw(s.buyPrice||0,sCurrency,2)}</span></span>
-                        <span>昨收 <span class="mono" style="color:var(--text-secondary);">${prevClose?fmtRaw(prevClose,sCurrency,2):'--'}</span></span>
-                        <span class="font-bold mono ${pc}">${ps}${fmtRaw(pnl,sCurrency)} <span style="opacity:.8">(${pnlPctSign}${pnlPct}%)</span></span>
+                        <span>買入 <span class="mono text-white">\${fmtRaw(s.buyPrice||0,sCurrency,2)}</span></span>
+                        <span>\${prevLabel} <span class="mono" style="color:var(--text-secondary);">\${prevDisplay?fmtRaw(prevDisplay,sCurrency,2):'--'}</span></span>
+                        <span class="font-bold mono \${pc}">\${ps}\${fmtRaw(pnl,sCurrency)} <span style="opacity:.8">(\${pnlPctSign}\${pnlPct}%)</span></span>
                     </div>
-                    <!-- 即時/盤後/夜盤行 -->
-                    ${sess2==='🔔 盤中'?`<div style="display:flex;justify-content:space-between;align-items:center;margin-top:5px;padding-top:5px;border-top:1px solid rgba(30,58,95,.4);" class="text-xs">
+                    \${(_sess==='🔔 盤中'&&!isTW)?\`<div style="display:flex;justify-content:space-between;align-items:center;margin-top:5px;padding-top:5px;border-top:1px solid rgba(30,58,95,.4);" class="text-xs">
                         <span style="color:var(--accent-green);font-weight:600;">🔔 即時價</span>
-                        <span class="mono font-bold" style="color:var(--accent-green);">${fmtRaw(latestPrice,sCurrency,2)}</span>
-                        <span style="color:var(--text-muted);">${timeStr}</span>
-                    </div>`:''}
-                    ${(extPrice&&(sess2==='🌆 盤後'||sess2==='🌙 夜盤'))?`<div style="display:flex;justify-content:space-between;align-items:center;margin-top:5px;padding-top:5px;border-top:1px solid rgba(30,58,95,.4);" class="text-xs">
-                        <span style="color:${extColor};font-weight:600;">${extLabel}</span>
-                        <span class="mono font-bold" style="color:${extColor};">${fmtRaw(extPrice,sCurrency,2)}</span>
-                        <span style="color:var(--text-muted);">${timeStr}</span>
-                    </div>`:''}
-                </div>`;
+                        <span class="mono font-bold" style="color:var(--accent-green);">\${fmtRaw(latestPrice,sCurrency,2)}</span>
+                        <span style="color:var(--text-muted);">\${timeStr}</span>
+                    </div>\`:''}
+                    \${(extPrice&&(_sess==='🌆 盤後'||_sess==='🌙 夜盤'))?\`<div style="display:flex;justify-content:space-between;align-items:center;margin-top:5px;padding-top:5px;border-top:1px solid rgba(30,58,95,.4);" class="text-xs">
+                        <span style="color:\${extColor};font-weight:600;">\${extLabel}</span>
+                        <span class="mono font-bold" style="color:\${extColor};">\${fmtRaw(extPrice,sCurrency,2)}</span>
+                        <span style="color:var(--text-muted);">\${timeStr}</span>
+                    </div>\`:''}
+                </div>\`;
               }).join('');
 
         const realSign=realPnl>=0?'+':'';const realCls=realPnl>=0?'profit-pos':'profit-neg';
@@ -639,13 +665,12 @@ function addStockSlot(data={}){
                 oninput="onSlotInput(${id},this.value)" onkeydown="onSlotKey(event,${id})">
             <div class="ac-list" id="ac-list-${id}"></div>
         </div>
-        <div style="display:grid;grid-template-columns:80px 1fr 1fr;gap:10px;">
+        <div style="display:grid;grid-template-columns:70px 1fr 1fr;gap:10px;">
             <div><label class="modal-label">幣別</label>
                 <select class="modal-input slot-currency" style="cursor:pointer;padding:8px 4px;">
                     <option value="USD" ${(data.currency||'USD')==='USD'?'selected':''}>USD</option>
                     <option value="TWD" ${(data.currency||'USD')==='TWD'?'selected':''}>TWD</option>
-                </select>
-            </div>
+                </select></div>
             <div><label class="modal-label">持有股數</label><input type="number" class="modal-input slot-shares" placeholder="0" value="${data.shares||''}"></div>
             <div><label class="modal-label">買入均價</label><input type="number" step="0.01" class="modal-input slot-buyprice" placeholder="0.00" value="${data.buyPrice||''}"></div>
         </div>
@@ -896,6 +921,7 @@ async function refreshPrices(){
                 participants[pi].stocks[si].postPrice    = result.postPrice||null;
                 participants[pi].stocks[si].prePrice     = result.prePrice||null;
                 participants[pi].stocks[si].session      = result.session||'';
+                if(result.name) participants[pi].stocks[si].stockName=result.name;
                 anyUpdate = true;
             }
         }));
