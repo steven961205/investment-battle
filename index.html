@@ -441,12 +441,15 @@ function renderDashboard(){
             totalUnPnl+=(mv-cost);
         });
         const realPnl=trades.reduce((sum,t)=>sum+(parseFloat(t.pnl)||0),0);
+        
+        // ── 新增：計算所有歷史交易的「手續費 + 證交稅」總和 ──
+        const totalFeeTax=trades.reduce((sum,t)=>sum+(parseFloat(t.fee)||0)+(parseFloat(t.tax)||0),0);
+        
         const netVal=initCap+realPnl+totalUnPnl;
         const valTWD=p.currency==='USD'?netVal*usdToTwd:netVal;
         
-        // 修改：現金水位由公式嚴格自動計算 (帳戶淨值 - 持股市值)
         const autoCash = netVal - totalMV; 
-        const currentVal = autoCash + totalMV; // 在數學上保證等於 netVal
+        const currentVal = autoCash + totalMV; 
 
         const retPct=(((netVal-initCap)/initCap)*100).toFixed(2);
         const leverageBase = initCap + realPnl;
@@ -608,6 +611,8 @@ function renderDashboard(){
                 ${hasLev?`<div class="leverage-bar-wrap"><div class="leverage-bar" style="width:${Math.min(actualLevPct,100).toFixed(0)}%"></div></div>`:''}
                 <div class="stat-row" style="margin-top:4px;"><span class="stat-label">已實現損益</span><span class="${realCls}">${realSign}${fmtRaw(Math.abs(realPnl),p.currency)}</span></div>
                 <div class="stat-row"><span class="stat-label">未實現損益（所有持股）</span><span class="font-bold mono ${upCls}">${upSign}${fmtRaw(totalUnPnl,p.currency)}</span></div>
+                
+                <div class="stat-row" style="margin-top:4px; padding-top:4px; border-top:1px solid rgba(30,58,95,.4);"><span class="stat-label">手續費＋證交稅總計</span><span class="mono text-slate-400">${totalFeeTax > 0 ? '-' : ''}${fmtRaw(totalFeeTax, p.currency)}</span></div>
             </div>
             <h4 style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">當前持倉（${stocks.length}/${MAX_STOCKS}）</h4>
             ${holdHTML}
@@ -642,7 +647,6 @@ function openModal(name){
     const stocks=Array.isArray(p.stocks)?p.stocks:[];
     if(stocks.length===0)addStockSlot();else stocks.forEach(s=>addStockSlot(s));
     
-    // 渲染完持股清單後，自動更新上方總覽數值
     updateModalSummary();
     document.getElementById('editModal').classList.add('open');
 }
@@ -666,7 +670,6 @@ function addStockSlot(data={}){
     const id=++slotCounter;slotAcItems[id]=[];slotAcIdx[id]=-1;
     const num=container.querySelectorAll('.stock-slot').length+1;
     const slot=document.createElement('div');slot.className='stock-slot';slot.dataset.slotId=id;
-    // 加入 oninput 觸發 updateModalSummary，達到即時變動現金的體驗
     slot.innerHTML=`<div class="stock-slot-header"><span class="slot-num">持股 #${num}</span><button class="btn-del" onclick="removeSlot(this)">✕ 移除</button></div>
         <div class="ac-wrap" style="margin-bottom:10px;">
             <input type="text" class="modal-input slot-ticker" placeholder="搜尋代號（美股）或輸入數字（台股）" autocomplete="off" value="${data.ticker||''}" style="text-transform:uppercase;"
@@ -741,7 +744,6 @@ async function selectSlot(id,idx){
     if(priceHidden) priceHidden.value = price!=null ? price : 0;
     if(priceSpan) priceSpan.textContent = price!=null ? price.toFixed(2) : '取得失敗';
     
-    // 取得股價後自動重算帳戶總值
     updateModalSummary();
 }
 
@@ -768,9 +770,7 @@ function updateModalSummary(){
     const trades=Array.isArray(p.trades)?p.trades:[];
     const realPnl=trades.reduce((sum,t)=>sum+(parseFloat(t.pnl)||0),0);
     
-    // 重新計算淨值與現金：帳戶淨值 = 初始本金 + 已實現損益 + (持股市值 - 持股成本)
     const netVal = initCap + realPnl + (stockValue - stockCost);
-    // 自動計算現金 = 帳戶淨值 - 持股市值
     const currentCash = netVal - stockValue; 
     
     const cashEl = document.getElementById('editCash');
@@ -794,13 +794,12 @@ function saveData(){
         const sCur=slot.querySelector('.slot-currency')?.value||'USD';
         if(ticker&&shares>0)newStocks.push({ticker,shares,buyPrice,currentPrice,currency:sCur});
     });
-    // 資料庫依然會儲存最後計算出的 cash 作為備份，但在前台顯示時會嚴格依照公式顯示，避免錯誤
     const updated={...participants[pi],currency:document.getElementById('editCurrency').value,cash:parseFloat(document.getElementById('editCash').value)||0,stocks:newStocks};
     db.ref('competitionData/'+pi).set(updated);
     closeModal();setStatus('loading','🟡 同步變更中...');
 }
 
-// ── 歷史交易 Modal (包含自動計算手續費/稅與編輯功能) ────────────────────────
+// ── 歷史交易 Modal ────────────────────────
 let tradeAcTimer=null, tradeAcItems=[], tradeAcIdx=-1;
 
 async function onTradeTickerInput(val){
