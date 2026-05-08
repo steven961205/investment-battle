@@ -197,17 +197,18 @@
                 </div>
                 <div id="tradeTickerName" style="font-size:11px;color:var(--accent-cyan);margin-top:4px;min-height:16px;"></div>
             </div>
-            <div><label class="modal-label">股數</label><input type="number" id="tradeShares" placeholder="0" class="modal-input" oninput="calcTradePreview()"></div>
+            <div><label class="modal-label">股數</label><input type="number" id="tradeShares" placeholder="0" class="modal-input" oninput="autoCalcTWFee()"></div>
         </div>
         
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
-            <div><label class="modal-label">買入價格</label><input type="number" step="0.01" id="tradeBuyPrice" placeholder="0.00" class="modal-input" oninput="calcTradePreview()"></div>
-            <div><label class="modal-label">賣出價格</label><input type="number" step="0.01" id="tradeSellPrice" placeholder="0.00" class="modal-input" oninput="calcTradePreview()"></div>
+            <div><label class="modal-label">買入價格</label><input type="number" step="0.01" id="tradeBuyPrice" placeholder="0.00" class="modal-input" oninput="autoCalcTWFee()"></div>
+            <div><label class="modal-label">賣出價格</label><input type="number" step="0.01" id="tradeSellPrice" placeholder="0.00" class="modal-input" oninput="autoCalcTWFee()"></div>
         </div>
 
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
-            <div><label class="modal-label">手續費</label><input type="number" step="0.01" id="tradeFee" placeholder="0" class="modal-input" oninput="calcTradePreview()"></div>
-            <div><label class="modal-label">證交稅</label><input type="number" step="0.01" id="tradeTax" placeholder="0" class="modal-input" oninput="calcTradePreview()"></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px;">
+            <div><label class="modal-label" title="輸入折數即可自動計算">券商折讓(折)</label><input type="number" step="0.1" id="tradeDiscount" placeholder="例: 2.8" class="modal-input" oninput="autoCalcTWFee()"></div>
+            <div><label class="modal-label">手續費</label><input type="number" step="1" id="tradeFee" placeholder="0" class="modal-input" oninput="calcTradePreview()"></div>
+            <div><label class="modal-label" title="預設為一般股票 0.3%，ETF為 0.1%">證交稅(0.3%)</label><input type="number" step="1" id="tradeTax" placeholder="0" class="modal-input" oninput="calcTradePreview()"></div>
         </div>
 
         <div style="margin-bottom:8px;"><label class="modal-label">損益金額（可手動覆蓋）</label><input type="number" step="0.01" id="tradePnl" placeholder="正數=獲利 負數=虧損" class="modal-input"></div>
@@ -553,7 +554,6 @@ function renderDashboard(){
                 const pnlPctStr = pnlPct!==null ? `${pnl>=0?'+':''}${pnlPct}%` : '--';
                 const nameDisplay = t.stockName ? `<span style="font-size:11px;color:var(--text-secondary);margin-left:6px;font-weight:normal;">${t.stockName}</span>` : '';
                 
-                // 新增：編輯按鈕 ✎
                 return`<div class="trade-card">
                     <div class="trade-card-row">
                         <div style="display:flex;align-items:center;">
@@ -770,7 +770,7 @@ function saveData(){
     closeModal();setStatus('loading','🟡 同步變更中...');
 }
 
-// ── 歷史交易 Modal (新增編輯功能與日期選擇) ────────────────────────
+// ── 歷史交易 Modal (包含自動計算手續費/稅與編輯功能) ────────────────────────
 let tradeAcTimer=null, tradeAcItems=[], tradeAcIdx=-1;
 
 async function onTradeTickerInput(val){
@@ -835,6 +835,46 @@ async function fetchAndSetTradeName(symbol, fallbackName=''){
     }
 }
 
+// 自動計算台股手續費與證交稅
+function autoCalcTWFee() {
+    const discountInput = document.getElementById('tradeDiscount').value;
+    const sh = parseFloat(document.getElementById('tradeShares').value) || 0;
+    const bp = parseFloat(document.getElementById('tradeBuyPrice').value) || 0;
+    const sp = parseFloat(document.getElementById('tradeSellPrice').value) || 0;
+
+    // 只有在填寫了折數且有股數時才進行自動計算
+    if (discountInput !== '' && sh > 0) {
+        const discount = parseFloat(discountInput) || 10;
+        const rate = 0.001425 * (discount / 10);
+        
+        let totalFee = 0;
+        
+        // 買進手續費 (零股單筆最低1元)
+        if (bp > 0) {
+            totalFee += Math.max(1, Math.floor(bp * sh * rate));
+        }
+        
+        // 賣出手續費 (零股單筆最低1元) + 證交稅
+        if (sp > 0) {
+            totalFee += Math.max(1, Math.floor(sp * sh * rate));
+            // 證交稅預設0.3%，無條件捨去
+            document.getElementById('tradeTax').value = Math.floor(sp * sh * 0.003);
+        } else {
+            document.getElementById('tradeTax').value = '';
+        }
+        
+        // 填入手續費欄位
+        if (totalFee > 0) {
+            document.getElementById('tradeFee').value = totalFee;
+        } else {
+            document.getElementById('tradeFee').value = '';
+        }
+    }
+    
+    // 計算完成後更新預計損益
+    calcTradePreview();
+}
+
 // 支援新增與編輯，透過 idx 判斷 (idx >= 0 為編輯)
 function openTradeModal(name, idx = -1){
     document.getElementById('tradeName').value = name;
@@ -850,18 +890,17 @@ function openTradeModal(name, idx = -1){
     document.getElementById('btn-save-trade').textContent = t ? '💾 儲存變更' : '＋ 新增紀錄';
 
     if (t) {
-        // 帶入舊資料
         document.getElementById('tradeTicker').value = t.ticker || '';
         document.getElementById('tradeTicker').dataset.name = t.stockName || '';
         document.getElementById('tradeTickerName').textContent = t.stockName || '';
         document.getElementById('tradeShares').value = t.shares || '';
         document.getElementById('tradeBuyPrice').value = t.buyPrice || '';
         document.getElementById('tradeSellPrice').value = t.sellPrice || '';
+        document.getElementById('tradeDiscount').value = t.discount || '';
         document.getElementById('tradeFee').value = t.fee || '';
         document.getElementById('tradeTax').value = t.tax || '';
         document.getElementById('tradePnl').value = t.pnl || '';
 
-        // 轉換原本的日期格式 YYYY/M/D 到 input[type=date] 需要的 YYYY-MM-DD
         let dStr = t.date || '';
         if (dStr.includes('/')) {
             const parts = dStr.split('/');
@@ -874,12 +913,10 @@ function openTradeModal(name, idx = -1){
         }
         document.getElementById('tradeDate').value = dStr;
     } else {
-        // 清空欄位
-        ['tradeTicker','tradeShares','tradeBuyPrice','tradeSellPrice','tradeFee','tradeTax','tradePnl'].forEach(id=>document.getElementById(id).value='');
+        ['tradeTicker','tradeShares','tradeBuyPrice','tradeSellPrice','tradeDiscount','tradeFee','tradeTax','tradePnl'].forEach(id=>document.getElementById(id).value='');
         document.getElementById('tradeTicker').dataset.name = '';
         document.getElementById('tradeTickerName').textContent = '';
         
-        // 預設填寫今天的日期 (格式 YYYY-MM-DD)
         const today = new Date();
         const localDateStr = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
         document.getElementById('tradeDate').value = localDateStr;
@@ -913,7 +950,6 @@ async function saveTrade(){
     const pi = participants.findIndex(p=>p.name===name);
     if(pi === -1) return;
 
-    // 判斷是新增還是編輯
     const idxStr = document.getElementById('tradeIndex').value;
     const isEdit = idxStr !== '';
     const idx = isEdit ? parseInt(idxStr) : -1;
@@ -922,11 +958,11 @@ async function saveTrade(){
     const shares=parseFloat(document.getElementById('tradeShares').value)||0;
     const buyPrice=parseFloat(document.getElementById('tradeBuyPrice').value)||0;
     const sellPrice=parseFloat(document.getElementById('tradeSellPrice').value)||0;
+    const discount=parseFloat(document.getElementById('tradeDiscount').value)||'';
     const fee=parseFloat(document.getElementById('tradeFee').value)||0;
     const tax=parseFloat(document.getElementById('tradeTax').value)||0;
     const pnl=parseFloat(document.getElementById('tradePnl').value)||0;
 
-    // 取得選取的日期，並轉回原本儲存的 YYYY/M/D 格式保持資料一致性
     let dateVal = document.getElementById('tradeDate').value;
     if(!dateVal){
         const today = new Date();
@@ -941,7 +977,7 @@ async function saveTrade(){
     if(!ticker||shares<=0){alert('請填入股票代號和股數');return;}
     
     const stockName = document.getElementById('tradeTicker').dataset.name || '';
-    const newTrade = { ticker, stockName, shares, buyPrice, sellPrice, fee, tax, pnl, date: dateVal };
+    const newTrade = { ticker, stockName, shares, buyPrice, sellPrice, discount, fee, tax, pnl, date: dateVal };
     const tList = [...(participants[pi].trades||[])];
 
     if (isEdit) {
