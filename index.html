@@ -293,9 +293,10 @@ async function fetchFinnhubPrice(ticker){
                     }
                 }
 
+                const prevClose = meta.chartPreviousClose||meta.previousClose||null;
                 if(currentPrice>0){
-                    console.log(`[YF] ${ticker} 現價:${currentPrice} 盤後:${lastPostClose} 夜盤:${lastPreClose} (${session})`);
-                    return { price:currentPrice, postPrice:lastPostClose||null, prePrice:lastPreClose||null, session };
+                    console.log(`[YF] ${ticker} 昨收:${prevClose} 現價:${currentPrice} 盤後:${lastPostClose} 夜盤:${lastPreClose} (${session})`);
+                    return { price:currentPrice, prevClose, postPrice:lastPostClose||null, prePrice:lastPreClose||null, session };
                 }
             }
         }
@@ -306,7 +307,7 @@ async function fetchFinnhubPrice(ticker){
         const r=await fetch(`https://finnhub.io/api/v1/quote?symbol=${encodeURIComponent(ticker)}&token=${FINNHUB_KEY}`,{signal:AbortSignal.timeout(8000)});
         const d=await r.json();
         const price=(d.c&&d.c>0)?d.c:(d.pc>0?d.pc:null);
-        if(price) return {price, postPrice:null, prePrice:null, session:'💤 休市'};
+        if(price) return {price, prevClose:d.pc||null, postPrice:null, prePrice:null, session:'💤 休市'};
     }catch(e){}
     return null;
 }
@@ -391,6 +392,7 @@ db.ref('competitionData').on('value',async snapshot=>{
             const result=await fetchStockPrice(s.ticker);
             if(!result)return;
             participants[pi].stocks[si].currentPrice=result.price;
+            participants[pi].stocks[si].prevClose=result.prevClose||null;
             participants[pi].stocks[si].postPrice=result.postPrice||null;
             participants[pi].stocks[si].prePrice=result.prePrice||null;
             participants[pi].stocks[si].session=result.session||'';
@@ -416,13 +418,15 @@ function renderDashboard(){
         const trades=Array.isArray(p.trades)?p.trades:[];
         let totalMV=0,totalUnPnl=0;
         stocks.forEach(s=>{
-            // 依時段選最新價
             const sess=s.session||'';
             const latestPrice=(sess==='🌙 夜盤'&&s.prePrice)?s.prePrice:
                               (sess==='🌆 盤後'&&s.postPrice)?s.postPrice:
                               s.currentPrice||0;
-            const mv=(s.shares||0)*latestPrice;
-            const cost=(s.shares||0)*(s.buyPrice||0);
+            // 個股幣別換算：如果持股是USD但帳戶是TWD，需換算
+            const sCurr=s.currency||p.currency;
+            const rate=(sCurr==='USD'&&p.currency==='TWD')?usdToTwd:(sCurr==='TWD'&&p.currency==='USD')?(1/usdToTwd):1;
+            const mv=(s.shares||0)*latestPrice*rate;
+            const cost=(s.shares||0)*(s.buyPrice||0)*rate;
             totalMV+=mv;
             totalUnPnl+=(mv-cost);
         });
@@ -442,7 +446,6 @@ function renderDashboard(){
         const holdHTML=stocks.length===0
             ?`<div class="holding-row text-center text-slate-500">目前無持股紀錄</div>`
             :stocks.map(s=>{
-                // 依時段選最新價
                 const sess2=s.session||'';
                 const latestPrice=(sess2==='🌙 夜盤'&&s.prePrice)?s.prePrice:
                                   (sess2==='🌆 盤後'&&s.postPrice)?s.postPrice:
@@ -469,27 +472,38 @@ function renderDashboard(){
                 const prePc=prePnl!=null?(prePnl>=0?'text-emerald-400':'text-red-400'):'';
                 const preSign=prePnl!=null?(prePnl>=0?'+':''):'';
 
+                const sCurrency = s.currency || p.currency;
+                const prevClose = s.prevClose || null;
+                const timeStr = new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit'});
+                // 延伸價格（盤後/夜盤）相對買入的損益
+                const extPrice = sess2==='🌆 盤後'?postPrice : sess2==='🌙 夜盤'?prePrice : null;
+                const extPnl = extPrice?((extPrice-(s.buyPrice||0))*(s.shares||0)):null;
+                const extPc = extPnl!=null?(extPnl>=0?'text-emerald-400':'text-red-400'):'';
+                const extSign = extPnl!=null?(extPnl>=0?'+':''):'';
+                const extColor = sess2==='🌆 盤後'?'var(--accent-amber)':'#a78bfa';
+                const extLabel = sess2==='🌆 盤後'?'🌆 盤後':'🌙 夜盤';
+
                 return`<div class="holding-row">
-                    <div style="display:flex;justify-content:space-between;margin-bottom:5px;">
+                    <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
                         <span class="mono font-bold text-cyan-400">${s.ticker}</span>
                         <span class="text-white font-semibold">${(s.shares||0).toLocaleString()} 股</span>
                     </div>
-                    <!-- 主要行：買入價 / 最新價（含標籤）/ 損益 -->
+                    <!-- 昨日收盤行 -->
                     <div style="display:flex;justify-content:space-between;align-items:center;" class="text-slate-400 text-xs">
-                        <span>買入 <span class="mono text-white">${fmtRaw(s.buyPrice||0,p.currency,2)}</span></span>
-                        <span>${sess2==='🔔 盤中'?'即時':'收盤'} <span class="mono text-cyan-300 font-bold">${fmtRaw(latestPrice,p.currency,2)}</span></span>
-                        <span class="font-bold mono ${pc}">${ps}${fmtRaw(pnl,p.currency)} <span style="opacity:.8">(${pnlPctSign}${pnlPct}%)</span></span>
+                        <span>買入 <span class="mono text-white">${fmtRaw(s.buyPrice||0,sCurrency,2)}</span></span>
+                        <span>昨收 <span class="mono" style="color:var(--text-secondary);">${prevClose?fmtRaw(prevClose,sCurrency,2):'--'}</span></span>
+                        <span class="font-bold mono ${pc}">${ps}${fmtRaw(pnl,sCurrency)} <span style="opacity:.8">(${pnlPctSign}${pnlPct}%)</span></span>
                     </div>
-                    <!-- 依時段顯示延伸價格行 -->
-                    ${(session==='🌆 盤後'&&postPrice)?`<div style="display:flex;justify-content:space-between;align-items:center;margin-top:5px;padding-top:5px;border-top:1px solid rgba(30,58,95,.4);" class="text-xs">
-                        <span style="color:var(--accent-amber);font-weight:600;">🌆 盤後</span>
-                        <span class="mono font-bold" style="color:var(--accent-amber);">${fmtRaw(postPrice,p.currency,2)}</span>
-                        <span class="font-bold mono ${postPc}">${postSign}${fmtRaw(Math.abs(postPnl||0),p.currency)}</span>
+                    <!-- 即時/盤後/夜盤行 -->
+                    ${sess2==='🔔 盤中'?`<div style="display:flex;justify-content:space-between;align-items:center;margin-top:5px;padding-top:5px;border-top:1px solid rgba(30,58,95,.4);" class="text-xs">
+                        <span style="color:var(--accent-green);font-weight:600;">🔔 即時價</span>
+                        <span class="mono font-bold" style="color:var(--accent-green);">${fmtRaw(latestPrice,sCurrency,2)}</span>
+                        <span style="color:var(--text-muted);">${timeStr}</span>
                     </div>`:''}
-                    ${(session==='🌙 夜盤'&&prePrice)?`<div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;padding-top:4px;border-top:1px solid rgba(30,58,95,.3);" class="text-xs">
-                        <span style="color:#a78bfa;font-weight:600;">🌙 夜盤</span>
-                        <span class="mono font-bold" style="color:#a78bfa;">${fmtRaw(prePrice,p.currency,2)}</span>
-                        <span class="font-bold mono ${prePc}">${preSign}${fmtRaw(Math.abs(prePnl||0),p.currency)}</span>
+                    ${(extPrice&&(sess2==='🌆 盤後'||sess2==='🌙 夜盤'))?`<div style="display:flex;justify-content:space-between;align-items:center;margin-top:5px;padding-top:5px;border-top:1px solid rgba(30,58,95,.4);" class="text-xs">
+                        <span style="color:${extColor};font-weight:600;">${extLabel}</span>
+                        <span class="mono font-bold" style="color:${extColor};">${fmtRaw(extPrice,sCurrency,2)}</span>
+                        <span style="color:var(--text-muted);">${timeStr}</span>
                     </div>`:''}
                 </div>`;
               }).join('');
@@ -613,7 +627,13 @@ function addStockSlot(data={}){
                 oninput="onSlotInput(${id},this.value)" onkeydown="onSlotKey(event,${id})">
             <div class="ac-list" id="ac-list-${id}"></div>
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div style="display:grid;grid-template-columns:80px 1fr 1fr;gap:10px;">
+            <div><label class="modal-label">幣別</label>
+                <select class="modal-input slot-currency" style="cursor:pointer;padding:8px 4px;">
+                    <option value="USD" ${(data.currency||'USD')==='USD'?'selected':''}>USD</option>
+                    <option value="TWD" ${(data.currency||'USD')==='TWD'?'selected':''}>TWD</option>
+                </select>
+            </div>
             <div><label class="modal-label">持有股數</label><input type="number" class="modal-input slot-shares" placeholder="0" value="${data.shares||''}"></div>
             <div><label class="modal-label">買入均價</label><input type="number" step="0.01" class="modal-input slot-buyprice" placeholder="0.00" value="${data.buyPrice||''}"></div>
         </div>
@@ -711,7 +731,8 @@ function saveData(){
         const shares=parseFloat(slot.querySelector('.slot-shares').value)||0;
         const buyPrice=parseFloat(slot.querySelector('.slot-buyprice').value)||0;
         const currentPrice=parseFloat(slot.querySelector('.slot-cur-hidden').value)||0;
-        if(ticker&&shares>0)newStocks.push({ticker,shares,buyPrice,currentPrice});
+        const sCur=slot.querySelector('.slot-currency')?.value||'USD';
+        if(ticker&&shares>0)newStocks.push({ticker,shares,buyPrice,currentPrice,currency:sCur});
     });
     const updated={...participants[pi],currency:document.getElementById('editCurrency').value,cash:parseFloat(document.getElementById('editCash').value)||0,stocks:newStocks};
     db.ref('competitionData/'+pi).set(updated);
@@ -859,6 +880,7 @@ async function refreshPrices(){
                result.postPrice !== participants[pi].stocks[si].postPrice ||
                result.prePrice  !== participants[pi].stocks[si].prePrice){
                 participants[pi].stocks[si].currentPrice = result.price;
+                participants[pi].stocks[si].prevClose    = result.prevClose||null;
                 participants[pi].stocks[si].postPrice    = result.postPrice||null;
                 participants[pi].stocks[si].prePrice     = result.prePrice||null;
                 participants[pi].stocks[si].session      = result.session||'';
