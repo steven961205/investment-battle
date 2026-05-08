@@ -189,13 +189,19 @@
                 </div>
                 <div id="tradeTickerName" style="font-size:11px;color:var(--accent-cyan);margin-top:4px;min-height:16px;"></div>
             </div>
-            <div><label class="modal-label">股數</label><input type="number" id="tradeShares" placeholder="0" class="modal-input"></div>
+            <div><label class="modal-label">股數</label><input type="number" id="tradeShares" placeholder="0" class="modal-input" oninput="calcTradePreview()"></div>
         </div>
         
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
             <div><label class="modal-label">買入價格</label><input type="number" step="0.01" id="tradeBuyPrice" placeholder="0.00" class="modal-input" oninput="calcTradePreview()"></div>
             <div><label class="modal-label">賣出價格</label><input type="number" step="0.01" id="tradeSellPrice" placeholder="0.00" class="modal-input" oninput="calcTradePreview()"></div>
         </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+            <div><label class="modal-label">手續費</label><input type="number" step="0.01" id="tradeFee" placeholder="0" class="modal-input" oninput="calcTradePreview()"></div>
+            <div><label class="modal-label">證交稅</label><input type="number" step="0.01" id="tradeTax" placeholder="0" class="modal-input" oninput="calcTradePreview()"></div>
+        </div>
+
         <div style="margin-bottom:8px;"><label class="modal-label">損益金額（可手動覆蓋）</label><input type="number" step="0.01" id="tradePnl" placeholder="正數=獲利 負數=虧損" class="modal-input"></div>
         <div id="tradeCalcHint" class="hidden" style="margin-bottom:14px;font-size:12px;color:var(--text-secondary);">預計損益：<span id="tradeCalcValue" class="mono font-bold"></span></div>
         <div style="display:flex;justify-content:flex-end;gap:10px;">
@@ -238,9 +244,9 @@ function getMarketSession(){
     const h=et.getHours(), m=et.getMinutes(), day=et.getDay();
     if(day===0||day===6) return '週末';
     const totalMin=h*60+m;
-    if(totalMin>=240&&totalMin<570)  return '🌙 夜盤';   // 04:00~09:30 ET
-    if(totalMin>=570&&totalMin<960)  return '🔔 盤中';   // 09:30~16:00 ET
-    if(totalMin>=960&&totalMin<1200) return '🌆 盤後';   // 16:00~20:00 ET
+    if(totalMin>=240&&totalMin<570)  return '🌙 夜盤';   
+    if(totalMin>=570&&totalMin<960)  return '🔔 盤中';   
+    if(totalMin>=960&&totalMin<1200) return '🌆 盤後';   
     return '💤 休市';
 }
 async function fetchFinnhubPrice(ticker){
@@ -474,7 +480,6 @@ function renderDashboard(){
                     }
                 })();
 
-                // 修改重點 1: 智能判斷顯示「昨收」或是「收盤價」
                 let prevLabel = '昨收';
                 let prevDisplay = prevClose || null;
 
@@ -483,7 +488,6 @@ function renderDashboard(){
                         prevLabel = '現價';
                         prevDisplay = latestPrice;
                     } else {
-                        // 台灣股市收盤後，或是隔天開盤前，s.currentPrice 即為最新收盤價
                         prevLabel = '收盤價';
                         prevDisplay = s.currentPrice || prevClose;
                     }
@@ -492,7 +496,6 @@ function renderDashboard(){
                         prevLabel = '昨收';
                         prevDisplay = prevClose || null;
                     } else {
-                        // 美國股市盤後/夜盤/休市，s.currentPrice 紀錄的是最新收盤價
                         prevLabel = '收盤價';
                         prevDisplay = s.currentPrice || prevClose;
                     }
@@ -531,7 +534,6 @@ function renderDashboard(){
         const realSign=realPnl>=0?'+':'';const realCls=realPnl>=0?'profit-pos':'profit-neg';
         const upSign=totalUnPnl>=0?'+':'';const upCls=totalUnPnl<0?'text-red-400':'text-emerald-400';
         
-        // 修改重點 2: 歷史交易列表加入股票名稱顯示
         const tradeRows=trades.length===0
             ?`<div style="text-align:center;color:var(--text-muted);padding:12px;font-size:12px;">尚無歷史交易紀錄</div>`
             :trades.map((t,idx)=>{
@@ -757,7 +759,7 @@ function saveData(){
     closeModal();setStatus('loading','🟡 同步變更中...');
 }
 
-// ── 歷史交易 Modal (新增 Auto-complete 功能) ────────────────────────
+// ── 歷史交易 Modal ────────────────────────
 let tradeAcTimer=null, tradeAcItems=[], tradeAcIdx=-1;
 
 async function onTradeTickerInput(val){
@@ -825,7 +827,7 @@ async function fetchAndSetTradeName(symbol, fallbackName=''){
 function openTradeModal(name){
     document.getElementById('tradeName').value=name;
     document.getElementById('tradeModalTitle').textContent=`新增交易紀錄 — ${name}`;
-    ['tradeTicker','tradeShares','tradeBuyPrice','tradeSellPrice','tradePnl'].forEach(id=>document.getElementById(id).value='');
+    ['tradeTicker','tradeShares','tradeBuyPrice','tradeSellPrice','tradeFee','tradeTax','tradePnl'].forEach(id=>document.getElementById(id).value='');
     document.getElementById('tradeTicker').dataset.name = '';
     document.getElementById('tradeTickerName').textContent = '';
     document.getElementById('tradeCalcHint').classList.add('hidden');
@@ -838,7 +840,18 @@ function calcTradePreview(){
     const sh=parseFloat(document.getElementById('tradeShares').value)||0;
     const bp=parseFloat(document.getElementById('tradeBuyPrice').value)||0;
     const sp=parseFloat(document.getElementById('tradeSellPrice').value)||0;
-    if(sh>0&&bp>0&&sp>0){const pnl=(sp-bp)*sh;const el=document.getElementById('tradeCalcValue');el.textContent=(pnl>=0?'+':'')+pnl.toFixed(2);el.className='mono font-bold '+(pnl>=0?'text-emerald-400':'text-red-400');document.getElementById('tradePnl').value=pnl.toFixed(2);document.getElementById('tradeCalcHint').classList.remove('hidden');}
+    const fee=parseFloat(document.getElementById('tradeFee').value)||0;
+    const tax=parseFloat(document.getElementById('tradeTax').value)||0;
+    
+    if(sh>0&&bp>0&&sp>0){
+        // 預計損益公式：(賣價 - 買價) * 股數 - 手續費 - 證交稅
+        const pnl=(sp-bp)*sh - fee - tax;
+        const el=document.getElementById('tradeCalcValue');
+        el.textContent=(pnl>=0?'+':'')+pnl.toFixed(2);
+        el.className='mono font-bold '+(pnl>=0?'text-emerald-400':'text-red-400');
+        document.getElementById('tradePnl').value=pnl.toFixed(2);
+        document.getElementById('tradeCalcHint').classList.remove('hidden');
+    }
 }
 
 async function saveTrade(){
@@ -847,13 +860,15 @@ async function saveTrade(){
     const shares=parseFloat(document.getElementById('tradeShares').value)||0;
     const buyPrice=parseFloat(document.getElementById('tradeBuyPrice').value)||0;
     const sellPrice=parseFloat(document.getElementById('tradeSellPrice').value)||0;
+    const fee=parseFloat(document.getElementById('tradeFee').value)||0;
+    const tax=parseFloat(document.getElementById('tradeTax').value)||0;
     const pnl=parseFloat(document.getElementById('tradePnl').value)||0;
     if(!ticker||shares<=0){alert('請填入股票代號和股數');return;}
     
-    // 將剛剛 fetch 到的名稱帶入紀錄中
     const stockName = document.getElementById('tradeTicker').dataset.name || '';
 
-    const t=[...(participants[pi].trades||[]),{ticker, stockName, shares, buyPrice, sellPrice, pnl, date:new Date().toLocaleDateString('zh-TW')}];
+    // 將 fee 和 tax 存入資料庫
+    const t=[...(participants[pi].trades||[]),{ticker, stockName, shares, buyPrice, sellPrice, fee, tax, pnl, date:new Date().toLocaleDateString('zh-TW')}];
     db.ref('competitionData/'+pi+'/trades').set(t);
     closeTradeModal();setStatus('loading','🟡 同步交易紀錄中...');
 }
