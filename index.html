@@ -154,7 +154,7 @@
                     <option value="USD">美元 (USD)</option><option value="TWD">新台幣 (TWD)</option>
                 </select></div>
             <div><label class="modal-label">初始本金（鎖定）</label><input type="text" id="displayInitialCapital" readonly class="modal-input mono"></div>
-            <div><label class="modal-label">當前現金水位</label><input type="number" id="editCash" oninput="updateModalSummary()" class="modal-input" placeholder="0"></div>
+            <div><label class="modal-label" style="color:var(--accent-cyan)">當前現金水位（自動計算）</label><input type="number" step="0.01" id="editCash" readonly class="modal-input mono" style="background:#060e1a;color:var(--text-secondary);" placeholder="0"></div>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
             <div><label class="modal-label">帳戶淨值（初始本金 + 損益）</label><input type="text" id="displayNetValue" readonly class="modal-input net-preview"></div>
@@ -428,7 +428,7 @@ function renderDashboard(){
         const initCap=getFixedInitialCapital(p.currency);
         const stocks=Array.isArray(p.stocks)?p.stocks:[];
         const trades=Array.isArray(p.trades)?p.trades:[];
-        let totalMV=0,totalUnPnl=0;
+        let totalMV=0,totalUnPnl=0, totalCost=0;
         stocks.forEach(s=>{
             const sess=s.session||'';
             const latestPrice=(sess==='🌙 夜盤'&&s.prePrice)?s.prePrice:
@@ -437,13 +437,18 @@ function renderDashboard(){
             const mv=(s.shares||0)*latestPrice;
             const cost=(s.shares||0)*(s.buyPrice||0);
             totalMV+=mv;
+            totalCost+=cost;
             totalUnPnl+=(mv-cost);
         });
         const realPnl=trades.reduce((sum,t)=>sum+(parseFloat(t.pnl)||0),0);
         const netVal=initCap+realPnl+totalUnPnl;
-        const retPct=(((netVal-initCap)/initCap)*100).toFixed(2);
         const valTWD=p.currency==='USD'?netVal*usdToTwd:netVal;
-        const currentVal=p.cash+totalMV;
+        
+        // 修改：現金水位由公式嚴格自動計算 (帳戶淨值 - 持股市值)
+        const autoCash = netVal - totalMV; 
+        const currentVal = autoCash + totalMV; // 在數學上保證等於 netVal
+
+        const retPct=(((netVal-initCap)/initCap)*100).toFixed(2);
         const leverageBase = initCap + realPnl;
         const actualLevPct = leverageBase > 0 ? ((totalMV / leverageBase) - 1) * 100 : 0;
         const hasLev = actualLevPct > 0.01;
@@ -591,7 +596,7 @@ function renderDashboard(){
             </div>
             <div class="space-y-1" style="margin-bottom:16px;">
                 <div class="stat-row"><span class="stat-label">初始本金</span><span class="mono text-white text-xs">${fmtRaw(initCap,p.currency)}</span></div>
-                <div class="stat-row"><span class="stat-label">現金水位</span>${fmtC(p.cash,p.currency,true)}</div>
+                <div class="stat-row"><span class="stat-label">現金水位</span>${fmtC(autoCash,p.currency,true)}</div>
                 <div class="stat-row"><span class="stat-label">持股總市值</span>${fmtC(totalMV,p.currency,true)}</div>
                 <div class="stat-row"><span class="stat-label">當前淨值（現金+持股）</span><span class="mono font-bold text-cyan-400 text-sm">${fmtRaw(currentVal,p.currency)}</span></div>
                 <div class="stat-row">
@@ -632,11 +637,13 @@ function openModal(name){
     document.getElementById('modalTitle').textContent=`更新 ${name} 的部位`;
     document.getElementById('editName').value=name;
     document.getElementById('editCurrency').value=p.currency;
-    document.getElementById('editCash').value=p.cash;
-    updateModalSummary();
+    
     const container=document.getElementById('stockSlots');container.innerHTML='';
     const stocks=Array.isArray(p.stocks)?p.stocks:[];
     if(stocks.length===0)addStockSlot();else stocks.forEach(s=>addStockSlot(s));
+    
+    // 渲染完持股清單後，自動更新上方總覽數值
+    updateModalSummary();
     document.getElementById('editModal').classList.add('open');
 }
 function editName(oldName){
@@ -659,6 +666,7 @@ function addStockSlot(data={}){
     const id=++slotCounter;slotAcItems[id]=[];slotAcIdx[id]=-1;
     const num=container.querySelectorAll('.stock-slot').length+1;
     const slot=document.createElement('div');slot.className='stock-slot';slot.dataset.slotId=id;
+    // 加入 oninput 觸發 updateModalSummary，達到即時變動現金的體驗
     slot.innerHTML=`<div class="stock-slot-header"><span class="slot-num">持股 #${num}</span><button class="btn-del" onclick="removeSlot(this)">✕ 移除</button></div>
         <div class="ac-wrap" style="margin-bottom:10px;">
             <input type="text" class="modal-input slot-ticker" placeholder="搜尋代號（美股）或輸入數字（台股）" autocomplete="off" value="${data.ticker||''}" style="text-transform:uppercase;"
@@ -671,8 +679,8 @@ function addStockSlot(data={}){
                     <option value="USD" ${(data.currency||'USD')==='USD'?'selected':''}>USD</option>
                     <option value="TWD" ${(data.currency||'USD')==='TWD'?'selected':''}>TWD</option>
                 </select></div>
-            <div><label class="modal-label">持有股數</label><input type="number" class="modal-input slot-shares" placeholder="0" value="${data.shares||''}"></div>
-            <div><label class="modal-label">買入均價</label><input type="number" step="0.01" class="modal-input slot-buyprice" placeholder="0.00" value="${data.buyPrice||''}"></div>
+            <div><label class="modal-label">持有股數</label><input type="number" class="modal-input slot-shares" placeholder="0" value="${data.shares||''}" oninput="updateModalSummary()"></div>
+            <div><label class="modal-label">買入均價</label><input type="number" step="0.01" class="modal-input slot-buyprice" placeholder="0.00" value="${data.buyPrice||''}" oninput="updateModalSummary()"></div>
         </div>
         <div class="slot-price-info" style="margin-top:8px;font-size:12px;color:var(--text-secondary);${(data.currentPrice||0)>0?'':'display:none'}">
             <span class="price-dot"></span>即時股價：<span class="slot-cur-price mono font-bold" style="color:var(--accent-cyan)">${(data.currentPrice||0)>0?(data.currentPrice).toFixed(2):''}</span>
@@ -680,7 +688,7 @@ function addStockSlot(data={}){
         </div>`;
     container.appendChild(slot);renumberSlots();
 }
-function removeSlot(btn){btn.closest('.stock-slot').remove();renumberSlots();}
+function removeSlot(btn){btn.closest('.stock-slot').remove();renumberSlots();updateModalSummary();}
 
 function onSlotTickerChange(id, val){
     const slot = document.querySelector(`.stock-slot[data-slot-id="${id}"]`);
@@ -732,25 +740,46 @@ async function selectSlot(id,idx){
     const price=await fetchStockPrice(q.symbol);
     if(priceHidden) priceHidden.value = price!=null ? price : 0;
     if(priceSpan) priceSpan.textContent = price!=null ? price.toFixed(2) : '取得失敗';
+    
+    // 取得股價後自動重算帳戶總值
+    updateModalSummary();
 }
 
 function updateModalSummary(){
+    const name=document.getElementById('editName').value;
+    const pi=participants.findIndex(p=>p.name===name);
+    if(pi===-1)return;
+    const p=participants[pi];
+
     const currency=document.getElementById('editCurrency').value;
     const initCap=getFixedInitialCapital(currency);
     document.getElementById('displayInitialCapital').value=fmtRaw(initCap,currency);
-    const cash=parseFloat(document.getElementById('editCash').value)||0;
+    
     let stockValue=0;
+    let stockCost=0;
     document.querySelectorAll('.stock-slot').forEach(slot=>{
         const shares=parseFloat(slot.querySelector('.slot-shares').value)||0;
         const price=parseFloat(slot.querySelector('.slot-cur-hidden').value)||0;
+        const buyPrice=parseFloat(slot.querySelector('.slot-buyprice').value)||0;
         stockValue+=shares*price;
+        stockCost+=shares*buyPrice;
     });
-    const currentVal=cash+stockValue;
+    
+    const trades=Array.isArray(p.trades)?p.trades:[];
+    const realPnl=trades.reduce((sum,t)=>sum+(parseFloat(t.pnl)||0),0);
+    
+    // 重新計算淨值與現金：帳戶淨值 = 初始本金 + 已實現損益 + (持股市值 - 持股成本)
+    const netVal = initCap + realPnl + (stockValue - stockCost);
+    // 自動計算現金 = 帳戶淨值 - 持股市值
+    const currentCash = netVal - stockValue; 
+    
+    const cashEl = document.getElementById('editCash');
+    if(cashEl) cashEl.value = currentCash.toFixed(2);
 
     const preview=document.getElementById('displayNetValue');
-    if(preview){preview.value=fmtRaw(currentVal,currency);}
+    if(preview){preview.value=fmtRaw(netVal,currency);}
     const curValEl=document.getElementById('displayCurrentValue');
-    if(curValEl){curValEl.value=fmtRaw(currentVal,currency);}
+    if(curValEl){curValEl.value=fmtRaw(netVal,currency);}
 }
 
 function saveData(){
@@ -765,6 +794,7 @@ function saveData(){
         const sCur=slot.querySelector('.slot-currency')?.value||'USD';
         if(ticker&&shares>0)newStocks.push({ticker,shares,buyPrice,currentPrice,currency:sCur});
     });
+    // 資料庫依然會儲存最後計算出的 cash 作為備份，但在前台顯示時會嚴格依照公式顯示，避免錯誤
     const updated={...participants[pi],currency:document.getElementById('editCurrency').value,cash:parseFloat(document.getElementById('editCash').value)||0,stocks:newStocks};
     db.ref('competitionData/'+pi).set(updated);
     closeModal();setStatus('loading','🟡 同步變更中...');
@@ -835,47 +865,38 @@ async function fetchAndSetTradeName(symbol, fallbackName=''){
     }
 }
 
-// 自動計算台股手續費與證交稅
 function autoCalcTWFee() {
     const discountInput = document.getElementById('tradeDiscount').value;
     const sh = parseFloat(document.getElementById('tradeShares').value) || 0;
     const bp = parseFloat(document.getElementById('tradeBuyPrice').value) || 0;
     const sp = parseFloat(document.getElementById('tradeSellPrice').value) || 0;
 
-    // 只有在填寫了折數且有股數時才進行自動計算
     if (discountInput !== '' && sh > 0) {
         const discount = parseFloat(discountInput) || 10;
         const rate = 0.001425 * (discount / 10);
         
         let totalFee = 0;
         
-        // 買進手續費 (零股單筆最低1元)
         if (bp > 0) {
             totalFee += Math.max(1, Math.floor(bp * sh * rate));
         }
         
-        // 賣出手續費 (零股單筆最低1元) + 證交稅
         if (sp > 0) {
             totalFee += Math.max(1, Math.floor(sp * sh * rate));
-            // 證交稅預設0.3%，無條件捨去
             document.getElementById('tradeTax').value = Math.floor(sp * sh * 0.003);
         } else {
             document.getElementById('tradeTax').value = '';
         }
         
-        // 填入手續費欄位
         if (totalFee > 0) {
             document.getElementById('tradeFee').value = totalFee;
         } else {
             document.getElementById('tradeFee').value = '';
         }
     }
-    
-    // 計算完成後更新預計損益
     calcTradePreview();
 }
 
-// 支援新增與編輯，透過 idx 判斷 (idx >= 0 為編輯)
 function openTradeModal(name, idx = -1){
     document.getElementById('tradeName').value = name;
     document.getElementById('tradeIndex').value = idx === -1 ? '' : idx;
