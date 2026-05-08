@@ -520,30 +520,30 @@ function renderDashboard(){
                 const extColor = _sess==='🌆 盤後'?'var(--accent-amber)':'#a78bfa';
                 const extLabel = _sess==='🌆 盤後'?'🌆 盤後':'🌙 夜盤';
 
-                return\`<div class="holding-row">
+                return`<div class="holding-row">
                     <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
                         <div>
-                            <span class="mono font-bold text-cyan-400">\${s.ticker}</span>
-                            \${stockName?\`<span style="font-size:11px;color:var(--text-muted);margin-left:6px;">\${stockName}</span>\`:''}
+                            <span class="mono font-bold text-cyan-400">${s.ticker}</span>
+                            ${stockName?`<span style="font-size:11px;color:var(--text-muted);margin-left:6px;">${stockName}</span>`:''}
                         </div>
-                        <span class="text-white font-semibold">\${(s.shares||0).toLocaleString()} 股</span>
+                        <span class="text-white font-semibold">${(s.shares||0).toLocaleString()} 股</span>
                     </div>
                     <div style="display:flex;justify-content:space-between;align-items:center;" class="text-slate-400 text-xs">
-                        <span>買入 <span class="mono text-white">\${fmtRaw(s.buyPrice||0,sCurrency,2)}</span></span>
-                        <span>\${prevLabel} <span class="mono" style="color:var(--text-secondary);">\${prevDisplay?fmtRaw(prevDisplay,sCurrency,2):'--'}</span></span>
-                        <span class="font-bold mono \${pc}">\${ps}\${fmtRaw(pnl,sCurrency)} <span style="opacity:.8">(\${pnlPctSign}\${pnlPct}%)</span></span>
+                        <span>買入 <span class="mono text-white">${fmtRaw(s.buyPrice||0,sCurrency,2)}</span></span>
+                        <span>${prevLabel} <span class="mono" style="color:var(--text-secondary);">${prevDisplay?fmtRaw(prevDisplay,sCurrency,2):'--'}</span></span>
+                        <span class="font-bold mono ${pc}">${ps}${fmtRaw(pnl,sCurrency)} <span style="opacity:.8">(${pnlPctSign}${pnlPct}%)</span></span>
                     </div>
-                    \${(_sess==='🔔 盤中'&&!isTW)?\`<div style="display:flex;justify-content:space-between;align-items:center;margin-top:5px;padding-top:5px;border-top:1px solid rgba(30,58,95,.4);" class="text-xs">
+                    ${(_sess==='🔔 盤中'&&!isTW)?`<div style="display:flex;justify-content:space-between;align-items:center;margin-top:5px;padding-top:5px;border-top:1px solid rgba(30,58,95,.4);" class="text-xs">
                         <span style="color:var(--accent-green);font-weight:600;">🔔 即時價</span>
-                        <span class="mono font-bold" style="color:var(--accent-green);">\${fmtRaw(latestPrice,sCurrency,2)}</span>
-                        <span style="color:var(--text-muted);">\${timeStr}</span>
-                    </div>\`:''}
-                    \${(extPrice&&(_sess==='🌆 盤後'||_sess==='🌙 夜盤'))?\`<div style="display:flex;justify-content:space-between;align-items:center;margin-top:5px;padding-top:5px;border-top:1px solid rgba(30,58,95,.4);" class="text-xs">
-                        <span style="color:\${extColor};font-weight:600;">\${extLabel}</span>
-                        <span class="mono font-bold" style="color:\${extColor};">\${fmtRaw(extPrice,sCurrency,2)}</span>
-                        <span style="color:var(--text-muted);">\${timeStr}</span>
-                    </div>\`:''}
-                </div>\`;
+                        <span class="mono font-bold" style="color:var(--accent-green);">${fmtRaw(latestPrice,sCurrency,2)}</span>
+                        <span style="color:var(--text-muted);">${timeStr}</span>
+                    </div>`:''}
+                    ${(extPrice&&(_sess==='🌆 盤後'||_sess==='🌙 夜盤'))?`<div style="display:flex;justify-content:space-between;align-items:center;margin-top:5px;padding-top:5px;border-top:1px solid rgba(30,58,95,.4);" class="text-xs">
+                        <span style="color:${extColor};font-weight:600;">${extLabel}</span>
+                        <span class="mono font-bold" style="color:${extColor};">${fmtRaw(extPrice,sCurrency,2)}</span>
+                        <span style="color:var(--text-muted);">${timeStr}</span>
+                    </div>`:''}
+                </div>`;
               }).join('');
 
         const realSign=realPnl>=0?'+':'';const realCls=realPnl>=0?'profit-pos':'profit-neg';
