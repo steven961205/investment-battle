@@ -48,6 +48,8 @@
         .btn-add-stock:hover{background:rgba(59,130,246,.2);}
         .btn-add-trade{display:flex;align-items:center;gap:5px;background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.3);color:var(--accent-green);padding:4px 10px;border-radius:5px;font-size:11px;font-weight:700;cursor:pointer;transition:all .2s;}
         .btn-add-trade:hover{background:rgba(16,185,129,.2);}
+        .btn-edit{background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:14px;padding:0 3px;transition:color .15s;}
+        .btn-edit:hover{color:var(--accent-blue);}
         .btn-del{background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:13px;padding:0 3px;transition:color .15s;}
         .btn-del:hover{color:var(--accent-red);}
         .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);backdrop-filter:blur(4px);align-items:center;justify-content:center;z-index:50;}
@@ -178,6 +180,12 @@
             <button onclick="closeTradeModal()" class="text-slate-500 hover:text-white text-xl leading-none">&times;</button>
         </div>
         <input type="hidden" id="tradeName">
+        <input type="hidden" id="tradeIndex" value="">
+
+        <div style="margin-bottom:12px;">
+            <label class="modal-label">交易日期</label>
+            <input type="date" id="tradeDate" class="modal-input">
+        </div>
         
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
             <div>
@@ -206,7 +214,7 @@
         <div id="tradeCalcHint" class="hidden" style="margin-bottom:14px;font-size:12px;color:var(--text-secondary);">預計損益：<span id="tradeCalcValue" class="mono font-bold"></span></div>
         <div style="display:flex;justify-content:flex-end;gap:10px;">
             <button onclick="closeTradeModal()" class="btn-cancel">取消</button>
-            <button onclick="saveTrade()" class="btn-save">＋ 新增紀錄</button>
+            <button onclick="saveTrade()" class="btn-save" id="btn-save-trade">＋ 新增紀錄</button>
         </div>
     </div>
 </div>
@@ -544,6 +552,8 @@ function renderDashboard(){
                 const pnlPct = bp>0 ? ((sp-bp)/bp*100).toFixed(2) : null;
                 const pnlPctStr = pnlPct!==null ? `${pnl>=0?'+':''}${pnlPct}%` : '--';
                 const nameDisplay = t.stockName ? `<span style="font-size:11px;color:var(--text-secondary);margin-left:6px;font-weight:normal;">${t.stockName}</span>` : '';
+                
+                // 新增：編輯按鈕 ✎
                 return`<div class="trade-card">
                     <div class="trade-card-row">
                         <div style="display:flex;align-items:center;">
@@ -553,7 +563,8 @@ function renderDashboard(){
                         <div style="display:flex;align-items:center;gap:8px;">
                             <span class="${cls}" style="font-size:13px;font-weight:700;">${pnl>=0?'+':''}${fmtRaw(Math.abs(pnl),p.currency)}</span>
                             <span class="${cls}" style="font-size:11px;opacity:.85;">(${pnlPctStr})</span>
-                            <button class="btn-del" onclick="deleteTrade('${p.name}',${idx})" title="刪除">✕</button>
+                            <button class="btn-edit" onclick="openTradeModal('${p.name}', ${idx})" title="編輯">✎</button>
+                            <button class="btn-del" onclick="deleteTrade('${p.name}', ${idx})" title="刪除">✕</button>
                         </div>
                     </div>
                     <div class="trade-card-row" style="color:var(--text-secondary);font-size:11px;">
@@ -759,7 +770,7 @@ function saveData(){
     closeModal();setStatus('loading','🟡 同步變更中...');
 }
 
-// ── 歷史交易 Modal ────────────────────────
+// ── 歷史交易 Modal (新增編輯功能與日期選擇) ────────────────────────
 let tradeAcTimer=null, tradeAcItems=[], tradeAcIdx=-1;
 
 async function onTradeTickerInput(val){
@@ -824,12 +835,56 @@ async function fetchAndSetTradeName(symbol, fallbackName=''){
     }
 }
 
-function openTradeModal(name){
-    document.getElementById('tradeName').value=name;
-    document.getElementById('tradeModalTitle').textContent=`新增交易紀錄 — ${name}`;
-    ['tradeTicker','tradeShares','tradeBuyPrice','tradeSellPrice','tradeFee','tradeTax','tradePnl'].forEach(id=>document.getElementById(id).value='');
-    document.getElementById('tradeTicker').dataset.name = '';
-    document.getElementById('tradeTickerName').textContent = '';
+// 支援新增與編輯，透過 idx 判斷 (idx >= 0 為編輯)
+function openTradeModal(name, idx = -1){
+    document.getElementById('tradeName').value = name;
+    document.getElementById('tradeIndex').value = idx === -1 ? '' : idx;
+
+    const pi = participants.findIndex(p => p.name === name);
+    let t = null;
+    if (idx >= 0 && pi !== -1) {
+        t = (participants[pi].trades || [])[idx];
+    }
+
+    document.getElementById('tradeModalTitle').textContent = t ? `編輯交易紀錄 — ${name}` : `新增交易紀錄 — ${name}`;
+    document.getElementById('btn-save-trade').textContent = t ? '💾 儲存變更' : '＋ 新增紀錄';
+
+    if (t) {
+        // 帶入舊資料
+        document.getElementById('tradeTicker').value = t.ticker || '';
+        document.getElementById('tradeTicker').dataset.name = t.stockName || '';
+        document.getElementById('tradeTickerName').textContent = t.stockName || '';
+        document.getElementById('tradeShares').value = t.shares || '';
+        document.getElementById('tradeBuyPrice').value = t.buyPrice || '';
+        document.getElementById('tradeSellPrice').value = t.sellPrice || '';
+        document.getElementById('tradeFee').value = t.fee || '';
+        document.getElementById('tradeTax').value = t.tax || '';
+        document.getElementById('tradePnl').value = t.pnl || '';
+
+        // 轉換原本的日期格式 YYYY/M/D 到 input[type=date] 需要的 YYYY-MM-DD
+        let dStr = t.date || '';
+        if (dStr.includes('/')) {
+            const parts = dStr.split('/');
+            if (parts.length === 3) {
+                const y = parts[0];
+                const m = parts[1].padStart(2, '0');
+                const d = parts[2].padStart(2, '0');
+                dStr = `${y}-${m}-${d}`;
+            }
+        }
+        document.getElementById('tradeDate').value = dStr;
+    } else {
+        // 清空欄位
+        ['tradeTicker','tradeShares','tradeBuyPrice','tradeSellPrice','tradeFee','tradeTax','tradePnl'].forEach(id=>document.getElementById(id).value='');
+        document.getElementById('tradeTicker').dataset.name = '';
+        document.getElementById('tradeTickerName').textContent = '';
+        
+        // 預設填寫今天的日期 (格式 YYYY-MM-DD)
+        const today = new Date();
+        const localDateStr = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
+        document.getElementById('tradeDate').value = localDateStr;
+    }
+
     document.getElementById('tradeCalcHint').classList.add('hidden');
     document.getElementById('tradeModal').classList.add('open');
 }
@@ -844,7 +899,6 @@ function calcTradePreview(){
     const tax=parseFloat(document.getElementById('tradeTax').value)||0;
     
     if(sh>0&&bp>0&&sp>0){
-        // 預計損益公式：(賣價 - 買價) * 股數 - 手續費 - 證交稅
         const pnl=(sp-bp)*sh - fee - tax;
         const el=document.getElementById('tradeCalcValue');
         el.textContent=(pnl>=0?'+':'')+pnl.toFixed(2);
@@ -855,7 +909,15 @@ function calcTradePreview(){
 }
 
 async function saveTrade(){
-    const name=document.getElementById('tradeName').value;const pi=participants.findIndex(p=>p.name===name);if(pi===-1)return;
+    const name = document.getElementById('tradeName').value;
+    const pi = participants.findIndex(p=>p.name===name);
+    if(pi === -1) return;
+
+    // 判斷是新增還是編輯
+    const idxStr = document.getElementById('tradeIndex').value;
+    const isEdit = idxStr !== '';
+    const idx = isEdit ? parseInt(idxStr) : -1;
+
     const ticker=document.getElementById('tradeTicker').value.toUpperCase().trim();
     const shares=parseFloat(document.getElementById('tradeShares').value)||0;
     const buyPrice=parseFloat(document.getElementById('tradeBuyPrice').value)||0;
@@ -863,13 +925,32 @@ async function saveTrade(){
     const fee=parseFloat(document.getElementById('tradeFee').value)||0;
     const tax=parseFloat(document.getElementById('tradeTax').value)||0;
     const pnl=parseFloat(document.getElementById('tradePnl').value)||0;
+
+    // 取得選取的日期，並轉回原本儲存的 YYYY/M/D 格式保持資料一致性
+    let dateVal = document.getElementById('tradeDate').value;
+    if(!dateVal){
+        const today = new Date();
+        dateVal = `${today.getFullYear()}/${today.getMonth() + 1}/${today.getDate()}`;
+    } else {
+        const parts = dateVal.split('-');
+        if(parts.length === 3){
+            dateVal = `${parts[0]}/${parseInt(parts[1], 10)}/${parseInt(parts[2], 10)}`;
+        }
+    }
+
     if(!ticker||shares<=0){alert('請填入股票代號和股數');return;}
     
     const stockName = document.getElementById('tradeTicker').dataset.name || '';
+    const newTrade = { ticker, stockName, shares, buyPrice, sellPrice, fee, tax, pnl, date: dateVal };
+    const tList = [...(participants[pi].trades||[])];
 
-    // 將 fee 和 tax 存入資料庫
-    const t=[...(participants[pi].trades||[]),{ticker, stockName, shares, buyPrice, sellPrice, fee, tax, pnl, date:new Date().toLocaleDateString('zh-TW')}];
-    db.ref('competitionData/'+pi+'/trades').set(t);
+    if (isEdit) {
+        tList[idx] = newTrade;
+    } else {
+        tList.push(newTrade);
+    }
+
+    db.ref('competitionData/'+pi+'/trades').set(tList);
     closeTradeModal();setStatus('loading','🟡 同步交易紀錄中...');
 }
 
