@@ -155,7 +155,7 @@
                     <option value="USD">美元 (USD)</option><option value="TWD">新台幣 (TWD)</option>
                 </select></div>
             <div><label class="modal-label">初始本金（鎖定）</label><input type="text" id="displayInitialCapital" readonly class="modal-input mono"></div>
-            <div><label class="modal-label">當前現金水位</label><input type="number" id="editCash" oninput="updateModalSummary()" class="modal-input" placeholder="0"></div>
+            <div><label class="modal-label">當前現金水位（自動計算）</label><input type="text" id="editCash" readonly class="modal-input mono" style="background:#060e1a;color:var(--accent-cyan);font-weight:600;" placeholder="自動計算"></div>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
             <div><label class="modal-label">帳戶淨值（初始本金 + 損益）</label><input type="text" id="displayNetValue" readonly class="modal-input net-preview"></div>
@@ -432,7 +432,9 @@ function renderDashboard(){
         const retPct=(((netVal-initCap)/initCap)*100).toFixed(2);
         const valTWD=p.currency==='USD'?netVal*usdToTwd:netVal;
         // 當前淨值（現金 + 持股市值）
-        const currentVal=p.cash+totalMV;
+        // 現金水位 = 帳戶淨值 - 持股市值（自動計算）
+        const autoCashCalc = netVal - totalMV;
+        const currentVal=netVal;
         // 槓桿使用率 = (持股總市值 / (初始本金 + 已實現損益)) - 1
         const leverageBase = initCap + realPnl;
         const actualLevPct = leverageBase > 0 ? ((totalMV / leverageBase) - 1) * 100 : 0;
@@ -538,7 +540,7 @@ function renderDashboard(){
             </div>
             <div class="space-y-1" style="margin-bottom:16px;">
                 <div class="stat-row"><span class="stat-label">初始本金</span><span class="mono text-white text-xs">${fmtRaw(initCap,p.currency)}</span></div>
-                <div class="stat-row"><span class="stat-label">現金水位</span>${fmtC(p.cash,p.currency,true)}</div>
+                <div class="stat-row"><span class="stat-label">現金水位</span>${fmtC(autoCashCalc,p.currency,true)}</div>
                 <div class="stat-row"><span class="stat-label">持股總市值</span>${fmtC(totalMV,p.currency,true)}</div>
                 <div class="stat-row"><span class="stat-label">當前淨值（現金+持股）</span><span class="mono font-bold text-cyan-400 text-sm">${fmtRaw(currentVal,p.currency)}</span></div>
                 <div class="stat-row">
@@ -579,7 +581,7 @@ function openModal(name){
     document.getElementById('modalTitle').textContent=`更新 ${name} 的部位`;
     document.getElementById('editName').value=name;
     document.getElementById('editCurrency').value=p.currency;
-    document.getElementById('editCash').value=p.cash;
+    // 現金水位由 updateModalSummary 自動計算
     updateModalSummary();
     const container=document.getElementById('stockSlots');container.innerHTML='';
     const stocks=Array.isArray(p.stocks)?p.stocks:[];
@@ -679,27 +681,32 @@ async function selectSlot(id,idx){
 }
 
 function updateModalSummary(){
+    const name=document.getElementById('editName').value;
+    const pi=participants.findIndex(p=>p.name===name);
     const currency=document.getElementById('editCurrency').value;
     const initCap=getFixedInitialCapital(currency);
     document.getElementById('displayInitialCapital').value=fmtRaw(initCap,currency);
-    const cash=parseFloat(document.getElementById('editCash').value)||0;
-    let stockValue=0;
+
+    let stockValue=0, stockCost=0;
     document.querySelectorAll('.stock-slot').forEach(slot=>{
         const shares=parseFloat(slot.querySelector('.slot-shares').value)||0;
         const price=parseFloat(slot.querySelector('.slot-cur-hidden').value)||0;
+        const buyPrice=parseFloat(slot.querySelector('.slot-buyprice').value)||0;
         stockValue+=shares*price;
+        stockCost+=shares*buyPrice;
     });
-    // 帳戶淨值（從 Firebase 現有資料算，這裡簡化顯示初始本金+現金變化）
-    // Modal 中無法知道歷史損益，所以帳戶淨值欄位僅供參考顯示現金+持股
-    const currentVal=cash+stockValue;
 
-    // 帳戶淨值預覽（現金+持股市值，即當前掌握的總資產）
+    const trades=pi>=0&&Array.isArray(participants[pi]?.trades)?participants[pi].trades:[];
+    const realPnl=trades.reduce((sum,t)=>sum+(parseFloat(t.pnl)||0),0);
+    const netVal=initCap+realPnl+(stockValue-stockCost);
+    const cashCalc=netVal-stockValue;
+
+    const cashEl=document.getElementById('editCash');
+    if(cashEl) cashEl.value=fmtRaw(cashCalc,currency);
     const preview=document.getElementById('displayNetValue');
-    if(preview){preview.value=fmtRaw(currentVal,currency);}
-
-    // 當前淨值（同上，清楚標示）
+    if(preview) preview.value=fmtRaw(netVal,currency);
     const curValEl=document.getElementById('displayCurrentValue');
-    if(curValEl){curValEl.value=fmtRaw(currentVal,currency);}
+    if(curValEl) curValEl.value=fmtRaw(netVal,currency);
 }
 
 function saveData(){
@@ -713,7 +720,8 @@ function saveData(){
         const currentPrice=parseFloat(slot.querySelector('.slot-cur-hidden').value)||0;
         if(ticker&&shares>0)newStocks.push({ticker,shares,buyPrice,currentPrice});
     });
-    const updated={...participants[pi],currency:document.getElementById('editCurrency').value,cash:parseFloat(document.getElementById('editCash').value)||0,stocks:newStocks};
+    // 現金水位自動計算，不儲存到 Firebase
+    const updated={...participants[pi],currency:document.getElementById('editCurrency').value,stocks:newStocks};
     db.ref('competitionData/'+pi).set(updated);
     closeModal();setStatus('loading','🟡 同步變更中...');
 }
@@ -843,7 +851,16 @@ async function refreshPrices(){
         const stocks = Array.isArray(p.stocks) ? p.stocks : [];
         await Promise.all(stocks.map(async(s, si)=>{
             if(!s.ticker) return;
-            // 台股和美股都定期更新（收盤後仍顯示最新收盤價）
+            // 台股只在交易時間更新（週一~五 09:00~13:30 台灣時間）
+            const isTW = s.ticker.endsWith('.TW') || s.ticker.endsWith('.TWO');
+            if(isTW){
+                const now = new Date();
+                const twHour = new Date(now.toLocaleString('en-US',{timeZone:'Asia/Taipei'}));
+                const h = twHour.getHours(), m = twHour.getMinutes(), day = twHour.getDay();
+                const isWeekday = day>=1 && day<=5;
+                const isMarketHour = (h===9&&m>=0)||(h>=10&&h<=12)||(h===13&&m<=30);
+                if(!isWeekday || !isMarketHour) return; // 台股非交易時間不刷新
+            }
             const result = await fetchStockPrice(s.ticker);
             if(!result) return;
             if(result.price !== participants[pi].stocks[si].currentPrice ||
