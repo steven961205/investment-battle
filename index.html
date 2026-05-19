@@ -114,9 +114,9 @@
         <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:16px;">
             <h2 class="text-lg font-bold text-white flex items-center gap-2">
                 <span>📈</span> 投資組合績效曲線
-                <span class="text-xs font-normal text-slate-400 ml-1">（自 2026/05/04 起・累積%）</span>
+                <span class="text-xs font-normal text-slate-400 ml-1">（自 2026/05/04 起・週一～週五・累積%）</span>
             </h2>
-            <span class="text-xs text-slate-500" id="snapshot-window-hint" style="font-style:italic;">⏰ 美股 04:00 / 台股 14:00 各取一次定錨快照</span>
+            <span class="text-xs text-slate-500" id="snapshot-window-hint" style="font-style:italic;">⏰ 每平日一點：🌃 美股 04:00 先定點 → ☀️ 台股 14:00 覆蓋</span>
         </div>
         <div style="height:380px;position:relative;">
             <canvas id="performance-chart"></canvas>
@@ -613,6 +613,8 @@ async function backfillHistoricalSnapshots(){
     const todayDate = new Date(todayStr + 'T00:00:00');
     const dates = [];
     for(let d = new Date(startDate); d <= todayDate; d.setDate(d.getDate()+1)){
+        const day = d.getDay();
+        if(day === 0 || day === 6) continue;  // 跳過週末,與曲線對齊
         const y = d.getFullYear();
         const m = String(d.getMonth()+1).padStart(2,'0');
         const dd = String(d.getDate()).padStart(2,'0');
@@ -724,40 +726,50 @@ function renderPerformanceChart(){
     const canvas = document.getElementById('performance-chart');
     if(!canvas) return;
 
-    // 1. 建立日期序列：2026-05-04 ~ 台北今日
-    const allDates=[];
-    const startDate=new Date(BENCHMARK_START_DATE+'T00:00:00');
-    const todayStr=getTaipeiToday();
-    const todayDate=new Date(todayStr+'T00:00:00');
+    // 1. 建立工作日序列(跳過週末) — 每平日只有一個 X 軸點
+    //    該點的值會經歷:🌃 美股04:00先定點 → ☀️ 台股14:00覆蓋 → 隔天起新點
+    const allDates = [];
+    const startDate = new Date(BENCHMARK_START_DATE+'T00:00:00');
+    const todayStr = getTaipeiToday();
+    const todayDate = new Date(todayStr+'T00:00:00');
     for(let d=new Date(startDate); d<=todayDate; d.setDate(d.getDate()+1)){
-        const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), dd=String(d.getDate()).padStart(2,'0');
+        const day = d.getDay();
+        if(day === 0 || day === 6) continue;  // 跳過週日(0)、週六(6)
+        const y = d.getFullYear();
+        const m = String(d.getMonth()+1).padStart(2,'0');
+        const dd = String(d.getDate()).padStart(2,'0');
         allDates.push(`${y}-${m}-${dd}`);
     }
+    // X 軸顯示用簡短標籤
+    const labels = allDates.map(date => {
+        const [, m, d] = date.split('-');
+        return `${parseInt(m,10)}/${parseInt(d,10)}`;
+    });
 
-    // 2. 參賽者 datasets (依 index 給顏色)
-    // 讀取優先順序：us(美股收盤定錨) > tw(台股收盤定錨) > 舊扁平格式
+    // 2. 參賽者 datasets
+    //    讀取優先序:tw(較晚的台股14:00覆蓋值) > us(較早的美股04:00定點) > 舊扁平 > forward fill
     const playerColors = ['#a855f7', '#ffffff', '#fbbf24', '#06b6d4', '#ec4899'];
     const datasets = [];
     participants.forEach((p, idx)=>{
         const initCap = getFixedInitialCapital(p.currency);
         const snaps = dailySnapshots[idx] || {};
         let lastVal = null;
-        const data = allDates.map(date=>{
+        const data = allDates.map(date => {
             const snap = snaps[date];
             if(snap){
-                // 新格式:優先 us 視窗
-                if(snap.us && typeof snap.us.netValue==='number'){
-                    const ic = snap.us.initCap || initCap;
-                    lastVal = ((snap.us.netValue - ic) / ic) * 100;
-                    return lastVal;
-                }
-                // fallback 1:tw 視窗(美股當天還沒結算或缺資料)
+                // 優先 tw(台股收盤後的最新覆蓋值)
                 if(snap.tw && typeof snap.tw.netValue==='number'){
                     const ic = snap.tw.initCap || initCap;
                     lastVal = ((snap.tw.netValue - ic) / ic) * 100;
                     return lastVal;
                 }
-                // fallback 2:舊扁平格式相容
+                // 退而求其次 us(美股收盤的初始定點,台股還沒收盤時)
+                if(snap.us && typeof snap.us.netValue==='number'){
+                    const ic = snap.us.initCap || initCap;
+                    lastVal = ((snap.us.netValue - ic) / ic) * 100;
+                    return lastVal;
+                }
+                // 舊扁平格式相容
                 if(typeof snap.netValue==='number'){
                     const ic = snap.initCap || initCap;
                     lastVal = ((snap.netValue - ic) / ic) * 100;
@@ -781,7 +793,7 @@ function renderPerformanceChart(){
         });
     });
 
-    // 3. 大盤 datasets
+    // 3. 大盤 datasets — 每平日一個點,用該日歷史日 K 收盤
     const benchmarks = [
         { key:'sp500', label:'S&P 500',   color:'#3b82f6' },
         { key:'twii',  label:'加權指數',  color:'#10b981' }
@@ -793,10 +805,9 @@ function renderPerformanceChart(){
         const map = {};
         history.forEach(h=>{ map[h.date] = h.close; });
         let lastVal = null;
-        const data = allDates.map(date=>{
+        const data = allDates.map(date => {
             if(map[date]){
                 lastVal = ((map[date] - baseline) / baseline) * 100;
-                return lastVal;
             }
             return lastVal;
         });
@@ -818,13 +829,13 @@ function renderPerformanceChart(){
     // 4. 繪製/更新
     const ctx = canvas.getContext('2d');
     if(performanceChart){
-        performanceChart.data.labels = allDates;
+        performanceChart.data.labels = labels;
         performanceChart.data.datasets = datasets;
         performanceChart.update('none');
     } else {
         performanceChart = new Chart(ctx, {
             type: 'line',
-            data: { labels: allDates, datasets },
+            data: { labels, datasets },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
@@ -849,6 +860,22 @@ function renderPerformanceChart(){
                         titleFont: { size:12, weight:'600' },
                         bodyFont: { size:12, family:'JetBrains Mono' },
                         callbacks: {
+                            // tooltip 標題顯示完整日期 + 該日定錨來源
+                            title: function(items){
+                                if(!items.length) return '';
+                                const i = items[0].dataIndex;
+                                const date = allDates[i];
+                                if(!date) return '';
+                                // 找任一參賽者的快照標示來源
+                                let src = '';
+                                for(const m of Object.values(dailySnapshots)){
+                                    const s = m?.[date];
+                                    if(s?.tw){ src = '☀️ 台股收盤覆蓋'; break; }
+                                    if(s?.us){ src = '🌃 美股收盤定點'; break; }
+                                    if(typeof s?.netValue==='number'){ src = '舊紀錄'; break; }
+                                }
+                                return `${date} ${src ? '· ' + src : ''}`;
+                            },
                             label: function(c){
                                 const v = c.parsed.y;
                                 if(v===null || v===undefined) return `${c.dataset.label}: --`;
@@ -884,21 +911,19 @@ function renderPerformanceChart(){
     // 5. 狀態文字
     const statusEl = document.getElementById('chart-status');
     if(statusEl){
-        // 計算實際有效快照筆數(兼容 us / tw / 舊扁平)
-        let totalSnapDays = 0;
+        // 計算實際有效快照筆數 + 分別有幾天是 tw 覆蓋過、幾天只有 us 定點
+        let twCovered = 0, usOnly = 0, legacyOnly = 0;
         Object.values(dailySnapshots).forEach(m=>{
             Object.values(m||{}).forEach(d=>{
                 if(!d) return;
-                if((d.us && typeof d.us.netValue==='number') ||
-                   (d.tw && typeof d.tw.netValue==='number') ||
-                   typeof d.netValue==='number'){
-                    totalSnapDays++;
-                }
+                if(d.tw && typeof d.tw.netValue==='number')           twCovered++;
+                else if(d.us && typeof d.us.netValue==='number')      usOnly++;
+                else if(typeof d.netValue==='number')                 legacyOnly++;
             });
         });
         const totalBmDays = (benchmarkHistory.sp500?.length||0) + (benchmarkHistory.twii?.length||0);
         const winText = getWindowStatusText();
-        statusEl.innerHTML = `📅 共 ${allDates.length} 個交易日｜玩家快照 ${totalSnapDays} 筆｜大盤 ${totalBmDays} 筆<br><span style="color:var(--accent-cyan);">${winText}</span>`;
+        statusEl.innerHTML = `📅 ${allDates.length} 個交易日｜☀️ 台股覆蓋 ${twCovered} 天 · 🌃 僅美股定點 ${usOnly} 天${legacyOnly?` · 舊紀錄 ${legacyOnly} 天`:''}｜大盤 ${totalBmDays} 筆<br><span style="color:var(--accent-cyan);">${winText}</span>`;
     }
 }
 
