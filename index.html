@@ -116,7 +116,7 @@
                 <span>📈</span> 投資組合績效曲線
                 <span class="text-xs font-normal text-slate-400 ml-1">（自 2026/05/04 起・累積%）</span>
             </h2>
-            <span class="text-xs text-slate-500" style="font-style:italic;">⏰ 美股 04:00 / 台股 14:00 結算</span>
+            <span class="text-xs text-slate-500" id="snapshot-window-hint" style="font-style:italic;">⏰ 美股 04:00 / 台股 14:00 各取一次定錨快照</span>
         </div>
         <div style="height:380px;position:relative;">
             <canvas id="performance-chart"></canvas>
@@ -521,24 +521,66 @@ function getTaipeiToday(){
     return `${y}-${m}-${d}`;
 }
 
-// ── 寫入今日快照 ──────────────────────────
+// ── 判斷目前是否落在「收盤定錨視窗」內 ───
+// 回傳 'us' (美股收盤窗 03:55–04:30 台北時間)
+//      | 'tw' (台股收盤窗 13:55–14:30 台北時間)
+//      | null (非視窗時段,不寫快照)
+function getSnapshotWindow(){
+    const tp = new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Taipei'}));
+    const min = tp.getHours()*60 + tp.getMinutes();
+    // 美股收盤定錨視窗: 03:55–04:30 (含夏令/標準時切換的容錯)
+    if(min >= 235 && min < 270) return 'us';
+    // 台股收盤定錨視窗: 13:55–14:30
+    if(min >= 835 && min < 870) return 'tw';
+    return null;
+}
+
+// 取得目前(或最近一次)應寫入的視窗描述,用於 UI 顯示
+function getWindowStatusText(){
+    const w = getSnapshotWindow();
+    if(w === 'us') return '🔴 美股收盤窗開啟中 (04:00 結算)';
+    if(w === 'tw') return '🔴 台股收盤窗開啟中 (14:00 結算)';
+    const tp = new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Taipei'}));
+    const min = tp.getHours()*60 + tp.getMinutes();
+    if(min < 235)        return `⏳ 等待美股收盤窗 (還剩 ${Math.floor((235-min)/60)}h${(235-min)%60}m)`;
+    if(min < 835)        return `⏳ 等待台股收盤窗 (還剩 ${Math.floor((835-min)/60)}h${(835-min)%60}m)`;
+    const nextDay = (24*60 + 235) - min;
+    return `⏳ 等待明日美股收盤窗 (還剩 ${Math.floor(nextDay/60)}h${nextDay%60}m)`;
+}
+
+// ── 寫入今日快照(僅在收盤視窗內、且當日該視窗尚無真實快照時) ─
 async function takeDailySnapshot(){
     if(!participants.length) return;
+    const win = getSnapshotWindow();
+    if(!win){
+        // 非視窗時段,完全不寫
+        return;
+    }
     const today = getTaipeiToday();
     const updates = {};
+    let writeCount = 0;
     participants.forEach((p,i)=>{
+        const existingDay = dailySnapshots[i]?.[today];
+        // 已有真實(非 backfilled)的該視窗快照,鎖定不覆寫
+        const existingWin = existingDay?.[win];
+        if(existingWin && !existingWin.backfilled) return;
         const netVal = calcCurrentNetValue(p);
-        updates[`dailySnapshots/${i}/${today}`] = {
+        updates[`dailySnapshots/${i}/${today}/${win}`] = {
             netValue: netVal,
             currency: p.currency,
             initCap: getFixedInitialCapital(p.currency),
             name: p.name,
             ts: Date.now()
         };
+        writeCount++;
     });
+    if(writeCount === 0){
+        console.log(`📸 ${win.toUpperCase()} 視窗開啟中,但所有玩家當日該視窗已鎖定`);
+        return;
+    }
     try{
         await db.ref().update(updates);
-        console.log('每日快照已更新:', today, Object.keys(updates).length);
+        console.log(`📸 ${win.toUpperCase()} 收盤快照寫入 ${today}: ${writeCount} 位玩家`);
     }catch(e){
         console.warn('快照寫入失敗:', e.message);
     }
@@ -559,15 +601,16 @@ function normalizeDate(s){
     return `${y}-${m}-${d}`;
 }
 
-// ── 根據歷史交易紀錄回填過去快照 ──────────
-// 邏輯：對 2026-05-04 到「昨天」每日計算 初始本金 + 累積已實現損益
-// 只覆蓋「不存在」或「backfilled=true」的快照（保留真實當天記錄的）
+// ── 根據歷史交易紀錄回填過去快照(寫入 us 子節點) ───
+// 邏輯：對 2026-05-04 到「昨天」每日計算 初始本金 + 累積已實現損益,寫入 us 視窗
+// 跳過原則：
+//   - 該日 us 子節點已有真實(非 backfilled)快照 → 跳過
+//   - 該日為舊扁平格式且非 backfilled → 跳過(保留歷史真實資料,讀取時 fallback 仍可用)
 async function backfillHistoricalSnapshots(){
     if(!participants.length) return;
     const todayStr = getTaipeiToday();
     const startDate = new Date(BENCHMARK_START_DATE + 'T00:00:00');
     const todayDate = new Date(todayStr + 'T00:00:00');
-    // 建立日期序列 (含今天，但今天會被跳過)
     const dates = [];
     for(let d = new Date(startDate); d <= todayDate; d.setDate(d.getDate()+1)){
         const y = d.getFullYear();
@@ -582,7 +625,6 @@ async function backfillHistoricalSnapshots(){
     participants.forEach((p, idx)=>{
         const initCap = getFixedInitialCapital(p.currency);
         const trades = Array.isArray(p.trades) ? p.trades : [];
-        // 將交易日期標準化並排序
         const tradesByDate = trades.map(t=>({
             date: normalizeDate(t.date || ''),
             pnl: parseFloat(t.pnl) || 0
@@ -593,21 +635,22 @@ async function backfillHistoricalSnapshots(){
         let ti = 0;
 
         for(const date of dates){
-            // 累積所有「交易日期 <= 當前日期」的損益
             while(ti < tradesByDate.length && tradesByDate[ti].date <= date){
                 cumPnl += tradesByDate[ti].pnl;
                 ti++;
             }
-            // 今天的快照由 takeDailySnapshot 處理（包含未實現），跳過
+            // 今天的快照由 takeDailySnapshot 處理(且只在視窗內),跳過
             if(date === todayStr) continue;
 
             const ex = existing[date];
-            // 只覆蓋不存在的，或之前是 backfilled 的（避免覆蓋真實紀錄）
-            const shouldWrite = !ex || ex.backfilled === true;
-            if(!shouldWrite) continue;
+            // 已有真實 us 快照(非 backfilled) → 跳過
+            const hasRealUS   = ex && ex.us && !ex.us.backfilled;
+            // 舊扁平格式且非 backfilled → 跳過(保留)
+            const hasRealFlat = ex && typeof ex.netValue==='number' && !ex.backfilled;
+            if(hasRealUS || hasRealFlat) continue;
 
             const netVal = initCap + cumPnl;
-            updates[`dailySnapshots/${idx}/${date}`] = {
+            updates[`dailySnapshots/${idx}/${date}/us`] = {
                 netValue: netVal,
                 currency: p.currency,
                 initCap: initCap,
@@ -623,7 +666,7 @@ async function backfillHistoricalSnapshots(){
     if(backfilledCount > 0){
         try{
             await db.ref().update(updates);
-            console.log(`✅ 已回填 ${backfilledCount} 筆歷史快照（依交易紀錄重建）`);
+            console.log(`✅ 已回填 ${backfilledCount} 筆歷史 US 快照(依交易紀錄重建)`);
         }catch(e){
             console.warn('回填失敗:', e.message);
         }
@@ -692,6 +735,7 @@ function renderPerformanceChart(){
     }
 
     // 2. 參賽者 datasets (依 index 給顏色)
+    // 讀取優先順序：us(美股收盤定錨) > tw(台股收盤定錨) > 舊扁平格式
     const playerColors = ['#a855f7', '#ffffff', '#fbbf24', '#06b6d4', '#ec4899'];
     const datasets = [];
     participants.forEach((p, idx)=>{
@@ -700,12 +744,27 @@ function renderPerformanceChart(){
         let lastVal = null;
         const data = allDates.map(date=>{
             const snap = snaps[date];
-            if(snap && typeof snap.netValue==='number'){
-                const ic = snap.initCap || initCap;
-                lastVal = ((snap.netValue - ic) / ic) * 100;
-                return lastVal;
+            if(snap){
+                // 新格式:優先 us 視窗
+                if(snap.us && typeof snap.us.netValue==='number'){
+                    const ic = snap.us.initCap || initCap;
+                    lastVal = ((snap.us.netValue - ic) / ic) * 100;
+                    return lastVal;
+                }
+                // fallback 1:tw 視窗(美股當天還沒結算或缺資料)
+                if(snap.tw && typeof snap.tw.netValue==='number'){
+                    const ic = snap.tw.initCap || initCap;
+                    lastVal = ((snap.tw.netValue - ic) / ic) * 100;
+                    return lastVal;
+                }
+                // fallback 2:舊扁平格式相容
+                if(typeof snap.netValue==='number'){
+                    const ic = snap.initCap || initCap;
+                    lastVal = ((snap.netValue - ic) / ic) * 100;
+                    return lastVal;
+                }
             }
-            return lastVal; // forward fill：用前一個有效值
+            return lastVal; // forward fill
         });
         const color = playerColors[idx % playerColors.length];
         datasets.push({
@@ -825,9 +884,21 @@ function renderPerformanceChart(){
     // 5. 狀態文字
     const statusEl = document.getElementById('chart-status');
     if(statusEl){
-        const totalSnapDays = Object.values(dailySnapshots).reduce((sum,m)=>sum+Object.keys(m||{}).length,0);
+        // 計算實際有效快照筆數(兼容 us / tw / 舊扁平)
+        let totalSnapDays = 0;
+        Object.values(dailySnapshots).forEach(m=>{
+            Object.values(m||{}).forEach(d=>{
+                if(!d) return;
+                if((d.us && typeof d.us.netValue==='number') ||
+                   (d.tw && typeof d.tw.netValue==='number') ||
+                   typeof d.netValue==='number'){
+                    totalSnapDays++;
+                }
+            });
+        });
         const totalBmDays = (benchmarkHistory.sp500?.length||0) + (benchmarkHistory.twii?.length||0);
-        statusEl.textContent = `📅 已記錄 ${allDates.length} 個交易日｜參賽者快照 ${totalSnapDays} 筆｜大盤資料 ${totalBmDays} 筆`;
+        const winText = getWindowStatusText();
+        statusEl.innerHTML = `📅 共 ${allDates.length} 個交易日｜玩家快照 ${totalSnapDays} 筆｜大盤 ${totalBmDays} 筆<br><span style="color:var(--accent-cyan);">${winText}</span>`;
     }
 }
 
