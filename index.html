@@ -7,6 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap');
         :root {
@@ -32,6 +33,8 @@
         .rank-card.rank-1{border-color:rgba(251,191,36,.4);background:linear-gradient(135deg,rgba(251,191,36,.06),var(--bg-elevated));}
         .rank-card.rank-2{border-color:rgba(156,163,175,.4);}
         .rank-card.rank-3{border-color:rgba(180,83,9,.4);}
+        .benchmark-card{display:flex;justify-content:space-between;align-items:center;padding:12px 20px;border-radius:10px;border:1px dashed var(--border);background:rgba(13,23,38,.5);transition:border-color .2s;}
+        .benchmark-card:hover{border-color:var(--border-bright);}
         .portfolio-card{background:var(--bg-card);border:1px solid var(--border);border-radius:14px;padding:20px;transition:border-color .2s;}
         .portfolio-card:hover{border-color:var(--border-bright);}
         .net-value-box{background:var(--bg-input);border:1px solid var(--border-bright);border-radius:10px;padding:16px;}
@@ -95,13 +98,30 @@
     <header class="text-center mb-10">
         <p class="text-xs font-semibold tracking-widest text-blue-400 uppercase mb-3 opacity-70">Investment Performance Battle</p>
         <h1 class="text-4xl md:text-5xl font-bold text-white mb-1 header-glow">🏆 投資績效大賽</h1>
-        <p class="text-slate-400 mt-2 tracking-wide">KingJames &nbsp;⚔️&nbsp; 憂太 &nbsp;⚔️&nbsp; 恩仔</p>
+        <p class="text-slate-400 mt-2 tracking-wide" id="player-names">載入中...</p>
         <div class="mt-5"><div class="countdown-badge"><span class="text-blue-300 font-semibold text-sm">⏱ 賽程倒數</span><span class="text-white font-bold ml-2 mono" id="countdown">計算中...</span></div></div>
         <div class="mt-4"><span id="system-status" class="status-pill status-loading">🟡 系統連線中...</span></div>
     </header>
     <section class="card p-6 mb-8">
         <h2 class="text-lg font-bold text-white mb-4 flex items-center gap-2"><span>📊</span> 即時排名 <span class="text-xs font-normal text-slate-400 ml-1">（新台幣計價）</span></h2>
         <div id="leaderboard" class="flex flex-col gap-3"></div>
+        <div id="benchmarks" class="flex flex-col gap-2 mt-4 pt-4 border-t border-slate-700/50">
+            <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">📈 大盤指數對照 <span class="text-slate-600 font-normal normal-case">（自 2026/05/04 起）</span></div>
+        </div>
+    </section>
+
+    <section class="card p-6 mb-8">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:16px;">
+            <h2 class="text-lg font-bold text-white flex items-center gap-2">
+                <span>📈</span> 投資組合績效曲線
+                <span class="text-xs font-normal text-slate-400 ml-1">（自 2026/05/04 起・累積%）</span>
+            </h2>
+            <span class="text-xs text-slate-500" style="font-style:italic;">⏰ 美股 04:00 / 台股 14:00 結算</span>
+        </div>
+        <div style="height:380px;position:relative;">
+            <canvas id="performance-chart"></canvas>
+        </div>
+        <div id="chart-status" class="text-xs text-slate-500 text-center mt-3" style="font-style:italic;">資料載入中...</div>
     </section>
     <section class="grid grid-cols-1 md:grid-cols-3 gap-5" id="portfolios"></section>
 
@@ -211,6 +231,11 @@
             <div><label class="modal-label" title="預設為一般股票 0.3%，ETF為 0.1%">證交稅(0.3%)</label><input type="number" step="1" id="tradeTax" placeholder="0" class="modal-input" oninput="calcTradePreview()"></div>
         </div>
 
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+            <div><label class="modal-label" title="融資借款利息">利息</label><input type="number" step="0.01" id="tradeInterest" placeholder="0" class="modal-input" oninput="calcTradePreview()"></div>
+            <div><label class="modal-label" title="年利率(%)，僅紀錄參考">融資利率(%)</label><input type="number" step="0.01" id="tradeInterestRate" placeholder="例: 6.5" class="modal-input"></div>
+        </div>
+
         <div style="margin-bottom:8px;"><label class="modal-label">損益金額（可手動覆蓋）</label><input type="number" step="0.01" id="tradePnl" placeholder="正數=獲利 負數=虧損" class="modal-input"></div>
         <div id="tradeCalcHint" class="hidden" style="margin-bottom:14px;font-size:12px;color:var(--text-secondary);">預計損益：<span id="tradeCalcValue" class="mono font-bold"></span></div>
         <div style="display:flex;justify-content:flex-end;gap:10px;">
@@ -228,7 +253,13 @@ const FINNHUB_KEY='d7tibnpr01qugn0ann00d7tibnpr01qugn0ann0g';
 const TIINGO_KEY='7329af027abffaca87bb56a2764ef4e81c78f481';
 const FUGLE_KEY='NTYwZmE2MjMtMTY3Ny00N2U3LTlkOGMtMTUxMmIxNTYyNmI4IDFhN2I2ZGQ2LTY2MzQtNGI0Yi1hYmE0LTI5YzZmYTE1ZjM4Zg==';
 const MAX_STOCKS=20;
+const BENCHMARK_START_DATE='2026-05-04'; // 大盤對照起始日
 let participants=[],usdToTwd=32.5;
+let benchmarkCache={ sp500:null, twii:null, lastFetch:0 };
+let dailySnapshots={};       // {0:{date:{netValue,currency,initCap,ts}},...}
+let benchmarkHistory={ sp500:[], twii:[] }; // [{date,close},...]
+let performanceChart=null;
+let chartRenderTimer=null;
 
 function getFixedInitialCapital(c){return c==='USD'?3161.5:100000;}
 const defaultData=[
@@ -373,6 +404,439 @@ async function fetchTWSEPrice(ticker){
     return null;
 }
 
+// ── 抓取大盤指數歷史表現 ─────────────────
+async function fetchBenchmarkPerformance(symbol){
+    // 使用 Yahoo Finance proxy 抓歷史日K
+    const CF='https://yf-proxy.steven961205.workers.dev';
+    const startTs = Math.floor(new Date(BENCHMARK_START_DATE+'T00:00:00').getTime()/1000);
+    const endTs = Math.floor(Date.now()/1000);
+    const yfUrl=`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?period1=${startTs}&period2=${endTs}&interval=1d&includePrePost=false`;
+    try{
+        const r=await fetch(`${CF}?url=${encodeURIComponent(yfUrl)}`,{signal:AbortSignal.timeout(12000)});
+        if(!r.ok) return null;
+        const raw=await r.json();
+        const result=raw?.chart?.result?.[0];
+        if(!result) return null;
+        const meta=result.meta;
+        const closes=result.indicators?.quote?.[0]?.close||[];
+        const timestamps=result.timestamp||[];
+        // 找第一個有效收盤價當作 baseline
+        let baselineClose=null, baselineDate=null;
+        for(let i=0;i<closes.length;i++){
+            if(closes[i] && closes[i]>0){
+                baselineClose=closes[i];
+                baselineDate=new Date(timestamps[i]*1000).toISOString().slice(0,10);
+                break;
+            }
+        }
+        // 最新收盤價（包含當前即時價）
+        let latestClose=meta?.regularMarketPrice||null;
+        if(!latestClose){
+            for(let i=closes.length-1;i>=0;i--){
+                if(closes[i] && closes[i]>0){ latestClose=closes[i]; break; }
+            }
+        }
+        if(!baselineClose || !latestClose) return null;
+        const changePct = ((latestClose - baselineClose) / baselineClose) * 100;
+        return { baseline:baselineClose, latest:latestClose, changePct, baselineDate };
+    }catch(e){
+        console.warn(`Benchmark fetch fail (${symbol}):`, e.message);
+        return null;
+    }
+}
+
+async function refreshBenchmarks(){
+    const [sp500, twii] = await Promise.all([
+        fetchBenchmarkPerformance('^GSPC'),
+        fetchBenchmarkPerformance('^TWII')
+    ]);
+    benchmarkCache = { sp500, twii, lastFetch:Date.now() };
+    renderBenchmarks();
+}
+
+function renderBenchmarks(){
+    const container = document.getElementById('benchmarks');
+    if(!container) return;
+    const items = [
+        { key:'sp500', label:'S&P 500', sub:'美股', color:'#3b82f6', data:benchmarkCache.sp500 },
+        { key:'twii',  label:'加權指數', sub:'台股', color:'#f59e0b', data:benchmarkCache.twii }
+    ];
+    const headerHtml = `<div class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">📈 大盤指數對照 <span class="text-slate-600 font-normal normal-case">（自 ${BENCHMARK_START_DATE} 起）</span></div>`;
+    const rows = items.map(it=>{
+        if(!it.data){
+            return `<div class="benchmark-card">
+                <div style="display:flex;align-items:center;gap:10px;">
+                    <span style="font-size:1.2rem;">📊</span>
+                    <div>
+                        <div class="font-semibold text-white text-sm">${it.label}</div>
+                        <div class="text-xs text-slate-500">${it.sub}</div>
+                    </div>
+                </div>
+                <div class="text-right text-xs text-slate-500">資料載入中...</div>
+            </div>`;
+        }
+        const pct = it.data.changePct;
+        const pos = pct >= 0;
+        const cls = pos ? 'text-emerald-400' : 'text-red-400';
+        const arrow = pos ? '▲' : '▼';
+        const sign = pos ? '+' : '';
+        return `<div class="benchmark-card">
+            <div style="display:flex;align-items:center;gap:10px;">
+                <span style="font-size:1.2rem;color:${it.color};">📊</span>
+                <div>
+                    <div class="font-semibold text-white text-sm">${it.label}</div>
+                    <div class="text-xs text-slate-500">${it.sub}・基準 ${it.data.baselineDate||BENCHMARK_START_DATE}</div>
+                </div>
+            </div>
+            <div class="text-right">
+                <div class="mono font-bold text-white text-sm">${it.data.latest.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}</div>
+                <div class="text-xs mono font-semibold ${cls}">${arrow} ${sign}${pct.toFixed(2)}%</div>
+            </div>
+        </div>`;
+    }).join('');
+    container.innerHTML = headerHtml + rows;
+}
+
+// ── 計算參賽者當前淨值（記帳幣別） ────────
+function calcCurrentNetValue(p){
+    const initCap = getFixedInitialCapital(p.currency);
+    const stocks = Array.isArray(p.stocks) ? p.stocks : [];
+    const trades = Array.isArray(p.trades) ? p.trades : [];
+    let totalUnPnl = 0;
+    stocks.forEach(s=>{
+        const sess = s.session || '';
+        const lp = (sess==='🌙 夜盤'&&s.prePrice) ? s.prePrice :
+                   (sess==='🌆 盤後'&&s.postPrice) ? s.postPrice :
+                   s.currentPrice || 0;
+        totalUnPnl += (s.shares||0) * (lp - (s.buyPrice||0));
+    });
+    const realPnl = trades.reduce((sum,t)=>sum+(parseFloat(t.pnl)||0),0);
+    return initCap + realPnl + totalUnPnl;
+}
+
+// ── 取得台北時間「今日」(YYYY-MM-DD) ──────
+function getTaipeiToday(){
+    const tw = new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Taipei'}));
+    const y=tw.getFullYear(), m=String(tw.getMonth()+1).padStart(2,'0'), d=String(tw.getDate()).padStart(2,'0');
+    return `${y}-${m}-${d}`;
+}
+
+// ── 寫入今日快照 ──────────────────────────
+async function takeDailySnapshot(){
+    if(!participants.length) return;
+    const today = getTaipeiToday();
+    const updates = {};
+    participants.forEach((p,i)=>{
+        const netVal = calcCurrentNetValue(p);
+        updates[`dailySnapshots/${i}/${today}`] = {
+            netValue: netVal,
+            currency: p.currency,
+            initCap: getFixedInitialCapital(p.currency),
+            name: p.name,
+            ts: Date.now()
+        };
+    });
+    try{
+        await db.ref().update(updates);
+        console.log('每日快照已更新:', today, Object.keys(updates).length);
+    }catch(e){
+        console.warn('快照寫入失敗:', e.message);
+    }
+}
+
+// ── 日期標準化 (YYYY/M/D → YYYY-MM-DD) ──
+function normalizeDate(s){
+    if(!s) return '';
+    s = String(s).trim();
+    let parts;
+    if(s.includes('/')) parts = s.split('/');
+    else if(s.includes('-')) parts = s.split('-');
+    else return s;
+    if(parts.length !== 3) return s;
+    const y = parts[0];
+    const m = String(parts[1]).padStart(2,'0');
+    const d = String(parts[2]).padStart(2,'0');
+    return `${y}-${m}-${d}`;
+}
+
+// ── 根據歷史交易紀錄回填過去快照 ──────────
+// 邏輯：對 2026-05-04 到「昨天」每日計算 初始本金 + 累積已實現損益
+// 只覆蓋「不存在」或「backfilled=true」的快照（保留真實當天記錄的）
+async function backfillHistoricalSnapshots(){
+    if(!participants.length) return;
+    const todayStr = getTaipeiToday();
+    const startDate = new Date(BENCHMARK_START_DATE + 'T00:00:00');
+    const todayDate = new Date(todayStr + 'T00:00:00');
+    // 建立日期序列 (含今天，但今天會被跳過)
+    const dates = [];
+    for(let d = new Date(startDate); d <= todayDate; d.setDate(d.getDate()+1)){
+        const y = d.getFullYear();
+        const m = String(d.getMonth()+1).padStart(2,'0');
+        const dd = String(d.getDate()).padStart(2,'0');
+        dates.push(`${y}-${m}-${dd}`);
+    }
+
+    const updates = {};
+    let backfilledCount = 0;
+
+    participants.forEach((p, idx)=>{
+        const initCap = getFixedInitialCapital(p.currency);
+        const trades = Array.isArray(p.trades) ? p.trades : [];
+        // 將交易日期標準化並排序
+        const tradesByDate = trades.map(t=>({
+            date: normalizeDate(t.date || ''),
+            pnl: parseFloat(t.pnl) || 0
+        })).filter(t=>t.date).sort((a,b)=> a.date.localeCompare(b.date));
+
+        const existing = dailySnapshots[idx] || {};
+        let cumPnl = 0;
+        let ti = 0;
+
+        for(const date of dates){
+            // 累積所有「交易日期 <= 當前日期」的損益
+            while(ti < tradesByDate.length && tradesByDate[ti].date <= date){
+                cumPnl += tradesByDate[ti].pnl;
+                ti++;
+            }
+            // 今天的快照由 takeDailySnapshot 處理（包含未實現），跳過
+            if(date === todayStr) continue;
+
+            const ex = existing[date];
+            // 只覆蓋不存在的，或之前是 backfilled 的（避免覆蓋真實紀錄）
+            const shouldWrite = !ex || ex.backfilled === true;
+            if(!shouldWrite) continue;
+
+            const netVal = initCap + cumPnl;
+            updates[`dailySnapshots/${idx}/${date}`] = {
+                netValue: netVal,
+                currency: p.currency,
+                initCap: initCap,
+                name: p.name,
+                ts: Date.now(),
+                backfilled: true,
+                cumRealizedPnl: cumPnl
+            };
+            backfilledCount++;
+        }
+    });
+
+    if(backfilledCount > 0){
+        try{
+            await db.ref().update(updates);
+            console.log(`✅ 已回填 ${backfilledCount} 筆歷史快照（依交易紀錄重建）`);
+        }catch(e){
+            console.warn('回填失敗:', e.message);
+        }
+    } else {
+        console.log('歷史快照無需回填');
+    }
+}
+
+// ── 抓取大盤每日歷史日K ──────────────────
+async function fetchBenchmarkHistoryData(symbol){
+    const CF='https://yf-proxy.steven961205.workers.dev';
+    const startTs = Math.floor(new Date(BENCHMARK_START_DATE+'T00:00:00').getTime()/1000);
+    const endTs = Math.floor(Date.now()/1000);
+    const yfUrl=`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?period1=${startTs}&period2=${endTs}&interval=1d&includePrePost=false`;
+    try{
+        const r=await fetch(`${CF}?url=${encodeURIComponent(yfUrl)}`,{signal:AbortSignal.timeout(15000)});
+        if(!r.ok) return [];
+        const raw=await r.json();
+        const result=raw?.chart?.result?.[0];
+        if(!result) return [];
+        const closes=result.indicators?.quote?.[0]?.close||[];
+        const timestamps=result.timestamp||[];
+        const history=[];
+        for(let i=0;i<closes.length;i++){
+            if(closes[i] && closes[i]>0){
+                const dateStr=new Date(timestamps[i]*1000).toISOString().slice(0,10);
+                history.push({date:dateStr, close:closes[i]});
+            }
+        }
+        return history;
+    }catch(e){
+        console.warn(`Benchmark history fetch fail (${symbol}):`, e.message);
+        return [];
+    }
+}
+
+async function refreshBenchmarkHistory(){
+    const [sp500,twii] = await Promise.all([
+        fetchBenchmarkHistoryData('^GSPC'),
+        fetchBenchmarkHistoryData('^TWII')
+    ]);
+    benchmarkHistory = { sp500, twii };
+    scheduleChartRender();
+}
+
+// ── 防抖排程繪圖 ──────────────────────────
+function scheduleChartRender(){
+    clearTimeout(chartRenderTimer);
+    chartRenderTimer = setTimeout(renderPerformanceChart, 400);
+}
+
+// ── 繪製績效曲線 ──────────────────────────
+function renderPerformanceChart(){
+    if(typeof Chart==='undefined') return;
+    const canvas = document.getElementById('performance-chart');
+    if(!canvas) return;
+
+    // 1. 建立日期序列：2026-05-04 ~ 台北今日
+    const allDates=[];
+    const startDate=new Date(BENCHMARK_START_DATE+'T00:00:00');
+    const todayStr=getTaipeiToday();
+    const todayDate=new Date(todayStr+'T00:00:00');
+    for(let d=new Date(startDate); d<=todayDate; d.setDate(d.getDate()+1)){
+        const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), dd=String(d.getDate()).padStart(2,'0');
+        allDates.push(`${y}-${m}-${dd}`);
+    }
+
+    // 2. 參賽者 datasets (依 index 給顏色)
+    const playerColors = ['#a855f7', '#ffffff', '#fbbf24', '#06b6d4', '#ec4899'];
+    const datasets = [];
+    participants.forEach((p, idx)=>{
+        const initCap = getFixedInitialCapital(p.currency);
+        const snaps = dailySnapshots[idx] || {};
+        let lastVal = null;
+        const data = allDates.map(date=>{
+            const snap = snaps[date];
+            if(snap && typeof snap.netValue==='number'){
+                const ic = snap.initCap || initCap;
+                lastVal = ((snap.netValue - ic) / ic) * 100;
+                return lastVal;
+            }
+            return lastVal; // forward fill：用前一個有效值
+        });
+        const color = playerColors[idx % playerColors.length];
+        datasets.push({
+            label: p.name,
+            data,
+            borderColor: color,
+            backgroundColor: color + '15',
+            borderWidth: 2.5,
+            tension: 0.25,
+            pointRadius: 0,
+            pointHoverRadius: 5,
+            spanGaps: true,
+            fill: false
+        });
+    });
+
+    // 3. 大盤 datasets
+    const benchmarks = [
+        { key:'sp500', label:'S&P 500',   color:'#3b82f6' },
+        { key:'twii',  label:'加權指數',  color:'#10b981' }
+    ];
+    benchmarks.forEach(bm=>{
+        const history = benchmarkHistory[bm.key] || [];
+        if(history.length===0) return;
+        const baseline = history[0].close;
+        const map = {};
+        history.forEach(h=>{ map[h.date] = h.close; });
+        let lastVal = null;
+        const data = allDates.map(date=>{
+            if(map[date]){
+                lastVal = ((map[date] - baseline) / baseline) * 100;
+                return lastVal;
+            }
+            return lastVal;
+        });
+        datasets.push({
+            label: bm.label,
+            data,
+            borderColor: bm.color,
+            backgroundColor: bm.color + '15',
+            borderWidth: 2,
+            tension: 0.25,
+            pointRadius: 0,
+            pointHoverRadius: 5,
+            borderDash: [5, 4],
+            spanGaps: true,
+            fill: false
+        });
+    });
+
+    // 4. 繪製/更新
+    const ctx = canvas.getContext('2d');
+    if(performanceChart){
+        performanceChart.data.labels = allDates;
+        performanceChart.data.datasets = datasets;
+        performanceChart.update('none');
+    } else {
+        performanceChart = new Chart(ctx, {
+            type: 'line',
+            data: { labels: allDates, datasets },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: { mode:'index', intersect:false },
+                animation: { duration: 600 },
+                plugins: {
+                    legend: {
+                        labels: {
+                            color:'#e8f4fd',
+                            usePointStyle: true,
+                            padding: 14,
+                            font: { size:12, family:'Inter' }
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(13, 23, 38, 0.96)',
+                        borderColor: '#2a5490',
+                        borderWidth: 1,
+                        titleColor: '#e8f4fd',
+                        bodyColor: '#e8f4fd',
+                        padding: 12,
+                        titleFont: { size:12, weight:'600' },
+                        bodyFont: { size:12, family:'JetBrains Mono' },
+                        callbacks: {
+                            label: function(c){
+                                const v = c.parsed.y;
+                                if(v===null || v===undefined) return `${c.dataset.label}: --`;
+                                const sign = v>=0?'+':'';
+                                return `${c.dataset.label}: ${sign}${v.toFixed(2)}%`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        ticks: {
+                            color:'#7ba5cc',
+                            font:{ size:11 },
+                            maxRotation: 0,
+                            autoSkipPadding: 20
+                        },
+                        grid: { color:'rgba(30,58,95,0.2)' }
+                    },
+                    y: {
+                        ticks: {
+                            color:'#7ba5cc',
+                            font:{ size:11 },
+                            callback: v => (v>=0?'+':'') + v.toFixed(1) + '%'
+                        },
+                        grid: { color:'rgba(30,58,95,0.2)' }
+                    }
+                }
+            }
+        });
+    }
+
+    // 5. 狀態文字
+    const statusEl = document.getElementById('chart-status');
+    if(statusEl){
+        const totalSnapDays = Object.values(dailySnapshots).reduce((sum,m)=>sum+Object.keys(m||{}).length,0);
+        const totalBmDays = (benchmarkHistory.sp500?.length||0) + (benchmarkHistory.twii?.length||0);
+        statusEl.textContent = `📅 已記錄 ${allDates.length} 個交易日｜參賽者快照 ${totalSnapDays} 筆｜大盤資料 ${totalBmDays} 筆`;
+    }
+}
+
+// ── 監聽 dailySnapshots ───────────────────
+db.ref('dailySnapshots').on('value', snap=>{
+    dailySnapshots = snap.val() || {};
+    scheduleChartRender();
+});
+
 async function searchTickers(query){
     if(!query)return[];
     const twMatch = query.match(/^(TWSE:)?(\d{4,6})/i);
@@ -414,14 +878,26 @@ db.ref('competitionData').on('value',async snapshot=>{
     }));
     renderDashboard();
     setStatus('ok',`🟢 已連線｜1 USD = ${usdToTwd.toFixed(2)} TWD｜${new Date().toLocaleTimeString('zh-TW')}`);
+    // 先依歷史交易紀錄回填過去快照，再寫入今日
+    await backfillHistoricalSnapshots();
+    takeDailySnapshot();
 });
 
 function setStatus(type,msg){const el=document.getElementById('system-status');el.className=`status-pill status-${type}`;el.textContent=msg;}
 function fmtRaw(amount,currency,decimals=0){const abs=Math.abs(amount);if(currency==='TWD')return`NT$ ${abs.toLocaleString('zh-TW',{minimumFractionDigits:decimals,maximumFractionDigits:decimals})}`;return`$${abs.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}`;}
 function fmtC(amount,currency,white=false){const raw=fmtRaw(amount,currency);const neg=amount<0;const sign=neg?'-':'';if(white)return`<span class="mono font-bold text-white">${sign}${raw}</span>`;const cls=neg?'text-red-400 font-bold mono':(amount===0?'text-slate-400 mono':'text-emerald-400 font-bold mono');return`<span class="${cls}">${sign}${raw}</span>`;}
 
+// ── 渲染玩家名稱列 ────────────────────────
+function renderPlayerNames(){
+    const el = document.getElementById('player-names');
+    if(!el) return;
+    if(!participants.length){ el.textContent='載入中...'; return; }
+    el.textContent = participants.map(p=>p.name).join('  ⚔️  ');
+}
+
 // ── 渲染 Dashboard ────────────────────────
 function renderDashboard(){
+    renderPlayerNames();
     let lb=[];
     const pdiv=document.getElementById('portfolios');pdiv.innerHTML='';
     participants.forEach(p=>{
@@ -442,19 +918,29 @@ function renderDashboard(){
         });
         const realPnl=trades.reduce((sum,t)=>sum+(parseFloat(t.pnl)||0),0);
         
-        // ── 新增：計算所有歷史交易的「手續費 + 證交稅」總和 ──
-        const totalFeeTax=trades.reduce((sum,t)=>sum+(parseFloat(t.fee)||0)+(parseFloat(t.tax)||0),0);
+        // 交易成本：手續費 + 證交稅 + 利息
+        const totalFeeTax=trades.reduce((sum,t)=>sum+(parseFloat(t.fee)||0)+(parseFloat(t.tax)||0)+(parseFloat(t.interest)||0),0);
         
         const netVal=initCap+realPnl+totalUnPnl;
         const valTWD=p.currency==='USD'?netVal*usdToTwd:netVal;
         
-        const autoCash = netVal - totalMV; 
-        const currentVal = autoCash + totalMV; 
+        // ── 重新定義的現金水位 / 槓桿邏輯 ──
+        // 用戶定義：現金水位 = 持股市值 - 帳戶淨值（正數=借款，負數=持有現金）
+        const cashLevel = totalMV - netVal;
+        // 顯示用：「持有現金」(自動現金 = 淨值 - 持股市值)
+        const autoCash = netVal - totalMV;
+        const currentVal = autoCash + totalMV; // = netVal
 
         const retPct=(((netVal-initCap)/initCap)*100).toFixed(2);
-        const leverageBase = initCap + realPnl;
-        const actualLevPct = leverageBase > 0 ? ((totalMV / leverageBase) - 1) * 100 : 0;
-        const hasLev = actualLevPct > 0.01;
+        
+        // 最高槓桿金額 = 帳戶淨值 × 60%
+        const maxLeverage = netVal * 0.6;
+        // 槓桿使用率 = 現金水位 / 帳戶淨值 (用戶定義)
+        const levRate = netVal > 0 ? (cashLevel / netVal) * 100 : 0;
+        // 對應最高槓桿(60%)已使用百分比
+        const usagePct = maxLeverage > 0 ? (Math.max(0, cashLevel) / maxLeverage) * 100 : 0;
+        const hasLev = cashLevel > 0.01;
+        
         lb.push({name:p.name,totalValueTWD:valTWD,returnPct:retPct,initCapStr:fmtRaw(initCap,p.currency),netValueStr:fmtRaw(netVal,p.currency)});
 
         const holdHTML=stocks.length===0
@@ -558,9 +1044,16 @@ function renderDashboard(){
                 const cls=pnl>=0?'profit-pos':'profit-neg';
                 const bp=parseFloat(t.buyPrice)||0;
                 const sp=parseFloat(t.sellPrice)||0;
+                const interest=parseFloat(t.interest)||0;
+                const interestRate=parseFloat(t.interestRate)||0;
                 const pnlPct = bp>0 ? ((sp-bp)/bp*100).toFixed(2) : null;
                 const pnlPctStr = pnlPct!==null ? `${pnl>=0?'+':''}${pnlPct}%` : '--';
                 const nameDisplay = t.stockName ? `<span style="font-size:11px;color:var(--text-secondary);margin-left:6px;font-weight:normal;">${t.stockName}</span>` : '';
+                const interestDisplay = (interest>0 || interestRate>0) ? 
+                    `<div class="trade-card-row" style="color:var(--text-secondary);font-size:11px;margin-top:3px;padding-top:3px;border-top:1px dashed rgba(30,58,95,.4);">
+                        ${interest>0?`<span>利息 <span class="mono" style="color:var(--accent-amber);">-${fmtRaw(interest,p.currency,2)}</span></span>`:'<span></span>'}
+                        ${interestRate>0?`<span>融資利率 <span class="mono" style="color:var(--accent-amber);">${interestRate}%</span></span>`:'<span></span>'}
+                    </div>` : '';
                 
                 return`<div class="trade-card">
                     <div class="trade-card-row">
@@ -581,6 +1074,7 @@ function renderDashboard(){
                         <span>賣出 <span class="mono text-white">${fmtRaw(sp,p.currency,2)}</span></span>
                         ${t.date?`<span style="color:var(--text-muted)">${t.date}</span>`:''}
                     </div>
+                    ${interestDisplay}
                 </div>`;
               }).join('');
 
@@ -599,20 +1093,24 @@ function renderDashboard(){
             </div>
             <div class="space-y-1" style="margin-bottom:16px;">
                 <div class="stat-row"><span class="stat-label">初始本金</span><span class="mono text-white text-xs">${fmtRaw(initCap,p.currency)}</span></div>
-                <div class="stat-row"><span class="stat-label">現金水位</span>${fmtC(autoCash,p.currency,true)}</div>
+                <div class="stat-row"><span class="stat-label">持有現金</span>${fmtC(autoCash,p.currency,true)}</div>
                 <div class="stat-row"><span class="stat-label">持股總市值</span>${fmtC(totalMV,p.currency,true)}</div>
                 <div class="stat-row"><span class="stat-label">當前淨值（現金+持股）</span><span class="mono font-bold text-cyan-400 text-sm">${fmtRaw(currentVal,p.currency)}</span></div>
+                <div class="stat-row" style="margin-top:4px;padding-top:4px;border-top:1px dashed rgba(30,58,95,.4);">
+                    <span class="stat-label">可使用最高槓桿金額 <span style="color:var(--text-muted);font-size:10px;">(淨值×60%)</span></span>
+                    <span class="mono font-bold text-amber-300 text-sm">${fmtRaw(maxLeverage,p.currency)}</span>
+                </div>
                 <div class="stat-row">
-                    <span class="stat-label">槓桿使用率</span>
+                    <span class="stat-label">槓桿使用率 <span style="color:var(--text-muted);font-size:10px;">(現金水位/淨值)</span></span>
                     <span class="mono font-bold text-sm ${hasLev?'text-amber-400':'text-slate-400'}">
-                        ${hasLev?'+'+actualLevPct.toFixed(1)+'%（借款/淨值）':'未使用槓桿'}
+                        ${hasLev?`${levRate>=0?'+':''}${levRate.toFixed(2)}%（已用 ${usagePct.toFixed(1)}%）`:'未使用槓桿'}
                     </span>
                 </div>
-                ${hasLev?`<div class="leverage-bar-wrap"><div class="leverage-bar" style="width:${Math.min(actualLevPct,100).toFixed(0)}%"></div></div>`:''}
+                ${hasLev?`<div class="leverage-bar-wrap"><div class="leverage-bar" style="width:${Math.min(usagePct,100).toFixed(0)}%"></div></div>`:''}
                 <div class="stat-row" style="margin-top:4px;"><span class="stat-label">已實現損益</span><span class="${realCls}">${realSign}${fmtRaw(Math.abs(realPnl),p.currency)}</span></div>
                 <div class="stat-row"><span class="stat-label">未實現損益（所有持股）</span><span class="font-bold mono ${upCls}">${upSign}${fmtRaw(totalUnPnl,p.currency)}</span></div>
                 
-                <div class="stat-row" style="margin-top:4px; padding-top:4px; border-top:1px solid rgba(30,58,95,.4);"><span class="stat-label">手續費＋證交稅總計</span><span class="mono text-slate-400">${totalFeeTax > 0 ? '-' : ''}${fmtRaw(totalFeeTax, p.currency)}</span></div>
+                <div class="stat-row" style="margin-top:4px; padding-top:4px; border-top:1px solid rgba(30,58,95,.4);"><span class="stat-label">交易成本 <span style="color:var(--text-muted);font-size:10px;">(手續費+證交稅+利息)</span></span><span class="mono text-slate-400">${totalFeeTax > 0 ? '-' : ''}${fmtRaw(totalFeeTax, p.currency)}</span></div>
             </div>
             <h4 style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">當前持倉（${stocks.length}/${MAX_STOCKS}）</h4>
             ${holdHTML}
@@ -628,10 +1126,12 @@ function renderDashboard(){
 
     lb.sort((a,b)=>b.totalValueTWD-a.totalValueTWD);
     const lbDiv=document.getElementById('leaderboard');lbDiv.innerHTML='';
-    const medals=['🥇','🥈','🥉'];
+    const medals=['🥇','🥈','🥉','4.','5.','6.','7.','8.','9.','10.'];
     lb.forEach((d,idx)=>{const pos=parseFloat(d.returnPct)>=0;
-        lbDiv.innerHTML+=`<div class="rank-card rank-${idx+1}"><div style="display:flex;align-items:center;gap:12px;"><span style="font-size:1.6rem">${medals[idx]}</span><span class="font-bold text-lg text-white">${d.name}</span></div><div class="text-right"><div class="mono font-bold text-white">${fmtRaw(d.totalValueTWD,'TWD')}</div><div class="text-xs mono font-semibold ${pos?'text-emerald-400':'text-red-400'}">${pos?'+':''}${d.returnPct}% <span class="text-slate-500 font-normal ml-1">${d.initCapStr} → ${d.netValueStr}</span></div></div></div>`;
+        lbDiv.innerHTML+=`<div class="rank-card rank-${idx+1}"><div style="display:flex;align-items:center;gap:12px;"><span style="font-size:1.6rem">${medals[idx]||(idx+1)+'.'}</span><span class="font-bold text-lg text-white">${d.name}</span></div><div class="text-right"><div class="mono font-bold text-white">${fmtRaw(d.totalValueTWD,'TWD')}</div><div class="text-xs mono font-semibold ${pos?'text-emerald-400':'text-red-400'}">${pos?'+':''}${d.returnPct}% <span class="text-slate-500 font-normal ml-1">${d.initCapStr} → ${d.netValueStr}</span></div></div></div>`;
     });
+    // 同時刷新大盤對照
+    renderBenchmarks();
 }
 
 // ── 持倉 Modal ────────────────────────────
@@ -741,8 +1241,8 @@ async function selectSlot(id,idx){
     if(priceSpan) priceSpan.textContent='取得中...';
     if(priceInfo) priceInfo.style.display='';
     const price=await fetchStockPrice(q.symbol);
-    if(priceHidden) priceHidden.value = price!=null ? price : 0;
-    if(priceSpan) priceSpan.textContent = price!=null ? price.toFixed(2) : '取得失敗';
+    if(priceHidden) priceHidden.value = price!=null ? (price.price||price) : 0;
+    if(priceSpan) priceSpan.textContent = price!=null ? (price.price||price).toFixed(2) : '取得失敗';
     
     updateModalSummary();
 }
@@ -919,6 +1419,8 @@ function openTradeModal(name, idx = -1){
         document.getElementById('tradeDiscount').value = t.discount || '';
         document.getElementById('tradeFee').value = t.fee || '';
         document.getElementById('tradeTax').value = t.tax || '';
+        document.getElementById('tradeInterest').value = t.interest || '';
+        document.getElementById('tradeInterestRate').value = t.interestRate || '';
         document.getElementById('tradePnl').value = t.pnl || '';
 
         let dStr = t.date || '';
@@ -933,7 +1435,7 @@ function openTradeModal(name, idx = -1){
         }
         document.getElementById('tradeDate').value = dStr;
     } else {
-        ['tradeTicker','tradeShares','tradeBuyPrice','tradeSellPrice','tradeDiscount','tradeFee','tradeTax','tradePnl'].forEach(id=>document.getElementById(id).value='');
+        ['tradeTicker','tradeShares','tradeBuyPrice','tradeSellPrice','tradeDiscount','tradeFee','tradeTax','tradeInterest','tradeInterestRate','tradePnl'].forEach(id=>document.getElementById(id).value='');
         document.getElementById('tradeTicker').dataset.name = '';
         document.getElementById('tradeTickerName').textContent = '';
         
@@ -954,9 +1456,10 @@ function calcTradePreview(){
     const sp=parseFloat(document.getElementById('tradeSellPrice').value)||0;
     const fee=parseFloat(document.getElementById('tradeFee').value)||0;
     const tax=parseFloat(document.getElementById('tradeTax').value)||0;
+    const interest=parseFloat(document.getElementById('tradeInterest').value)||0;
     
     if(sh>0&&bp>0&&sp>0){
-        const pnl=(sp-bp)*sh - fee - tax;
+        const pnl=(sp-bp)*sh - fee - tax - interest;
         const el=document.getElementById('tradeCalcValue');
         el.textContent=(pnl>=0?'+':'')+pnl.toFixed(2);
         el.className='mono font-bold '+(pnl>=0?'text-emerald-400':'text-red-400');
@@ -981,6 +1484,8 @@ async function saveTrade(){
     const discount=parseFloat(document.getElementById('tradeDiscount').value)||'';
     const fee=parseFloat(document.getElementById('tradeFee').value)||0;
     const tax=parseFloat(document.getElementById('tradeTax').value)||0;
+    const interest=parseFloat(document.getElementById('tradeInterest').value)||0;
+    const interestRate=parseFloat(document.getElementById('tradeInterestRate').value)||0;
     const pnl=parseFloat(document.getElementById('tradePnl').value)||0;
 
     let dateVal = document.getElementById('tradeDate').value;
@@ -997,7 +1502,7 @@ async function saveTrade(){
     if(!ticker||shares<=0){alert('請填入股票代號和股數');return;}
     
     const stockName = document.getElementById('tradeTicker').dataset.name || '';
-    const newTrade = { ticker, stockName, shares, buyPrice, sellPrice, discount, fee, tax, pnl, date: dateVal };
+    const newTrade = { ticker, stockName, shares, buyPrice, sellPrice, discount, fee, tax, interest, interestRate, pnl, date: dateVal };
     const tList = [...(participants[pi].trades||[])];
 
     if (isEdit) {
@@ -1081,10 +1586,11 @@ const endDate=new Date('2026-11-04T00:00:00').getTime();
 (function tick(){const d=endDate-Date.now();if(d<0){document.getElementById('countdown').textContent='比賽已結束！';return;}
 document.getElementById('countdown').textContent=`${Math.floor(d/86400000)} 天 ${Math.floor(d%86400000/3600000)} 時 ${Math.floor(d%3600000/60000)} 分`;setTimeout(tick,60000);})();
 
-// ── 自動刷新股價（每 60 秒，支援美股夜盤 24 小時即時）────────────────
+// ── 自動刷新股價（每 10 秒）────────────────
 const REFRESH_INTERVAL = 10; 
 let refreshTimer = null;
 let nextRefreshIn = REFRESH_INTERVAL;
+let benchmarkRefreshCount = 0;
 
 function updateRefreshCountdown(){
     const statusEl = document.getElementById('system-status');
@@ -1126,7 +1632,17 @@ async function refreshPrices(){
             }
         }));
     }));
+    
+    // 每 6 次刷新（約 60 秒）更新一次大盤指數
+    benchmarkRefreshCount++;
+    if(benchmarkRefreshCount >= 6){
+        benchmarkRefreshCount = 0;
+        await refreshBenchmarks();
+    }
+    
     renderDashboard(); 
+    // 寫入今日快照（會覆蓋當天）
+    takeDailySnapshot();
     const session = getMarketSession();
     setStatus('ok', `🟢 已連線｜1 USD = ${usdToTwd.toFixed(2)} TWD｜美股 ${session}｜${new Date().toLocaleTimeString('zh-TW')}`);
 }
@@ -1151,11 +1667,20 @@ db.ref('competitionData').on('value', ()=>{
 document.addEventListener('visibilitychange', ()=>{
     if(document.visibilityState === 'visible'){
         refreshPrices();
+        refreshBenchmarks();
+        refreshBenchmarkHistory();
         startRefreshCountdown();
     } else {
         clearInterval(refreshTimer);
     }
 });
+
+// ── 初始化：載入大盤指數 ───────────────
+refreshBenchmarks();
+refreshBenchmarkHistory();
+
+// 每 30 分鐘刷新一次大盤歷史日K
+setInterval(refreshBenchmarkHistory, 30 * 60 * 1000);
 </script>
 </body>
 </html>
