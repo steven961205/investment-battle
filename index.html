@@ -270,6 +270,15 @@ const defaultData=[
 
 async function fetchExchangeRate(){try{const r=await fetch('https://open.er-api.com/v6/latest/USD');const d=await r.json();if(d.rates?.TWD)usdToTwd=d.rates.TWD;}catch(e){}}
 
+// ── 幣別換算 helper ────────────────────────
+// 把 amount 從 fromCur 換算到 toCur (USD/TWD 互換)
+function convertCurrency(amount, fromCur, toCur){
+    if(!fromCur || !toCur || fromCur === toCur) return amount;
+    if(fromCur === 'USD' && toCur === 'TWD') return amount * usdToTwd;
+    if(fromCur === 'TWD' && toCur === 'USD') return amount / usdToTwd;
+    return amount;
+}
+
 async function fetchStockPrice(ticker){
     if(!ticker)return null;
     if(ticker.endsWith('.TW')||ticker.endsWith('.TWO')){
@@ -508,7 +517,9 @@ function calcCurrentNetValue(p){
         const lp = (sess==='🌙 夜盤'&&s.prePrice) ? s.prePrice :
                    (sess==='🌆 盤後'&&s.postPrice) ? s.postPrice :
                    s.currentPrice || 0;
-        totalUnPnl += (s.shares||0) * (lp - (s.buyPrice||0));
+        const sCur = s.currency || p.currency;
+        const unPnlRaw = (s.shares||0) * (lp - (s.buyPrice||0));
+        totalUnPnl += convertCurrency(unPnlRaw, sCur, p.currency);
     });
     const realPnl = trades.reduce((sum,t)=>sum+(parseFloat(t.pnl)||0),0);
     return initCap + realPnl + totalUnPnl;
@@ -766,7 +777,9 @@ function renderPerformanceChart(){
             const lp = (sess==='🌙 夜盤' && s.prePrice)  ? s.prePrice  :
                        (sess==='🌆 盤後' && s.postPrice) ? s.postPrice :
                        s.currentPrice || 0;
-            unrealizedPnl += (s.shares||0) * (lp - (s.buyPrice||0));
+            const sCur = s.currency || p.currency;
+            const unPnlRaw = (s.shares||0) * (lp - (s.buyPrice||0));
+            unrealizedPnl += convertCurrency(unPnlRaw, sCur, p.currency);
         });
 
         let cumPnl = 0;
@@ -992,8 +1005,11 @@ function renderDashboard(){
             const latestPrice=(sess==='🌙 夜盤'&&s.prePrice)?s.prePrice:
                               (sess==='🌆 盤後'&&s.postPrice)?s.postPrice:
                               s.currentPrice||0;
-            const mv=(s.shares||0)*latestPrice;
-            const cost=(s.shares||0)*(s.buyPrice||0);
+            const sCur=s.currency||p.currency;
+            const mvRaw=(s.shares||0)*latestPrice;
+            const costRaw=(s.shares||0)*(s.buyPrice||0);
+            const mv=convertCurrency(mvRaw,sCur,p.currency);
+            const cost=convertCurrency(costRaw,sCur,p.currency);
             totalMV+=mv;
             totalCost+=cost;
             totalUnPnl+=(mv-cost);
@@ -1037,7 +1053,7 @@ function renderDashboard(){
                 const pnl=mv-cost;
                 const ps=pnl>=0?'+':'';
                 const pc=pnl<0?'text-red-400':'text-emerald-400';
-                const pnlPct = netVal>0 ? ((pnl/netVal)*100).toFixed(2) : '0.00';
+                const pnlPct = cost>0 ? ((pnl/cost)*100).toFixed(2) : '0.00';
                 const pnlPctSign = pnl>=0?'+':'';
                 const postPrice=s.postPrice||null;
                 const prePrice =s.prePrice ||null;
@@ -1102,6 +1118,10 @@ function renderDashboard(){
                         <span>買入 <span class="mono text-white">${fmtRaw(s.buyPrice||0,sCurrency,2)}</span></span>
                         <span>${prevLabel} <span class="mono" style="color:var(--text-secondary);">${prevDisplay?fmtRaw(prevDisplay,sCurrency,2):'--'}</span></span>
                         <span class="font-bold mono ${pc}">${ps}${fmtRaw(pnl,sCurrency)} <span style="opacity:.8">(${pnlPctSign}${pnlPct}%)</span></span>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:5px;padding-top:5px;border-top:1px dashed rgba(30,58,95,.4);" class="text-xs">
+                        <span style="color:var(--text-muted);">成本 <span class="mono" style="color:var(--text-secondary);">${fmtRaw(cost,sCurrency)}</span></span>
+                        <span style="color:var(--text-muted);">市值 <span class="mono font-bold" style="color:var(--accent-cyan);">${fmtRaw(mv,sCurrency)}</span></span>
                     </div>
                     ${(_sess==='🔔 盤中'&&!isTW)?`<div style="display:flex;justify-content:space-between;align-items:center;margin-top:5px;padding-top:5px;border-top:1px solid rgba(30,58,95,.4);" class="text-xs">
                         <span style="color:var(--accent-green);font-weight:600;">🔔 即時價</span>
@@ -1260,7 +1280,7 @@ function addStockSlot(data={}){
         </div>
         <div style="display:grid;grid-template-columns:70px 1fr 1fr;gap:10px;">
             <div><label class="modal-label">幣別</label>
-                <select class="modal-input slot-currency" style="cursor:pointer;padding:8px 4px;">
+                <select class="modal-input slot-currency" style="cursor:pointer;padding:8px 4px;" onchange="updateModalSummary()">
                     <option value="USD" ${(data.currency||'USD')==='USD'?'selected':''}>USD</option>
                     <option value="TWD" ${(data.currency||'USD')==='TWD'?'selected':''}>TWD</option>
                 </select></div>
@@ -1345,8 +1365,11 @@ function updateModalSummary(){
         const shares=parseFloat(slot.querySelector('.slot-shares').value)||0;
         const price=parseFloat(slot.querySelector('.slot-cur-hidden').value)||0;
         const buyPrice=parseFloat(slot.querySelector('.slot-buyprice').value)||0;
-        stockValue+=shares*price;
-        stockCost+=shares*buyPrice;
+        const sCur=slot.querySelector('.slot-currency')?.value||'USD';
+        const mvRaw=shares*price;
+        const costRaw=shares*buyPrice;
+        stockValue+=convertCurrency(mvRaw,sCur,currency);
+        stockCost+=convertCurrency(costRaw,sCur,currency);
     });
     
     const trades=Array.isArray(p.trades)?p.trades:[];
