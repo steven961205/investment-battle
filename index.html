@@ -255,6 +255,8 @@ const FUGLE_KEY='NTYwZmE2MjMtMTY3Ny00N2U3LTlkOGMtMTUxMmIxNTYyNmI4IDFhN2I2ZGQ2LTY
 const MAX_STOCKS=20;
 const BENCHMARK_START_DATE='2026-05-04'; // 大盤對照起始日
 let participants=[],usdToTwd=32.5;
+let tradePageMap={};            // {playerName: currentPage(1-based)}
+const TRADES_PER_PAGE=3;
 let benchmarkCache={ sp500:null, twii:null, lastFetch:0 };
 let dailySnapshots={};       // {0:{date:{netValue,currency,initCap,ts}},...}
 let benchmarkHistory={ sp500:[], twii:[] }; // [{date,close},...]
@@ -1051,7 +1053,7 @@ function renderDashboard(){
                 const mv=(s.shares||0)*latestPrice;
                 const cost=(s.shares||0)*(s.buyPrice||0);
                 const pnl=mv-cost;
-                const ps=pnl>=0?'+':'';
+                const ps=pnl>=0?'+':'-';
                 const pc=pnl<0?'text-red-400':'text-emerald-400';
                 const pnlPct = cost>0 ? ((pnl/cost)*100).toFixed(2) : '0.00';
                 const pnlPctSign = pnl>=0?'+':'';
@@ -1136,12 +1138,29 @@ function renderDashboard(){
                 </div>`;
               }).join('');
 
-        const realSign=realPnl>=0?'+':'';const realCls=realPnl>=0?'profit-pos':'profit-neg';
-        const upSign=totalUnPnl>=0?'+':'';const upCls=totalUnPnl<0?'text-red-400':'text-emerald-400';
+        const realSign=realPnl>=0?'+':'-';const realCls=realPnl>=0?'profit-pos':'profit-neg';
+        const upSign=totalUnPnl>=0?'+':'-';const upCls=totalUnPnl<0?'text-red-400':'text-emerald-400';
         
-        const tradeRows=trades.length===0
+        // ── 歷史交易：按日期新→舊排序 + 分頁 ──
+        const sortedTrades = trades.map((t,i)=>({...t, origIdx:i})).sort((a,b)=>{
+            const da = normalizeDate(a.date||'');
+            const db = normalizeDate(b.date||'');
+            if(!da && !db) return b.origIdx - a.origIdx;   // 同無日期：後加入的在前
+            if(!da) return 1;
+            if(!db) return -1;
+            const cmp = db.localeCompare(da);
+            return cmp !== 0 ? cmp : b.origIdx - a.origIdx; // 同日：後加入的在前
+        });
+        const totalPages = Math.max(1, Math.ceil(sortedTrades.length / TRADES_PER_PAGE));
+        const currentPage = Math.min(Math.max(1, tradePageMap[p.name]||1), totalPages);
+        tradePageMap[p.name] = currentPage; // clamp 回寫
+        const pageStart = (currentPage - 1) * TRADES_PER_PAGE;
+        const pageTrades = sortedTrades.slice(pageStart, pageStart + TRADES_PER_PAGE);
+
+        const tradeRows=sortedTrades.length===0
             ?`<div style="text-align:center;color:var(--text-muted);padding:12px;font-size:12px;">尚無歷史交易紀錄</div>`
-            :trades.map((t,idx)=>{
+            :pageTrades.map(t=>{
+                const idx=t.origIdx;
                 const pnl=parseFloat(t.pnl)||0;
                 const cls=pnl>=0?'profit-pos':'profit-neg';
                 const bp=parseFloat(t.buyPrice)||0;
@@ -1164,7 +1183,7 @@ function renderDashboard(){
                             ${nameDisplay}
                         </div>
                         <div style="display:flex;align-items:center;gap:8px;">
-                            <span class="${cls}" style="font-size:13px;font-weight:700;">${pnl>=0?'+':''}${fmtRaw(Math.abs(pnl),p.currency)}</span>
+                            <span class="${cls}" style="font-size:13px;font-weight:700;">${pnl>=0?'+':'-'}${fmtRaw(Math.abs(pnl),p.currency)}</span>
                             <span class="${cls}" style="font-size:11px;opacity:.85;">(${pnlPctStr})</span>
                             <button class="btn-edit" onclick="openTradeModal('${p.name}', ${idx})" title="編輯">✎</button>
                             <button class="btn-del" onclick="deleteTrade('${p.name}', ${idx})" title="刪除">✕</button>
@@ -1179,6 +1198,25 @@ function renderDashboard(){
                     ${interestDisplay}
                 </div>`;
               }).join('');
+
+        // ── 分頁控制 (僅超過一頁才顯示) ──
+        const prevDisabled = currentPage <= 1;
+        const nextDisabled = currentPage >= totalPages;
+        const pagerHTML = sortedTrades.length > TRADES_PER_PAGE ? `
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding-top:8px;border-top:1px dashed rgba(30,58,95,.4);font-size:11px;">
+                <button onclick="changeTradePage('${p.name}',-1)" ${prevDisabled?'disabled':''}
+                    style="background:${prevDisabled?'rgba(30,58,95,.2)':'rgba(59,130,246,.15)'};border:1px solid ${prevDisabled?'var(--border)':'rgba(59,130,246,.3)'};color:${prevDisabled?'var(--text-muted)':'var(--accent-blue)'};padding:4px 12px;border-radius:5px;font-weight:600;cursor:${prevDisabled?'not-allowed':'pointer'};transition:all .15s;">
+                    « 上一頁
+                </button>
+                <span style="color:var(--text-secondary);font-weight:600;">
+                    第 <span class="mono text-white">${currentPage}</span> / <span class="mono">${totalPages}</span> 頁
+                    <span style="color:var(--text-muted);margin-left:6px;">（共 ${sortedTrades.length} 筆）</span>
+                </span>
+                <button onclick="changeTradePage('${p.name}',1)" ${nextDisabled?'disabled':''}
+                    style="background:${nextDisabled?'rgba(30,58,95,.2)':'rgba(59,130,246,.15)'};border:1px solid ${nextDisabled?'var(--border)':'rgba(59,130,246,.3)'};color:${nextDisabled?'var(--text-muted)':'var(--accent-blue)'};padding:4px 12px;border-radius:5px;font-weight:600;cursor:${nextDisabled?'not-allowed':'pointer'};transition:all .15s;">
+                    下一頁 »
+                </button>
+            </div>` : '';
 
         pdiv.innerHTML+=`<div class="portfolio-card">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
@@ -1222,6 +1260,7 @@ function renderDashboard(){
                     <button class="btn-add-trade" onclick="openTradeModal('${p.name}')">＋ 新增</button>
                 </div>
                 <div>${tradeRows}</div>
+                ${pagerHTML}
             </div>
         </div>`;
     });
@@ -1614,6 +1653,7 @@ async function saveTrade(){
         tList[idx] = newTrade;
     } else {
         tList.push(newTrade);
+        tradePageMap[name] = 1;  // 新增時跳回第一頁,讓用戶立刻看到新紀錄
     }
 
     db.ref('competitionData/'+pi+'/trades').set(tList);
@@ -1625,6 +1665,18 @@ function deleteTrade(name,idx){
     const pi=participants.findIndex(p=>p.name===name);if(pi===-1)return;
     const t=[...(participants[pi].trades||[])];t.splice(idx,1);
     db.ref('competitionData/'+pi+'/trades').set(t);
+}
+
+function changeTradePage(name, delta){
+    const p = participants.find(x=>x.name===name);
+    if(!p) return;
+    const trades = Array.isArray(p.trades) ? p.trades : [];
+    const totalPages = Math.max(1, Math.ceil(trades.length / TRADES_PER_PAGE));
+    const current = tradePageMap[name] || 1;
+    const next = Math.max(1, Math.min(totalPages, current + delta));
+    if(next === current) return;
+    tradePageMap[name] = next;
+    renderDashboard();
 }
 
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal();closeTradeModal();closePokerModal();}});
