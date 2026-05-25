@@ -132,7 +132,7 @@
                 <span>📈</span> 投資組合績效曲線
                 <span class="text-xs font-normal text-slate-400 ml-1">（自 2026/05/04 起・週一～週五・累積%）</span>
             </h2>
-            <span class="text-xs text-slate-500" id="snapshot-window-hint" style="font-style:italic;">📊 玩家曲線=歷史交易疊加 · 今日含未實現損益 · 大盤=每日收盤</span>
+            <span class="text-xs text-slate-500" id="snapshot-window-hint" style="font-style:italic;">📊 玩家曲線=每日持股收盤定錨 · 含已實現+未實現損益 · 大盤=每日收盤</span>
         </div>
         <div style="height:380px;position:relative;">
             <canvas id="performance-chart"></canvas>
@@ -270,6 +270,59 @@ const TIINGO_KEY='7329af027abffaca87bb56a2764ef4e81c78f481';
 const FUGLE_KEY='NTYwZmE2MjMtMTY3Ny00N2U3LTlkOGMtMTUxMmIxNTYyNmI4IDFhN2I2ZGQ2LTY2MzQtNGI0Yi1hYmE0LTI5YzZmYTE1ZjM4Zg==';
 const MAX_STOCKS=20;
 const BENCHMARK_START_DATE='2026-05-04'; // 大盤對照起始日
+
+// ── 2026 美股 / 台股 全日休市表 ───────────────
+// 來源: NYSE 官方公告 / 臺灣證券交易所行事曆 (跨年度請手動更新)
+const US_MARKET_HOLIDAYS = new Set([
+    '2026-01-01', // New Year's Day
+    '2026-01-19', // MLK Day
+    '2026-02-16', // Washington's Birthday
+    '2026-04-03', // Good Friday
+    '2026-05-25', // Memorial Day
+    '2026-06-19', // Juneteenth
+    '2026-07-03', // Independence Day (observed)
+    '2026-09-07', // Labor Day
+    '2026-11-26', // Thanksgiving
+    '2026-12-25'  // Christmas
+]);
+const TW_MARKET_HOLIDAYS = new Set([
+    '2026-01-01', // 元旦
+    '2026-02-12', // 春節前不交易日
+    '2026-02-13', // 春節前不交易日
+    '2026-02-16', // 春節 (除夕)
+    '2026-02-17', // 春節 (初一)
+    '2026-02-18', // 春節 (初二)
+    '2026-02-19', // 春節 (初三)
+    '2026-02-20', // 春節 (初四)
+    '2026-02-27', // 228 和平紀念日 (補假)
+    '2026-04-03', // 兒童節 (補假)
+    '2026-04-06', // 清明節 (補假)
+    '2026-05-01', // 勞動節
+    '2026-06-19', // 端午節
+    '2026-09-25', // 中秋節
+    '2026-09-28', // 教師節
+    '2026-10-09', // 國慶日 (補假)
+    '2026-10-26'  // 台灣光復節 (補假)
+]);
+
+// 給定 YYYY-MM-DD 判斷是否為市場休市日 (含週末)
+function isMarketClosed(market, ymd){
+    if(!ymd) return false;
+    // 解析 day-of-week
+    const d = new Date(ymd + 'T00:00:00');
+    const dow = d.getDay();
+    if(dow === 0 || dow === 6) return true; // 週末
+    const table = market === 'us' ? US_MARKET_HOLIDAYS : TW_MARKET_HOLIDAYS;
+    return table.has(ymd);
+}
+
+// 取得 ET 當下的 YYYY-MM-DD
+function getETDate(){
+    const et = new Date(new Date().toLocaleString('en-US',{timeZone:'America/New_York'}));
+    const y = et.getFullYear(), m = String(et.getMonth()+1).padStart(2,'0'), d = String(et.getDate()).padStart(2,'0');
+    return `${y}-${m}-${d}`;
+}
+
 let participants=[],usdToTwd=32.5;
 let tradePageMap={};            // {playerName: currentPage(1-based)}
 const TRADES_PER_PAGE=3;
@@ -312,6 +365,8 @@ function getMarketSession(){
     const et = new Date(now.toLocaleString('en-US',{timeZone:'America/New_York'}));
     const h=et.getHours(), m=et.getMinutes(), day=et.getDay();
     if(day===0||day===6) return '週末';
+    // 國定假日 → 休市
+    if(US_MARKET_HOLIDAYS.has(getETDate())) return '💤 休市(假日)';
     const totalMin=h*60+m;
     if(totalMin>=240&&totalMin<570)  return '🌙 夜盤';   
     if(totalMin>=570&&totalMin<960)  return '🔔 盤中';   
@@ -349,10 +404,16 @@ async function fetchFinnhubPrice(ticker){
                 const h=etNow.getHours(), m=etNow.getMinutes(), day=etNow.getDay();
                 const totalMin=h*60+m;
                 const isWeekday=day>=1&&day<=5;
+                const etDateStr = `${etNow.getFullYear()}-${String(etNow.getMonth()+1).padStart(2,'0')}-${String(etNow.getDate()).padStart(2,'0')}`;
+                const isHoliday = US_MARKET_HOLIDAYS.has(etDateStr);
                 let session='💤 休市';
                 let currentPrice=regularPrice||lastRegularClose;
 
-                if(isWeekday){
+                if(isHoliday){
+                    session='💤 休市(假日)';
+                    // 假日強制使用前一交易日收盤價 (regular session 最後一筆)
+                    if(lastRegularClose) currentPrice = lastRegularClose;
+                } else if(isWeekday){
                     if(totalMin>=570&&totalMin<960){
                         session='🔔 盤中';
                         if(lastRegularClose) currentPrice=lastRegularClose;
@@ -366,7 +427,10 @@ async function fetchFinnhubPrice(ticker){
                 const prevClose = meta.regularMarketPreviousClose||meta.chartPreviousClose||meta.previousClose||null;
                 if(currentPrice>0){
                     console.log(`[YF] ${ticker} 昨收:${prevClose} 現價:${currentPrice} 盤後:${lastPostClose} (${session})`);
-                    return { price:currentPrice, prevClose, postPrice:lastPostClose||null, prePrice:lastPreClose||null, session, name:meta.longName||meta.shortName||null };
+                    // 假日不回傳盤前/盤後價，避免顯示陳舊延伸時段資料
+                    const safePost = isHoliday ? null : (lastPostClose||null);
+                    const safePre  = isHoliday ? null : (lastPreClose||null);
+                    return { price:currentPrice, prevClose, postPrice:safePost, prePrice:safePre, session, name:meta.longName||meta.shortName||null };
                 }
             }
         }
@@ -386,7 +450,9 @@ async function fetchTWSEPrice(ticker){
     const tpNow = new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Taipei'}));
     const tpH=tpNow.getHours(), tpM=tpNow.getMinutes(), tpD=tpNow.getDay();
     const tpMin=tpH*60+tpM;
-    const twOpen = tpD>=1&&tpD<=5&&tpMin>=540&&tpMin<810; 
+    const tpDateStr = `${tpNow.getFullYear()}-${String(tpNow.getMonth()+1).padStart(2,'0')}-${String(tpNow.getDate()).padStart(2,'0')}`;
+    const isTwHoliday = TW_MARKET_HOLIDAYS.has(tpDateStr);
+    const twOpen = !isTwHoliday && tpD>=1 && tpD<=5 && tpMin>=540 && tpMin<810;
 
     try{
         const r = await fetch(
@@ -398,7 +464,7 @@ async function fetchTWSEPrice(ticker){
             const name = d.name || d.longName || null;
             const prevClose = d.previousClose || null;
             const price = twOpen ? (d.lastPrice||d.closePrice||null) : (d.closePrice||d.lastPrice||null);
-            const session = twOpen ? '🔔 盤中' : '💤 休市';
+            const session = twOpen ? '🔔 盤中' : (isTwHoliday ? '💤 休市(假日)' : '💤 休市');
             if(price && price > 0){
                 console.log('台股Fugle成功', code, price, session);
                 return { price, prevClose, postPrice:null, prePrice:null, session, name };
@@ -745,6 +811,113 @@ async function refreshBenchmarkHistory(){
     scheduleChartRender();
 }
 
+// ── 個股每日歷史日 K (供曲線回算每日淨值) ───
+let stockHistory = {}; // {ticker: [{date:'YYYY-MM-DD', close:Number}, ...] (asc)}
+let stockHistoryRefreshing = false;
+
+async function fetchStockHistoryUS(ticker){
+    const CF='https://yf-proxy.steven961205.workers.dev';
+    // 多抓 30 天 buffer,方便建倉日早於賽程起點時也有資料
+    const startTs = Math.floor((new Date(BENCHMARK_START_DATE+'T00:00:00').getTime() - 30*86400000)/1000);
+    const endTs = Math.floor(Date.now()/1000);
+    const yfUrl=`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?period1=${startTs}&period2=${endTs}&interval=1d&includePrePost=false`;
+    try {
+        const r=await fetch(`${CF}?url=${encodeURIComponent(yfUrl)}`,{signal:AbortSignal.timeout(15000)});
+        if(!r.ok) return [];
+        const raw=await r.json();
+        const result=raw?.chart?.result?.[0];
+        if(!result) return [];
+        const closes=result.indicators?.quote?.[0]?.close||[];
+        const timestamps=result.timestamp||[];
+        const out=[];
+        for(let i=0;i<closes.length;i++){
+            if(closes[i] && closes[i]>0){
+                const dStr=new Date(timestamps[i]*1000).toISOString().slice(0,10);
+                out.push({date:dStr, close:closes[i]});
+            }
+        }
+        return out.sort((a,b)=>a.date.localeCompare(b.date));
+    } catch(e){
+        console.warn(`Stock history US fail (${ticker}):`, e.message);
+        return [];
+    }
+}
+
+async function fetchStockHistoryTW(ticker){
+    const code = ticker.replace('.TW','').replace('.TWO','');
+    const todayD = new Date();
+    const startD = new Date(new Date(BENCHMARK_START_DATE+'T00:00:00').getTime() - 30*86400000);
+    const dateStr = todayD.toISOString().slice(0,10);
+    const startStr = startD.toISOString().slice(0,10);
+    try {
+        const r = await fetch(
+            `https://api.fugle.tw/marketdata/v1.0/stock/historical/candles/${code}?startDate=${startStr}&endDate=${dateStr}&resolution=D`,
+            { headers:{'X-API-KEY': FUGLE_KEY}, signal:AbortSignal.timeout(12000) }
+        );
+        if(!r.ok) return [];
+        const d = await r.json();
+        const candles = d.data || d.candles || [];
+        return candles.map(c=>({
+            date: String(c.date||'').slice(0,10),
+            close: parseFloat(c.close)||0
+        })).filter(x=>x.date && x.close>0).sort((a,b)=>a.date.localeCompare(b.date));
+    } catch(e){
+        console.warn(`Stock history TW fail (${ticker}):`, e.message);
+        return [];
+    }
+}
+
+async function fetchStockHistoryOne(ticker){
+    if(ticker.endsWith('.TW')||ticker.endsWith('.TWO'))
+        return await fetchStockHistoryTW(ticker);
+    return await fetchStockHistoryUS(ticker);
+}
+
+// 收集所有玩家當前持股的 ticker,平行抓取日 K 並寫入 stockHistory
+async function refreshStockHistory(){
+    if(stockHistoryRefreshing) return;
+    stockHistoryRefreshing = true;
+    try{
+        const tickers = new Set();
+        participants.forEach(p=>{
+            (p.stocks||[]).forEach(s=>{ if(s.ticker) tickers.add(s.ticker); });
+        });
+        const list = [...tickers];
+        if(list.length === 0){
+            stockHistory = {};
+            scheduleChartRender();
+            return;
+        }
+        const results = await Promise.all(list.map(async t=>{
+            const h = await fetchStockHistoryOne(t);
+            return [t, h];
+        }));
+        const next = {};
+        let totalDays = 0;
+        results.forEach(([t,h])=>{ next[t]=h; totalDays += h.length; });
+        stockHistory = next;
+        console.log(`📈 已更新 ${list.length} 支持股日 K (共 ${totalDays} 筆收盤)`);
+        scheduleChartRender();
+    } finally {
+        stockHistoryRefreshing = false;
+    }
+}
+
+// 取得 ticker 在 dateStr 當日或之前最近一個交易日的收盤價
+function getStockCloseOnOrBefore(ticker, dateStr){
+    const hist = stockHistory[ticker] || [];
+    if(!hist.length) return null;
+    let result = null;
+    for(let i=0;i<hist.length;i++){
+        if(hist[i].date <= dateStr){
+            result = hist[i].close;
+        } else {
+            break;
+        }
+    }
+    return result;
+}
+
 // ── 防抖排程繪圖 ──────────────────────────
 function scheduleChartRender(){
     clearTimeout(chartRenderTimer);
@@ -779,44 +952,70 @@ function renderPerformanceChart(){
     const lastTradingDayStr = allDates.length ? allDates[allDates.length - 1] : todayStr;
     const isTodayWeekend = (lastTradingDayStr !== todayStr);
 
-    // 2. 參賽者 datasets — 完全根據歷史交易紀錄推導
-    //    歷史每日淨值 = 初始本金 + 累積已實現損益(截至該日)
-    //    今日端點    = 上式 + 當前未實現損益(持股市值 - 持股成本)
+    // 2. 參賽者 datasets — 每日淨值定錨
+    //    每日淨值 = 初始本金 + 累積已實現損益(截至該日) + 當日持股的未實現損益
+    //    當日持股 = 當前持倉中 buyDate <= 該日的部位; 用該日(或之前最近)收盤估值
+    //    最後一個交易日(今日) = 用即時價格(含夜盤/盤後)估值
     const playerColors = ['#a855f7', '#ffffff', '#fbbf24', '#06b6d4', '#ec4899'];
     const datasets = [];
     participants.forEach((p, idx)=>{
         const initCap = getFixedInitialCapital(p.currency);
         const trades = Array.isArray(p.trades) ? p.trades : [];
-        // 標準化日期 + 依日期排序
+        const stocks = Array.isArray(p.stocks) ? p.stocks : [];
         const tradesByDate = trades.map(t => ({
             date: normalizeDate(t.date || ''),
             pnl: parseFloat(t.pnl) || 0
         })).filter(t => t.date).sort((a,b) => a.date.localeCompare(b.date));
 
-        // 計算當前未實現損益(僅用於今日端點)
-        const stocks = Array.isArray(p.stocks) ? p.stocks : [];
-        let unrealizedPnl = 0;
-        stocks.forEach(s => {
-            const sess = s.session || '';
-            const lp = (sess==='🌙 夜盤' && s.prePrice)  ? s.prePrice  :
-                       (sess==='🌆 盤後' && s.postPrice) ? s.postPrice :
-                       s.currentPrice || 0;
-            const sCur = s.currency || p.currency;
-            const unPnlRaw = (s.shares||0) * (lp - (s.buyPrice||0));
-            unrealizedPnl += convertCurrency(unPnlRaw, sCur, p.currency);
-        });
+        // 預先計算每支持股的建倉日、買價、股數、幣別 (避免迴圈內重複)
+        const stockInfo = stocks.map(s => ({
+            ticker: s.ticker || '',
+            shares: parseFloat(s.shares) || 0,
+            buyPrice: parseFloat(s.buyPrice) || 0,
+            buyDate: normalizeDate(s.buyDate || ''),
+            currency: s.currency || p.currency,
+            session: s.session || '',
+            currentPrice: parseFloat(s.currentPrice) || 0,
+            prePrice: parseFloat(s.prePrice) || 0,
+            postPrice: parseFloat(s.postPrice) || 0
+        }));
 
         let cumPnl = 0;
         let ti = 0;
         const data = allDates.map(date => {
-            // 把所有日期 <= 當前 X 點的交易損益累加
+            // 累加當日(含)之前所有交易的已實現損益
             while(ti < tradesByDate.length && tradesByDate[ti].date <= date){
                 cumPnl += tradesByDate[ti].pnl;
                 ti++;
             }
-            // 最後一個交易日的端點:加上當前未實現損益(週末也成立)
             const isLastPoint = (date === lastTradingDayStr);
-            const netVal = initCap + cumPnl + (isLastPoint ? unrealizedPnl : 0);
+
+            // 計算該日持股的未實現損益
+            let unrealized = 0;
+            stockInfo.forEach(s => {
+                if(!s.ticker || s.shares <= 0) return;
+                // 建倉日晚於該日 → 此部位當日尚未持有,跳過
+                if(s.buyDate && s.buyDate > date) return;
+
+                let priceOnDate;
+                if(isLastPoint){
+                    // 最後端點: 用即時價(含夜盤/盤後)
+                    priceOnDate = (s.session==='🌙 夜盤' && s.prePrice>0)  ? s.prePrice  :
+                                  (s.session==='🌆 盤後' && s.postPrice>0) ? s.postPrice :
+                                  s.currentPrice || getStockCloseOnOrBefore(s.ticker, date);
+                } else {
+                    // 歷史日: 抓該日(或之前最近)的收盤價
+                    priceOnDate = getStockCloseOnOrBefore(s.ticker, date);
+                }
+
+                // 找不到該日收盤(資料未到/網路失敗) → 退回買入價(該部位當日不貢獻 PnL)
+                if(!priceOnDate || priceOnDate <= 0) priceOnDate = s.buyPrice;
+
+                const unPnlRaw = s.shares * (priceOnDate - s.buyPrice);
+                unrealized += convertCurrency(unPnlRaw, s.currency, p.currency);
+            });
+
+            const netVal = initCap + cumPnl + unrealized;
             return ((netVal - initCap) / initCap) * 100;
         });
 
@@ -950,8 +1149,10 @@ function renderPerformanceChart(){
     if(statusEl){
         const totalTrades = participants.reduce((sum,p)=> sum + (Array.isArray(p.trades)?p.trades.length:0), 0);
         const totalBmDays = (benchmarkHistory.sp500?.length||0) + (benchmarkHistory.twii?.length||0);
-        const weekendHint = isTodayWeekend ? `｜<span style="color:var(--accent-amber);">📅 今日週末・最新端點=${lastTradingDayStr}（含未實現）</span>` : '';
-        statusEl.innerHTML = `📅 ${allDates.length} 個交易日｜📊 共 ${totalTrades} 筆歷史交易疊加｜大盤收盤資料 ${totalBmDays} 筆${weekendHint}<br><span style="color:var(--text-muted);">曲線=初始本金+累積已實現損益，最後端點額外加上未實現損益</span>`;
+        const stockTickerCount = Object.keys(stockHistory).length;
+        const stockDaysTotal = Object.values(stockHistory).reduce((s,h)=>s+h.length,0);
+        const weekendHint = isTodayWeekend ? `｜<span style="color:var(--accent-amber);">📅 今日週末・最新端點=${lastTradingDayStr}（即時價）</span>` : '';
+        statusEl.innerHTML = `📅 ${allDates.length} 個交易日｜📊 ${totalTrades} 筆交易 + ${stockTickerCount} 支持股歷史 (${stockDaysTotal} 筆收盤)｜大盤 ${totalBmDays} 筆${weekendHint}<br><span style="color:var(--text-muted);">每日淨值 = 初始本金 + 累積已實現損益 + 當日持股 × 收盤價（最後端點改用即時價）</span>`;
     }
 }
 
@@ -1059,8 +1260,9 @@ db.ref('competitionData').on('value',async snapshot=>{
     }));
     renderDashboard();
     setStatus('ok',`🟢 已連線｜1 USD = ${usdToTwd.toFixed(2)} TWD｜${new Date().toLocaleTimeString('zh-TW')}`);
-    // 交易紀錄/持股已更新 → 重繪曲線(玩家曲線改為依交易紀錄推導,不再需要快照)
+    // 交易紀錄/持股已更新 → 重繪曲線; 同時非同步重抓持股日 K (持股新增或建倉日變更時會更新)
     scheduleChartRender();
+    refreshStockHistory(); // fire-and-forget, 完成後會自己呼叫 scheduleChartRender
 });
 
 function setStatus(type,msg){const el=document.getElementById('system-status');el.className=`status-pill status-${type}`;el.textContent=msg;}
@@ -1191,6 +1393,16 @@ function renderDashboard(){
                 const extColor = _sess==='🌆 盤後'?'var(--accent-amber)':'#a78bfa';
                 const extLabel = _sess==='🌆 盤後'?'🌆 盤後':'🌙 夜盤';
 
+                // 建倉日期 & 持有天數
+                const buyDate = normalizeDate(s.buyDate||'');
+                let buyDateHTML = '';
+                if(buyDate){
+                    const dayDiff = Math.max(0, Math.floor((Date.parse(getTaipeiToday()+'T00:00:00') - Date.parse(buyDate+'T00:00:00'))/86400000));
+                    buyDateHTML = `<span style="color:var(--text-muted);">建倉 <span class="mono" style="color:var(--accent-cyan);">${buyDate}</span> <span style="color:var(--text-muted);font-size:10px;">(${dayDiff}天)</span></span>`;
+                } else {
+                    buyDateHTML = `<span style="color:var(--text-muted);font-style:italic;">建倉日期未設定</span>`;
+                }
+
                 return`<div class="holding-row">
                     <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
                         <div>
@@ -1205,6 +1417,7 @@ function renderDashboard(){
                         <span class="font-bold mono ${pc}">${ps}${fmtRaw(pnl,sCurrency)} <span style="opacity:.8">(${pnlPctSign}${pnlPct}%)</span></span>
                     </div>
                     <div style="display:flex;justify-content:space-between;align-items:center;margin-top:5px;padding-top:5px;border-top:1px dashed rgba(30,58,95,.4);" class="text-xs">
+                        ${buyDateHTML}
                         <span style="color:var(--text-muted);">成本 <span class="mono" style="color:var(--text-secondary);">${fmtRaw(cost,sCurrency)}</span></span>
                         <span style="color:var(--text-muted);">市值 <span class="mono font-bold" style="color:var(--accent-cyan);">${fmtRaw(mv,sCurrency)}</span></span>
                     </div>
@@ -1314,9 +1527,15 @@ function renderDashboard(){
                 const pnlPct = bp>0 ? ((sp-bp)/bp*100).toFixed(2) : null;
                 const pnlPctStr = pnlPct!==null ? `${pnl>=0?'+':''}${pnlPct}%` : '--';
                 const nameDisplay = t.stockName ? `<span style="font-size:11px;color:var(--text-secondary);margin-left:6px;font-weight:normal;">${t.stockName}</span>` : '';
+                // ── 依 ticker 後綴自動判定原生幣別 (台股=TWD, 其餘=USD) ──
+                const tTicker = (t.ticker||'').toUpperCase();
+                const tradeCur = (tTicker.endsWith('.TW') || tTicker.endsWith('.TWO')) ? 'TWD' : 'USD';
+                const curBadge = tradeCur === 'TWD'
+                    ? `<span style="font-size:9px;font-weight:700;letter-spacing:.05em;padding:1px 5px;border-radius:3px;background:rgba(245,158,11,.15);border:1px solid rgba(245,158,11,.3);color:var(--accent-amber);margin-left:6px;">TWD</span>`
+                    : `<span style="font-size:9px;font-weight:700;letter-spacing:.05em;padding:1px 5px;border-radius:3px;background:rgba(59,130,246,.15);border:1px solid rgba(59,130,246,.3);color:var(--accent-blue);margin-left:6px;">USD</span>`;
                 const interestDisplay = (interest>0 || interestRate>0) ? 
                     `<div class="trade-card-row" style="color:var(--text-secondary);font-size:11px;margin-top:3px;padding-top:3px;border-top:1px dashed rgba(30,58,95,.4);">
-                        ${interest>0?`<span>利息 <span class="mono" style="color:var(--accent-amber);">-${fmtRaw(interest,p.currency,2)}</span></span>`:'<span></span>'}
+                        ${interest>0?`<span>利息 <span class="mono" style="color:var(--accent-amber);">-${fmtRaw(interest,tradeCur,2)}</span></span>`:'<span></span>'}
                         ${interestRate>0?`<span>融資利率 <span class="mono" style="color:var(--accent-amber);">${interestRate}%</span></span>`:'<span></span>'}
                     </div>` : '';
                 
@@ -1324,10 +1543,11 @@ function renderDashboard(){
                     <div class="trade-card-row">
                         <div style="display:flex;align-items:center;">
                             <span class="mono font-bold text-cyan-300" style="font-size:13px;">${t.ticker||'--'}</span>
+                            ${curBadge}
                             ${nameDisplay}
                         </div>
                         <div style="display:flex;align-items:center;gap:8px;">
-                            <span class="${cls}" style="font-size:13px;font-weight:700;">${pnl>=0?'+':'-'}${fmtRaw(Math.abs(pnl),p.currency)}</span>
+                            <span class="${cls}" style="font-size:13px;font-weight:700;">${pnl>=0?'+':'-'}${fmtRaw(Math.abs(pnl),tradeCur)}</span>
                             <span class="${cls}" style="font-size:11px;opacity:.85;">(${pnlPctStr})</span>
                             <button class="btn-edit" onclick="openTradeModal('${p.name}', ${idx})" title="編輯">✎</button>
                             <button class="btn-del" onclick="deleteTrade('${p.name}', ${idx})" title="刪除">✕</button>
@@ -1335,8 +1555,8 @@ function renderDashboard(){
                     </div>
                     <div class="trade-card-row" style="color:var(--text-secondary);font-size:11px;">
                         <span>${(t.shares||0).toLocaleString()} 股</span>
-                        <span>買入 <span class="mono text-white">${fmtRaw(bp,p.currency,2)}</span></span>
-                        <span>賣出 <span class="mono text-white">${fmtRaw(sp,p.currency,2)}</span></span>
+                        <span>買入 <span class="mono text-white">${fmtRaw(bp,tradeCur,2)}</span></span>
+                        <span>賣出 <span class="mono text-white">${fmtRaw(sp,tradeCur,2)}</span></span>
                         ${t.date?`<span style="color:var(--text-muted)">${t.date}</span>`:''}
                     </div>
                     ${interestDisplay}
@@ -1465,6 +1685,8 @@ function addStockSlot(data={}){
     if(container.querySelectorAll('.stock-slot').length>=MAX_STOCKS){alert(`最多 ${MAX_STOCKS} 支持股`);return;}
     const id=++slotCounter;slotAcItems[id]=[];slotAcIdx[id]=-1;
     const num=container.querySelectorAll('.stock-slot').length+1;
+    // 預設建倉日期: 既有資料 > 今天(台北時區)
+    const defaultBuyDate = data.buyDate || getTaipeiToday();
     const slot=document.createElement('div');slot.className='stock-slot';slot.dataset.slotId=id;
     slot.innerHTML=`<div class="stock-slot-header"><span class="slot-num">持股 #${num}</span><button class="btn-del" onclick="removeSlot(this)">✕ 移除</button></div>
         <div class="ac-wrap" style="margin-bottom:10px;">
@@ -1472,7 +1694,7 @@ function addStockSlot(data={}){
                 oninput="onSlotInput(${id},this.value)" onkeydown="onSlotKey(event,${id})">
             <div class="ac-list" id="ac-list-${id}"></div>
         </div>
-        <div style="display:grid;grid-template-columns:70px 1fr 1fr;gap:10px;">
+        <div style="display:grid;grid-template-columns:70px 1fr 1fr;gap:10px;margin-bottom:10px;">
             <div><label class="modal-label">幣別</label>
                 <select class="modal-input slot-currency" style="cursor:pointer;padding:8px 4px;" onchange="updateModalSummary()">
                     <option value="USD" ${(data.currency||'USD')==='USD'?'selected':''}>USD</option>
@@ -1480,6 +1702,11 @@ function addStockSlot(data={}){
                 </select></div>
             <div><label class="modal-label">持有股數</label><input type="number" class="modal-input slot-shares" placeholder="0" value="${data.shares||''}" oninput="updateModalSummary()"></div>
             <div><label class="modal-label">買入均價</label><input type="number" step="0.01" class="modal-input slot-buyprice" placeholder="0.00" value="${data.buyPrice||''}" oninput="updateModalSummary()"></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr;gap:10px;">
+            <div><label class="modal-label" style="color:var(--accent-cyan)">建倉日期（用於曲線歷史回算）</label>
+                <input type="date" class="modal-input slot-buydate" value="${defaultBuyDate}">
+            </div>
         </div>
         <div class="slot-price-info" style="margin-top:8px;font-size:12px;color:var(--text-secondary);${(data.currentPrice||0)>0?'':'display:none'}">
             <span class="price-dot"></span>即時股價：<span class="slot-cur-price mono font-bold" style="color:var(--accent-cyan)">${(data.currentPrice||0)>0?(data.currentPrice).toFixed(2):''}</span>
@@ -1591,7 +1818,12 @@ function saveData(){
         const buyPrice=parseFloat(slot.querySelector('.slot-buyprice').value)||0;
         const currentPrice=parseFloat(slot.querySelector('.slot-cur-hidden').value)||0;
         const sCur=slot.querySelector('.slot-currency')?.value||'USD';
-        if(ticker&&shares>0)newStocks.push({ticker,shares,buyPrice,currentPrice,currency:sCur});
+        const buyDate=(slot.querySelector('.slot-buydate')?.value||'').trim();
+        if(ticker&&shares>0){
+            const obj={ticker,shares,buyPrice,currentPrice,currency:sCur};
+            if(buyDate) obj.buyDate=buyDate;
+            newStocks.push(obj);
+        }
     });
     const updated={...participants[pi],currency:document.getElementById('editCurrency').value,cash:parseFloat(document.getElementById('editCash').value)||0,stocks:newStocks};
     db.ref('competitionData/'+pi).set(updated);
@@ -1915,6 +2147,12 @@ function updateRefreshCountdown(){
 async function refreshPrices(){
     if(participants.length === 0) return;
     setStatus('loading','🔄 刷新股價中...');
+    // 計算今日(ET / TPE)是否為假日,假日不發 API 請求,直接保留快取
+    const etDateStr = getETDate();
+    const isUsHolidayToday = US_MARKET_HOLIDAYS.has(etDateStr);
+    const tpNow = new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Taipei'}));
+    const tpDateStr = `${tpNow.getFullYear()}-${String(tpNow.getMonth()+1).padStart(2,'0')}-${String(tpNow.getDate()).padStart(2,'0')}`;
+    const isTwHolidayToday = TW_MARKET_HOLIDAYS.has(tpDateStr);
     let anyUpdate = false;
     await Promise.all(participants.map(async(p, pi)=>{
         const stocks = Array.isArray(p.stocks) ? p.stocks : [];
@@ -1922,12 +2160,17 @@ async function refreshPrices(){
             if(!s.ticker) return;
             const isTW = s.ticker.endsWith('.TW') || s.ticker.endsWith('.TWO');
             if(isTW){
+                // 台股: 假日 或 非盤中時段 → 跳過
+                if(isTwHolidayToday) return;
                 const now = new Date();
                 const twHour = new Date(now.toLocaleString('en-US',{timeZone:'Asia/Taipei'}));
                 const h = twHour.getHours(), m = twHour.getMinutes(), day = twHour.getDay();
                 const isWeekday = day>=1 && day<=5;
                 const isMarketHour = (h===9&&m>=0)||(h>=10&&h<=12)||(h===13&&m<=30);
                 if(!isWeekday || !isMarketHour) return; 
+            } else {
+                // 美股: 假日跳過(避免顯示假日的延伸時段陳舊資料)
+                if(isUsHolidayToday) return;
             }
             const result = await fetchStockPrice(s.ticker);
             if(!result) return;
@@ -1981,6 +2224,7 @@ document.addEventListener('visibilitychange', ()=>{
         refreshPrices();
         refreshBenchmarks();
         refreshBenchmarkHistory();
+        refreshStockHistory();
         startRefreshCountdown();
     } else {
         clearInterval(refreshTimer);
@@ -1991,8 +2235,9 @@ document.addEventListener('visibilitychange', ()=>{
 refreshBenchmarks();
 refreshBenchmarkHistory();
 
-// 每 30 分鐘刷新一次大盤歷史日K
+// 每 30 分鐘刷新一次大盤歷史日K + 持股日 K
 setInterval(refreshBenchmarkHistory, 30 * 60 * 1000);
+setInterval(refreshStockHistory, 30 * 60 * 1000);
 </script>
 </body>
 </html>
