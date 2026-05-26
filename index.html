@@ -11,88 +11,108 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap');
         :root {
-            --bg-base:#080e1a;--bg-card:#0d1726;--bg-elevated:#111f35;--bg-input:#0a1628;
-            --border:#1e3a5f;--border-bright:#2a5490;
-            --text-primary:#e8f4fd;--text-secondary:#7ba5cc;--text-muted:#3d6080;
-            --accent-blue:#3b82f6;--accent-cyan:#06b6d4;--accent-green:#10b981;
-            --accent-red:#ef4444;--accent-amber:#f59e0b;
+            /* Dark Mode — 純黑/中性灰系, 更靜的氛圍 */
+            --bg-base:#050505;          /* near-black base */
+            --bg-card:#0d0d0f;          /* card surface */
+            --bg-elevated:#15151a;      /* elevated/hover surface */
+            --bg-input:#0a0a0c;         /* input/inner surface */
+            --border:#1f1f24;           /* default border */
+            --border-bright:#34343c;    /* hover/active border */
+            --text-primary:#f5f5f7;     /* near-white */
+            --text-secondary:#9a9a9f;   /* mid-gray */
+            --text-muted:#5a5a60;       /* muted/disabled */
+            --accent-blue:#3b82f6;
+            --accent-cyan:#22d3ee;
+            --accent-green:#22c55e;
+            --accent-red:#ef4444;
+            --accent-amber:#f59e0b;
         }
         *{box-sizing:border-box;}
         body{font-family:'Inter',sans-serif;background-color:var(--bg-base);color:var(--text-primary);min-height:100vh;
-            background-image:radial-gradient(ellipse 80% 50% at 50% -20%,rgba(59,130,246,.08) 0%,transparent 70%),
-                             radial-gradient(ellipse 40% 30% at 80% 80%,rgba(6,182,212,.05) 0%,transparent 60%);}
+            background-image:radial-gradient(ellipse 90% 60% at 50% -20%,rgba(34,211,238,.05) 0%,transparent 70%),
+                             radial-gradient(ellipse 50% 40% at 85% 85%,rgba(245,158,11,.035) 0%,transparent 65%),
+                             radial-gradient(ellipse 50% 40% at 15% 90%,rgba(168,85,247,.03) 0%,transparent 65%);}
         .mono{font-family:'IBM Plex Mono',monospace;}
-        .card{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;}
-        .header-glow{text-shadow:0 0 40px rgba(59,130,246,.5),0 0 80px rgba(59,130,246,.2);}
-        .countdown-badge{background:linear-gradient(135deg,#1e3a5f,#0f2a4a);border:1px solid var(--accent-blue);border-radius:999px;padding:8px 24px;display:inline-block;}
+        .card{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;
+            box-shadow:0 1px 0 0 rgba(255,255,255,.02) inset, 0 8px 32px -8px rgba(0,0,0,.5);}
+        .header-glow{text-shadow:0 0 24px rgba(34,211,238,.35),0 0 60px rgba(34,211,238,.15);}
+        .countdown-badge{background:linear-gradient(135deg,#1a1a1f,#0a0a0c);border:1px solid #2a2a32;border-radius:999px;padding:8px 24px;display:inline-block;
+            box-shadow:0 0 0 1px rgba(255,255,255,.02) inset, 0 0 18px rgba(34,211,238,.08);}
         .status-pill{display:inline-flex;align-items:center;gap:8px;padding:6px 16px;border-radius:999px;font-size:12px;font-weight:600;border:1px solid transparent;}
-        .status-loading{background:rgba(245,158,11,.1);border-color:rgba(245,158,11,.3);color:var(--accent-amber);}
-        .status-ok{background:rgba(16,185,129,.1);border-color:rgba(16,185,129,.3);color:var(--accent-green);}
+        .status-loading{background:rgba(245,158,11,.08);border-color:rgba(245,158,11,.25);color:var(--accent-amber);}
+        .status-ok{background:rgba(34,197,94,.08);border-color:rgba(34,197,94,.25);color:var(--accent-green);}
         .rank-card{display:flex;justify-content:space-between;align-items:center;padding:14px 20px;border-radius:10px;border:1px solid var(--border);background:var(--bg-elevated);transition:border-color .2s,box-shadow .2s;}
-        .rank-card:hover{border-color:var(--border-bright);box-shadow:0 4px 20px rgba(0,0,0,.3);}
-        .rank-card.rank-1{border-color:rgba(251,191,36,.4);background:linear-gradient(135deg,rgba(251,191,36,.06),var(--bg-elevated));}
-        .rank-card.rank-2{border-color:rgba(156,163,175,.4);}
-        .rank-card.rank-3{border-color:rgba(180,83,9,.4);}
-        .benchmark-card{display:flex;justify-content:space-between;align-items:center;padding:12px 20px;border-radius:10px;border:1px dashed var(--border);background:rgba(13,23,38,.5);transition:border-color .2s;}
-        .benchmark-card:hover{border-color:var(--border-bright);}
-        .portfolio-card{background:var(--bg-card);border:1px solid var(--border);border-radius:14px;padding:20px;transition:border-color .2s;}
-        .portfolio-card:hover{border-color:var(--border-bright);}
-        .net-value-box{background:var(--bg-input);border:1px solid var(--border-bright);border-radius:10px;padding:16px;}
+        .rank-card:hover{border-color:var(--border-bright);box-shadow:0 4px 20px rgba(0,0,0,.5);}
+        .rank-card.rank-1{border-color:rgba(251,191,36,.45);background:linear-gradient(135deg,rgba(251,191,36,.07),var(--bg-elevated));
+            box-shadow:0 0 24px rgba(251,191,36,.08);}
+        .rank-card.rank-2{border-color:rgba(180,180,190,.35);background:linear-gradient(135deg,rgba(180,180,190,.04),var(--bg-elevated));}
+        .rank-card.rank-3{border-color:rgba(180,83,9,.4);background:linear-gradient(135deg,rgba(180,83,9,.05),var(--bg-elevated));}
+        .benchmark-card{display:flex;justify-content:space-between;align-items:center;padding:12px 20px;border-radius:10px;border:1px dashed var(--border);background:rgba(10,10,12,.6);transition:border-color .2s,background .2s;}
+        .benchmark-card:hover{border-color:var(--border-bright);background:rgba(15,15,18,.7);}
+        .portfolio-card{background:var(--bg-card);border:1px solid var(--border);border-radius:14px;padding:20px;transition:border-color .2s,box-shadow .2s;
+            box-shadow:0 1px 0 0 rgba(255,255,255,.02) inset;}
+        .portfolio-card:hover{border-color:var(--border-bright);box-shadow:0 1px 0 0 rgba(255,255,255,.03) inset, 0 8px 28px -8px rgba(0,0,0,.7);}
+        .net-value-box{background:linear-gradient(180deg, rgba(15,15,18,.9), var(--bg-input));border:1px solid var(--border-bright);border-radius:10px;padding:16px;
+            box-shadow:0 1px 0 0 rgba(255,255,255,.03) inset;}
         .stat-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;font-size:13px;}
         .stat-label{color:var(--text-secondary);}
-        .holding-row{background:var(--bg-input);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:6px;font-size:12px;}
-        .btn-update{background:linear-gradient(135deg,#1e3a5f,#162e4d);border:1px solid var(--border-bright);color:var(--text-primary);padding:6px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;transition:all .2s;}
-        .btn-update:hover{background:linear-gradient(135deg,#2a5490,#1e3a5f);box-shadow:0 0 12px rgba(59,130,246,.3);}
-        .btn-cancel{padding:9px 18px;background:rgba(30,58,95,.5);border:1px solid var(--border);color:var(--text-secondary);border-radius:7px;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;}
-        .btn-cancel:hover{background:rgba(30,58,95,.8);color:var(--text-primary);}
-        .btn-save{padding:9px 20px;background:linear-gradient(135deg,#2563eb,#1d4ed8);border:none;color:#fff;border-radius:7px;font-size:13px;font-weight:700;cursor:pointer;transition:all .2s;box-shadow:0 4px 15px rgba(37,99,235,.4);}
-        .btn-save:hover{background:linear-gradient(135deg,#3b82f6,#2563eb);transform:translateY(-1px);}
-        .btn-add-stock{display:flex;align-items:center;gap:5px;background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.3);color:var(--accent-blue);padding:6px 12px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;transition:all .2s;}
-        .btn-add-stock:hover{background:rgba(59,130,246,.2);}
-        .btn-add-trade{display:flex;align-items:center;gap:5px;background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.3);color:var(--accent-green);padding:4px 10px;border-radius:5px;font-size:11px;font-weight:700;cursor:pointer;transition:all .2s;}
-        .btn-add-trade:hover{background:rgba(16,185,129,.2);}
+        .holding-row{background:var(--bg-input);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:6px;font-size:12px;transition:border-color .2s;}
+        .holding-row:hover{border-color:var(--border-bright);}
+        .btn-update{background:linear-gradient(135deg,#1a1a1f,#0d0d10);border:1px solid var(--border-bright);color:var(--text-primary);padding:6px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;transition:all .2s;}
+        .btn-update:hover{background:linear-gradient(135deg,#22222a,#15151a);border-color:var(--accent-cyan);box-shadow:0 0 12px rgba(34,211,238,.2);}
+        .btn-cancel{padding:9px 18px;background:rgba(31,31,36,.6);border:1px solid var(--border);color:var(--text-secondary);border-radius:7px;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;}
+        .btn-cancel:hover{background:rgba(31,31,36,.9);color:var(--text-primary);border-color:var(--border-bright);}
+        .btn-save{padding:9px 20px;background:linear-gradient(135deg,#22d3ee,#0891b2);border:none;color:#04111a;border-radius:7px;font-size:13px;font-weight:700;cursor:pointer;transition:all .2s;box-shadow:0 4px 18px rgba(34,211,238,.25);}
+        .btn-save:hover{background:linear-gradient(135deg,#06b6d4,#0e7490);transform:translateY(-1px);box-shadow:0 6px 24px rgba(34,211,238,.35);}
+        .btn-add-stock{display:flex;align-items:center;gap:5px;background:rgba(34,211,238,.08);border:1px solid rgba(34,211,238,.25);color:var(--accent-cyan);padding:6px 12px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;transition:all .2s;}
+        .btn-add-stock:hover{background:rgba(34,211,238,.15);border-color:rgba(34,211,238,.5);}
+        .btn-add-trade{display:flex;align-items:center;gap:5px;background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.25);color:var(--accent-green);padding:4px 10px;border-radius:5px;font-size:11px;font-weight:700;cursor:pointer;transition:all .2s;}
+        .btn-add-trade:hover{background:rgba(34,197,94,.15);border-color:rgba(34,197,94,.5);}
         .btn-edit{background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:14px;padding:0 3px;transition:color .15s;}
-        .btn-edit:hover{color:var(--accent-blue);}
+        .btn-edit:hover{color:var(--accent-cyan);}
         .btn-del{background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:13px;padding:0 3px;transition:color .15s;}
         .btn-del:hover{color:var(--accent-red);}
-        .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);backdrop-filter:blur(4px);align-items:center;justify-content:center;z-index:50;}
+        .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);backdrop-filter:blur(8px);align-items:center;justify-content:center;z-index:50;}
         .modal-overlay.open{display:flex;}
-        .modal-box{background:#0d1726;border:1px solid var(--border-bright);border-radius:16px;padding:28px;width:580px;max-height:92vh;overflow-y:auto;box-shadow:0 25px 60px rgba(0,0,0,.7);}
+        .modal-box{background:var(--bg-card);border:1px solid var(--border-bright);border-radius:16px;padding:28px;width:580px;max-height:92vh;overflow-y:auto;
+            box-shadow:0 1px 0 0 rgba(255,255,255,.03) inset, 0 25px 70px rgba(0,0,0,.8);}
         .modal-label{font-size:11px;font-weight:600;color:var(--text-secondary);letter-spacing:.05em;text-transform:uppercase;margin-bottom:6px;display:block;}
-        .modal-input{width:100%;background:var(--bg-input);border:1px solid var(--border-bright);color:var(--text-primary);padding:9px 12px;border-radius:7px;font-size:14px;font-family:'Inter',sans-serif;outline:none;transition:border-color .2s,box-shadow .2s;}
-        .modal-input:focus{border-color:var(--accent-blue);box-shadow:0 0 0 3px rgba(59,130,246,.15);}
-        .modal-input[readonly]{background:#060e1a;color:var(--text-secondary);cursor:not-allowed;}
+        .modal-input{width:100%;background:var(--bg-input);border:1px solid var(--border);color:var(--text-primary);padding:9px 12px;border-radius:7px;font-size:14px;font-family:'Inter',sans-serif;outline:none;transition:border-color .2s,box-shadow .2s;}
+        .modal-input:focus{border-color:var(--accent-cyan);box-shadow:0 0 0 3px rgba(34,211,238,.15);}
+        .modal-input[readonly]{background:#040405;color:var(--text-secondary);cursor:not-allowed;}
         .net-preview{color:var(--accent-green)!important;font-family:'IBM Plex Mono',monospace!important;font-size:16px!important;font-weight:600!important;}
         .net-negative{color:var(--accent-red)!important;}
         .divider{border:none;border-top:1px solid var(--border);margin:14px 0;}
-        .stock-slot{background:rgba(10,22,40,.7);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:10px;}
+        .stock-slot{background:rgba(10,10,12,.7);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:10px;}
         .stock-slot-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
         .slot-num{font-size:11px;font-weight:700;color:var(--accent-cyan);letter-spacing:.05em;}
         .ac-wrap{position:relative;}
-        .ac-list{position:absolute;top:calc(100% + 4px);left:0;right:0;background:#111f35;border:1px solid var(--border-bright);border-radius:8px;z-index:200;max-height:200px;overflow-y:auto;box-shadow:0 10px 30px rgba(0,0,0,.6);display:none;}
+        .ac-list{position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--bg-elevated);border:1px solid var(--border-bright);border-radius:8px;z-index:200;max-height:200px;overflow-y:auto;box-shadow:0 10px 40px rgba(0,0,0,.8);display:none;}
         .ac-list.open{display:block;}
-        .ac-item{padding:9px 14px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(30,58,95,.5);transition:background .15s;}
+        .ac-item{padding:9px 14px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(31,31,36,.6);transition:background .15s;}
         .ac-item:last-child{border-bottom:none;}
-        .ac-item:hover,.ac-item.active{background:rgba(59,130,246,.15);}
+        .ac-item:hover,.ac-item.active{background:rgba(34,211,238,.08);}
         .ac-ticker{font-family:'IBM Plex Mono',monospace;font-weight:600;color:var(--accent-cyan);font-size:13px;}
         .ac-name{font-size:11px;color:var(--text-secondary);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-        .ac-exch{font-size:10px;color:var(--text-muted);background:rgba(30,58,95,.8);padding:2px 6px;border-radius:4px;}
+        .ac-exch{font-size:10px;color:var(--text-muted);background:rgba(31,31,36,.8);padding:2px 6px;border-radius:4px;}
         .ac-spinner{padding:10px 14px;color:var(--text-muted);font-size:12px;text-align:center;}
         .history-section{margin-top:16px;border-top:1px solid var(--border);padding-top:14px;}
-        .trade-card{background:var(--bg-input);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:6px;font-size:12px;}
+        .trade-card{background:var(--bg-input);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:6px;font-size:12px;transition:border-color .2s;}
+        .trade-card:hover{border-color:var(--border-bright);}
         .trade-card:last-child{margin-bottom:0;}
         .trade-card-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;}
         .trade-card-row:last-child{margin-bottom:0;}
         .profit-pos{color:var(--accent-green);font-weight:700;font-family:'IBM Plex Mono',monospace;}
         .profit-neg{color:var(--accent-red);font-weight:700;font-family:'IBM Plex Mono',monospace;}
-        .currency-badge{font-size:10px;font-weight:700;letter-spacing:.06em;padding:2px 8px;border-radius:4px;background:rgba(59,130,246,.15);border:1px solid rgba(59,130,246,.3);color:var(--accent-blue);}
-        .leverage-bar-wrap{height:4px;background:rgba(30,58,95,.6);border-radius:2px;margin-top:6px;}
+        .currency-badge{font-size:10px;font-weight:700;letter-spacing:.06em;padding:2px 8px;border-radius:4px;background:rgba(34,211,238,.1);border:1px solid rgba(34,211,238,.25);color:var(--accent-cyan);}
+        .leverage-bar-wrap{height:4px;background:rgba(31,31,36,.8);border-radius:2px;margin-top:6px;}
         .leverage-bar{height:100%;border-radius:2px;background:linear-gradient(90deg,var(--accent-amber),#ef4444);transition:width .5s;}
-        .price-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--accent-green);animation:pulse-dot 2s infinite;margin-right:4px;}
+        .price-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--accent-green);animation:pulse-dot 2s infinite;margin-right:4px;
+            box-shadow:0 0 6px rgba(34,197,94,.7);}
         @keyframes pulse-dot{0%,100%{opacity:1}50%{opacity:.3}}
-        ::-webkit-scrollbar{width:5px;}::-webkit-scrollbar-track{background:transparent;}::-webkit-scrollbar-thumb{background:var(--border-bright);border-radius:3px;}
+        ::-webkit-scrollbar{width:5px;height:5px;}::-webkit-scrollbar-track{background:transparent;}::-webkit-scrollbar-thumb{background:var(--border-bright);border-radius:3px;}::-webkit-scrollbar-thumb:hover{background:#4a4a52;}
         /* ── 持倉圓餅圖 ── */
-        .holding-pie-wrap{margin:14px 0 16px;padding:14px;background:rgba(10,22,40,.5);border:1px solid var(--border);border-radius:10px;}
+        .holding-pie-wrap{margin:14px 0 16px;padding:14px;background:rgba(10,10,12,.6);border:1px solid var(--border);border-radius:10px;}
         .holding-pie-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
         .holding-pie-title{font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;}
         .holding-pie-cash{font-size:10px;color:var(--text-secondary);}
@@ -190,7 +210,7 @@
                     <option value="USD">美元 (USD)</option><option value="TWD">新台幣 (TWD)</option>
                 </select></div>
             <div><label class="modal-label">初始本金（鎖定）</label><input type="text" id="displayInitialCapital" readonly class="modal-input mono"></div>
-            <div><label class="modal-label" style="color:var(--accent-cyan)">當前現金水位（自動計算）</label><input type="number" step="0.01" id="editCash" readonly class="modal-input mono" style="background:#060e1a;color:var(--text-secondary);" placeholder="0"></div>
+            <div><label class="modal-label" style="color:var(--accent-cyan)">當前現金水位（自動計算）</label><input type="number" step="0.01" id="editCash" readonly class="modal-input mono" style="background:#040405;color:var(--text-secondary);" placeholder="0"></div>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
             <div><label class="modal-label">帳戶淨值（初始本金 + 損益）</label><input type="text" id="displayNetValue" readonly class="modal-input net-preview"></div>
@@ -273,13 +293,13 @@
         <div id="colorPickerCurrent" style="text-align:center;margin-bottom:12px;font-size:12px;color:var(--text-secondary);"></div>
 
         <!-- 自訂色域 (HSL/RGB 全色域,可選任意顏色) -->
-        <div style="background:rgba(15,23,42,.5);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:14px;">
+        <div style="background:rgba(10,10,12,.6);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:14px;">
             <div style="font-size:11px;color:var(--accent-cyan);margin-bottom:8px;font-weight:700;letter-spacing:.05em;">🎨 自訂色域（可選任意顏色）</div>
             <div style="display:flex;align-items:center;gap:8px;">
                 <input type="color" id="customColorInput" value="#a855f7" 
                     style="width:54px;height:38px;border:1px solid var(--border);border-radius:6px;cursor:pointer;background:transparent;padding:2px;flex-shrink:0;">
                 <input type="text" id="customColorHex" value="#a855f7" maxlength="7" placeholder="#RRGGBB"
-                    class="mono" style="flex:1;min-width:0;background:rgba(15,23,42,.7);border:1px solid var(--border);color:#fff;padding:9px 10px;border-radius:6px;font-size:13px;text-transform:lowercase;">
+                    class="mono" style="flex:1;min-width:0;background:rgba(10,10,12,.7);border:1px solid var(--border);color:#fff;padding:9px 10px;border-radius:6px;font-size:13px;text-transform:lowercase;">
                 <button onclick="applyCustomColor()" 
                     style="background:rgba(34,211,238,.2);border:1px solid rgba(34,211,238,.4);color:var(--accent-cyan);padding:9px 16px;border-radius:6px;font-size:13px;font-weight:700;cursor:pointer;flex-shrink:0;">套用</button>
             </div>
@@ -292,7 +312,7 @@
 
         <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px;">
             <button onclick="resetColorChoice()" style="background:rgba(245,158,11,.15);border:1px solid rgba(245,158,11,.3);color:var(--accent-amber);padding:8px 16px;border-radius:6px;font-size:13px;cursor:pointer;">重設為預設</button>
-            <button onclick="closeColorPicker()" style="background:rgba(30,58,95,.4);border:1px solid var(--border);color:var(--text-secondary);padding:8px 16px;border-radius:6px;font-size:13px;cursor:pointer;">取消</button>
+            <button onclick="closeColorPicker()" style="background:rgba(31,31,36,.6);border:1px solid var(--border);color:var(--text-secondary);padding:8px 16px;border-radius:6px;font-size:13px;cursor:pointer;">取消</button>
         </div>
     </div>
 </div>
@@ -1382,7 +1402,7 @@ function renderPerformanceChart(){
                     },
                     tooltip: {
                         backgroundColor: 'rgba(13, 23, 38, 0.96)',
-                        borderColor: '#2a5490',
+                        borderColor: '#34343c',
                         borderWidth: 1,
                         titleColor: '#e8f4fd',
                         bodyColor: '#e8f4fd',
@@ -1418,7 +1438,7 @@ function renderPerformanceChart(){
                             maxRotation: 0,
                             autoSkipPadding: 20
                         },
-                        grid: { color:'rgba(30,58,95,0.2)' }
+                        grid: { color:'rgba(31,31,36,.3)' }
                     },
                     y: {
                         ticks: {
@@ -1426,7 +1446,7 @@ function renderPerformanceChart(){
                             font:{ size:11 },
                             callback: v => (v>=0?'+':'') + v.toFixed(1) + '%'
                         },
-                        grid: { color:'rgba(30,58,95,0.2)' }
+                        grid: { color:'rgba(31,31,36,.3)' }
                     }
                 }
             }
@@ -1503,7 +1523,7 @@ function renderHoldingPie(playerName, sliceData, totalHoldings){
                 legend: { display: false },
                 tooltip: {
                     backgroundColor: 'rgba(13,23,38,.96)',
-                    borderColor: '#2a5490',
+                    borderColor: '#34343c',
                     borderWidth: 1,
                     titleColor: '#e8f4fd',
                     bodyColor: '#e8f4fd',
@@ -1754,7 +1774,7 @@ function renderDashboard(){
                         const ls = parseFloat(lot.shares)||0;
                         const lp = parseFloat(lot.buyPrice)||0;
                         const lotCost = ls * lp;
-                        return `<div style="display:grid;grid-template-columns:48px 1fr 1fr 1fr;gap:6px;padding:3px 6px;background:rgba(15,23,42,.4);border-radius:4px;font-size:11px;">
+                        return `<div style="display:grid;grid-template-columns:48px 1fr 1fr 1fr;gap:6px;padding:3px 6px;background:rgba(10,10,12,.5);border-radius:4px;font-size:11px;">
                             <span style="color:var(--accent-amber);font-weight:700;">第${i+1}筆</span>
                             <span style="color:var(--text-muted);" class="mono">${ld}</span>
                             <span style="color:var(--text-secondary);">${ls.toLocaleString()} 股 @ <span class="mono text-white">${lp.toFixed(2)}</span></span>
@@ -1780,18 +1800,18 @@ function renderDashboard(){
                         <span>${prevLabel} <span class="mono" style="color:var(--text-secondary);">${prevDisplay?fmtRaw(prevDisplay,sCurrency,2):'--'}</span></span>
                         <span class="font-bold mono ${pc}">${ps}${fmtRaw(pnl,sCurrency)} <span style="opacity:.8">(${pnlPctSign}${pnlPct}%)</span></span>
                     </div>
-                    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:5px;padding-top:5px;border-top:1px dashed rgba(30,58,95,.4);" class="text-xs">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:5px;padding-top:5px;border-top:1px dashed rgba(31,31,36,.6);" class="text-xs">
                         ${buyDateHTML}
                         <span style="color:var(--text-muted);">成本 <span class="mono" style="color:var(--text-secondary);">${fmtRaw(cost,sCurrency)}</span></span>
                         <span style="color:var(--text-muted);">市值 <span class="mono font-bold" style="color:var(--accent-cyan);">${fmtRaw(mv,sCurrency)}</span></span>
                     </div>
                     ${lotsHTML}
-                    ${(_sess==='🔔 盤中'&&!isTW)?`<div style="display:flex;justify-content:space-between;align-items:center;margin-top:5px;padding-top:5px;border-top:1px solid rgba(30,58,95,.4);" class="text-xs">
+                    ${(_sess==='🔔 盤中'&&!isTW)?`<div style="display:flex;justify-content:space-between;align-items:center;margin-top:5px;padding-top:5px;border-top:1px solid rgba(31,31,36,.6);" class="text-xs">
                         <span style="color:var(--accent-green);font-weight:600;">🔔 即時價</span>
                         <span class="mono font-bold" style="color:var(--accent-green);">${fmtRaw(latestPrice,sCurrency,2)}</span>
                         <span style="color:var(--text-muted);">${timeStr}</span>
                     </div>`:''}
-                    ${(extPrice&&(_sess==='🌆 盤後'||_sess==='🌙 夜盤'))?`<div style="display:flex;justify-content:space-between;align-items:center;margin-top:5px;padding-top:5px;border-top:1px solid rgba(30,58,95,.4);" class="text-xs">
+                    ${(extPrice&&(_sess==='🌆 盤後'||_sess==='🌙 夜盤'))?`<div style="display:flex;justify-content:space-between;align-items:center;margin-top:5px;padding-top:5px;border-top:1px solid rgba(31,31,36,.6);" class="text-xs">
                         <span style="color:${extColor};font-weight:600;">${extLabel}</span>
                         <span class="mono font-bold" style="color:${extColor};">${fmtRaw(extPrice,sCurrency,2)}</span>
                         <span style="color:var(--text-muted);">${timeStr}</span>
@@ -1898,7 +1918,7 @@ function renderDashboard(){
                     ? `<span style="font-size:9px;font-weight:700;letter-spacing:.05em;padding:1px 5px;border-radius:3px;background:rgba(245,158,11,.15);border:1px solid rgba(245,158,11,.3);color:var(--accent-amber);margin-left:6px;">TWD</span>`
                     : `<span style="font-size:9px;font-weight:700;letter-spacing:.05em;padding:1px 5px;border-radius:3px;background:rgba(59,130,246,.15);border:1px solid rgba(59,130,246,.3);color:var(--accent-blue);margin-left:6px;">USD</span>`;
                 const interestDisplay = (interest>0 || interestRate>0) ? 
-                    `<div class="trade-card-row" style="color:var(--text-secondary);font-size:11px;margin-top:3px;padding-top:3px;border-top:1px dashed rgba(30,58,95,.4);">
+                    `<div class="trade-card-row" style="color:var(--text-secondary);font-size:11px;margin-top:3px;padding-top:3px;border-top:1px dashed rgba(31,31,36,.6);">
                         ${interest>0?`<span>利息 <span class="mono" style="color:var(--accent-amber);">-${fmtRaw(interest,tradeCur,2)}</span></span>`:'<span></span>'}
                         ${interestRate>0?`<span>融資利率 <span class="mono" style="color:var(--accent-amber);">${interestRate}%</span></span>`:'<span></span>'}
                     </div>` : '';
@@ -1931,9 +1951,9 @@ function renderDashboard(){
         const prevDisabled = currentPage <= 1;
         const nextDisabled = currentPage >= totalPages;
         const pagerHTML = sortedTrades.length > TRADES_PER_PAGE ? `
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding-top:8px;border-top:1px dashed rgba(30,58,95,.4);font-size:11px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding-top:8px;border-top:1px dashed rgba(31,31,36,.6);font-size:11px;">
                 <button onclick="changeTradePage('${p.name}',-1)" ${prevDisabled?'disabled':''}
-                    style="background:${prevDisabled?'rgba(30,58,95,.2)':'rgba(59,130,246,.15)'};border:1px solid ${prevDisabled?'var(--border)':'rgba(59,130,246,.3)'};color:${prevDisabled?'var(--text-muted)':'var(--accent-blue)'};padding:4px 12px;border-radius:5px;font-weight:600;cursor:${prevDisabled?'not-allowed':'pointer'};transition:all .15s;">
+                    style="background:${prevDisabled?'rgba(31,31,36,.4)':'rgba(59,130,246,.15)'};border:1px solid ${prevDisabled?'var(--border)':'rgba(59,130,246,.3)'};color:${prevDisabled?'var(--text-muted)':'var(--accent-blue)'};padding:4px 12px;border-radius:5px;font-weight:600;cursor:${prevDisabled?'not-allowed':'pointer'};transition:all .15s;">
                     « 上一頁
                 </button>
                 <span style="color:var(--text-secondary);font-weight:600;">
@@ -1941,7 +1961,7 @@ function renderDashboard(){
                     <span style="color:var(--text-muted);margin-left:6px;">（共 ${sortedTrades.length} 筆）</span>
                 </span>
                 <button onclick="changeTradePage('${p.name}',1)" ${nextDisabled?'disabled':''}
-                    style="background:${nextDisabled?'rgba(30,58,95,.2)':'rgba(59,130,246,.15)'};border:1px solid ${nextDisabled?'var(--border)':'rgba(59,130,246,.3)'};color:${nextDisabled?'var(--text-muted)':'var(--accent-blue)'};padding:4px 12px;border-radius:5px;font-weight:600;cursor:${nextDisabled?'not-allowed':'pointer'};transition:all .15s;">
+                    style="background:${nextDisabled?'rgba(31,31,36,.4)':'rgba(59,130,246,.15)'};border:1px solid ${nextDisabled?'var(--border)':'rgba(59,130,246,.3)'};color:${nextDisabled?'var(--text-muted)':'var(--accent-blue)'};padding:4px 12px;border-radius:5px;font-weight:600;cursor:${nextDisabled?'not-allowed':'pointer'};transition:all .15s;">
                     下一頁 »
                 </button>
             </div>` : '';
@@ -1967,7 +1987,7 @@ function renderDashboard(){
                 <div class="stat-row"><span class="stat-label">持有現金</span>${fmtC(autoCash,p.currency,true)}</div>
                 <div class="stat-row"><span class="stat-label">持股總市值</span>${fmtC(totalMV,p.currency,true)}</div>
                 <div class="stat-row"><span class="stat-label">當前淨值（現金+持股）</span><span class="mono font-bold text-cyan-400 text-sm">${fmtRaw(currentVal,p.currency)}</span></div>
-                <div class="stat-row" style="margin-top:4px;padding-top:4px;border-top:1px dashed rgba(30,58,95,.4);">
+                <div class="stat-row" style="margin-top:4px;padding-top:4px;border-top:1px dashed rgba(31,31,36,.6);">
                     <span class="stat-label">可使用最高槓桿金額 <span style="color:var(--text-muted);font-size:10px;">(淨值×60%)</span></span>
                     <span class="mono font-bold text-amber-300 text-sm">${fmtRaw(maxLeverage,p.currency)}</span>
                 </div>
@@ -1981,7 +2001,7 @@ function renderDashboard(){
                 <div class="stat-row" style="margin-top:4px;"><span class="stat-label">已實現損益</span><span class="${realCls}">${realSign}${fmtRaw(Math.abs(realPnl),p.currency)}</span></div>
                 <div class="stat-row"><span class="stat-label">未實現損益（所有持股）</span><span class="font-bold mono ${upCls}">${upSign}${fmtRaw(totalUnPnl,p.currency)}</span></div>
                 
-                <div class="stat-row" style="margin-top:4px; padding-top:4px; border-top:1px solid rgba(30,58,95,.4);"><span class="stat-label">交易成本 <span style="color:var(--text-muted);font-size:10px;">(手續費+證交稅+利息)</span></span><span class="mono text-slate-400">${totalFeeTax > 0 ? '-' : ''}${fmtRaw(totalFeeTax, p.currency)}</span></div>
+                <div class="stat-row" style="margin-top:4px; padding-top:4px; border-top:1px solid rgba(31,31,36,.6);"><span class="stat-label">交易成本 <span style="color:var(--text-muted);font-size:10px;">(手續費+證交稅+利息)</span></span><span class="mono text-slate-400">${totalFeeTax > 0 ? '-' : ''}${fmtRaw(totalFeeTax, p.currency)}</span></div>
             </div>
             ${pieHTML}
             <h4 style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">當前持倉（${stocks.length}/${MAX_STOCKS}）</h4>
@@ -2222,7 +2242,7 @@ function addLotRow(slotId, lotData={}){
     const defaultDate = lotData.buyDate || getTaipeiToday();
     const row = document.createElement('div');
     row.className = 'lot-row';
-    row.style.cssText = 'display:grid;grid-template-columns:auto 1fr 1fr 130px auto;gap:8px;align-items:end;padding:6px 8px;background:rgba(15,23,42,.4);border:1px solid rgba(30,58,95,.4);border-radius:6px;';
+    row.style.cssText = 'display:grid;grid-template-columns:auto 1fr 1fr 130px auto;gap:8px;align-items:end;padding:6px 8px;background:rgba(10,10,12,.5);border:1px solid rgba(31,31,36,.6);border-radius:6px;';
     row.innerHTML = `
         <div style="font-size:10px;color:var(--accent-amber);font-weight:700;padding-bottom:8px;min-width:40px;">第${lotNum}筆</div>
         <div><label class="modal-label" style="font-size:10px;">股數</label><input type="number" class="modal-input lot-shares" placeholder="0" value="${lotData.shares||''}" oninput="updateLotSummary(${slotId});updateModalSummary()"></div>
@@ -2708,7 +2728,7 @@ db.ref('pokerRecords').on('value', snapshot=>{
         const sign = pos ? '+' : '';
         const color = pos ? 'var(--accent-green)' : 'var(--accent-red)';
         const abs = Math.abs(r.amount).toLocaleString('zh-TW');
-        return `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid rgba(30,58,95,.4);">
+        return `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid rgba(31,31,36,.6);">
             <span style="color:var(--text-secondary);font-size:13px;">${r.date}</span>
             <div style="display:flex;align-items:center;gap:12px;">
                 <span class="mono font-bold" style="color:${color};font-size:15px;">${sign}NT$ ${abs}</span>
