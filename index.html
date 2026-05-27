@@ -253,23 +253,34 @@
                 </div>
                 <div id="tradeTickerName" style="font-size:11px;color:var(--accent-cyan);margin-top:4px;min-height:16px;"></div>
             </div>
-            <div><label class="modal-label">股數</label><input type="number" id="tradeShares" placeholder="0" class="modal-input" oninput="autoCalcTWFee()"></div>
+            <div><label class="modal-label">股數</label><input type="number" id="tradeShares" placeholder="0" class="modal-input" oninput="autoCalcTradeFee()"></div>
         </div>
         
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
-            <div><label class="modal-label">買入價格</label><input type="number" step="0.01" id="tradeBuyPrice" placeholder="0.00" class="modal-input" oninput="autoCalcTWFee()"></div>
-            <div><label class="modal-label">賣出價格</label><input type="number" step="0.01" id="tradeSellPrice" placeholder="0.00" class="modal-input" oninput="autoCalcTWFee()"></div>
+            <div><label class="modal-label">買入價格</label><input type="number" step="0.01" id="tradeBuyPrice" placeholder="0.00" class="modal-input" oninput="autoCalcTradeFee()"></div>
+            <div><label class="modal-label">賣出價格</label><input type="number" step="0.01" id="tradeSellPrice" placeholder="0.00" class="modal-input" oninput="autoCalcTradeFee()"></div>
         </div>
 
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px;">
-            <div><label class="modal-label" title="輸入折數即可自動計算">券商折讓(折)</label><input type="number" step="0.1" id="tradeDiscount" placeholder="例: 2.8" class="modal-input" oninput="autoCalcTWFee()"></div>
-            <div><label class="modal-label">手續費</label><input type="number" step="1" id="tradeFee" placeholder="0" class="modal-input" oninput="calcTradePreview()"></div>
-            <div><label class="modal-label" title="預設為一般股票 0.3%，ETF為 0.1%">證交稅(0.3%)</label><input type="number" step="1" id="tradeTax" placeholder="0" class="modal-input" oninput="calcTradePreview()"></div>
+        <!-- 台股欄位（券商折讓 + 手續費 + 證券稅）-->
+        <div id="tradeTWFieldsBlock">
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px;">
+                <div><label class="modal-label" title="輸入折數即可自動計算">券商折讓(折)</label><input type="number" step="0.1" id="tradeDiscount" placeholder="例: 2.8" class="modal-input" oninput="autoCalcTradeFee()"></div>
+                <div><label class="modal-label">手續費</label><input type="number" step="1" id="tradeFee" placeholder="0" class="modal-input" oninput="calcTradePreview()"></div>
+                <div><label class="modal-label" title="預設為一般股票 0.3%，ETF為 0.1%">證券稅</label><input type="number" step="1" id="tradeTax" placeholder="0" class="modal-input" oninput="calcTradePreview()"></div>
+            </div>
         </div>
 
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
-            <div><label class="modal-label" title="融資借款利息">利息</label><input type="number" step="0.01" id="tradeInterest" placeholder="0" class="modal-input" oninput="calcTradePreview()"></div>
-            <div><label class="modal-label" title="年利率(%)，僅紀錄參考">融資利率(%)</label><input type="number" step="0.01" id="tradeInterestRate" placeholder="例: 6.5" class="modal-input"></div>
+        <!-- 美股欄位（依玩家規則自動計算） -->
+        <div id="tradeUSFieldsBlock">
+            <div style="margin-bottom:12px;">
+                <label class="modal-label">美股手續費 <span id="tradeUSFeeHint" style="font-size:10px;color:var(--text-muted);font-weight:normal;text-transform:none;letter-spacing:0;"></span></label>
+                <input type="number" step="0.01" id="tradeUSFee" placeholder="0.00" class="modal-input" oninput="calcTradePreview()">
+            </div>
+        </div>
+
+        <div style="margin-bottom:12px;">
+            <label class="modal-label" title="融資借款利息（金額）">融資利息</label>
+            <input type="number" step="0.01" id="tradeInterest" placeholder="0" class="modal-input" oninput="calcTradePreview()">
         </div>
 
         <div style="margin-bottom:8px;"><label class="modal-label">損益金額（可手動覆蓋）</label><input type="number" step="0.01" id="tradePnl" placeholder="正數=獲利 負數=虧損" class="modal-input"></div>
@@ -277,6 +288,64 @@
         <div style="display:flex;justify-content:flex-end;gap:10px;">
             <button onclick="closeTradeModal()" class="btn-cancel">取消</button>
             <button onclick="saveTrade()" class="btn-save" id="btn-save-trade">＋ 新增紀錄</button>
+        </div>
+    </div>
+</div>
+
+<!-- 平倉 Modal -->
+<div id="closePositionModal" class="modal-overlay" style="z-index:65">
+    <div class="modal-box" style="width:460px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;">
+            <h2 class="text-lg font-bold text-white">⚡ 平倉持股</h2>
+            <button onclick="closeClosePositionModal()" class="text-slate-500 hover:text-white text-xl leading-none">&times;</button>
+        </div>
+        <input type="hidden" id="closePlayerName">
+        <input type="hidden" id="closeSlotId">
+
+        <!-- 持股資訊區塊（保留） -->
+        <div style="background:rgba(239,68,68,.05);border:1px dashed rgba(239,68,68,.3);border-radius:8px;padding:10px 12px;margin-bottom:14px;">
+            <div style="font-size:11px;color:#fca5a5;font-weight:700;letter-spacing:.05em;margin-bottom:8px;text-transform:uppercase;">📋 平倉持股資訊</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;color:var(--text-secondary);">
+                <div>股票代號 <span class="mono font-bold text-cyan-300" id="closeTickerDisplay">--</span></div>
+                <div>股數 <span class="mono font-bold text-white" id="closeSharesDisplay">--</span></div>
+                <div>成本（總） <span class="mono font-bold text-amber-300" id="closeCostDisplay">--</span></div>
+                <div>平均成本 <span class="mono font-bold text-amber-300" id="closeAvgCostDisplay">--</span></div>
+                <div style="grid-column:1/3;">首次建倉日期 <span class="mono" style="color:var(--text-secondary)" id="closeBuyDateDisplay">--</span></div>
+            </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+            <div><label class="modal-label">平倉日期</label><input type="date" id="closeDate" class="modal-input" onchange="calcClosePreview()"></div>
+            <div><label class="modal-label">平倉價格</label><input type="number" step="0.01" id="closePrice" placeholder="0.00" class="modal-input" oninput="autoCalcCloseFee()"></div>
+        </div>
+
+        <!-- 台股欄位 -->
+        <div id="closeTWFieldsBlock">
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px;">
+                <div><label class="modal-label" title="輸入折數即可自動計算">券商折讓(折)</label><input type="number" step="0.1" id="closeDiscount" placeholder="例: 2.8" class="modal-input" oninput="autoCalcCloseFee()"></div>
+                <div><label class="modal-label">手續費</label><input type="number" step="1" id="closeFee" placeholder="0" class="modal-input" oninput="calcClosePreview()"></div>
+                <div><label class="modal-label" title="預設 0.3%">證券稅</label><input type="number" step="1" id="closeTax" placeholder="0" class="modal-input" oninput="calcClosePreview()"></div>
+            </div>
+        </div>
+
+        <!-- 美股欄位 -->
+        <div id="closeUSFieldsBlock">
+            <div style="margin-bottom:12px;">
+                <label class="modal-label">美股手續費 <span id="closeUSFeeHint" style="font-size:10px;color:var(--text-muted);font-weight:normal;text-transform:none;letter-spacing:0;"></span></label>
+                <input type="number" step="0.01" id="closeUSFee" placeholder="0.00" class="modal-input" oninput="calcClosePreview()">
+            </div>
+        </div>
+
+        <div style="background:rgba(34,197,94,.06);border:1px solid rgba(34,197,94,.2);border-radius:8px;padding:10px 14px;margin-bottom:16px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;">
+                <span style="color:var(--text-secondary);">預計實現損益</span>
+                <span class="mono font-bold" id="closePnlPreview" style="font-size:16px;color:var(--text-muted);">--</span>
+            </div>
+        </div>
+
+        <div style="display:flex;justify-content:flex-end;gap:10px;">
+            <button onclick="closeClosePositionModal()" class="btn-cancel">取消</button>
+            <button onclick="executeClosePosition()" class="btn-save" style="background:linear-gradient(135deg,#ef4444,#b91c1c);box-shadow:0 4px 18px rgba(239,68,68,.25);color:#fff;">⚡ 確認平倉</button>
         </div>
     </div>
 </div>
@@ -467,6 +536,54 @@ function getStockCurrency(ticker){
 // 判斷 ticker 是否為台股
 function isTaiwanStock(ticker){
     return getStockCurrency(ticker) === 'TWD';
+}
+
+// ── 玩家手續費規則表 ───────────────────────
+// 玩家一 (index 0): 無交易手續費
+// 玩家二 (index 1): 台股 5 折、美股每筆 0.1% (元大)
+// 玩家三 (index 2): 台股 2.8 折、美股每筆 0.08% (國泰)
+function getPlayerFeeProfile(playerIndex){
+    const profiles = [
+        { twDiscount: null, usRate: 0,      brokerLabel: '無手續費',           usLabel: '' },
+        { twDiscount: 5,    usRate: 0.001,  brokerLabel: '元大 5 折 / 0.1%',   usLabel: '（元大每筆 0.1%）' },
+        { twDiscount: 2.8,  usRate: 0.0008, brokerLabel: '國泰 2.8 折 / 0.08%', usLabel: '（國泰每筆 0.08%）' }
+    ];
+    return profiles[playerIndex] || profiles[0];
+}
+
+// 依玩家規則計算單筆交易的手續費 & 證券稅
+// 台股: 只在「賣出」時計手續費 + 證交稅 0.3%
+// 美股: 「買進」「賣出」皆按 usRate 各算一次
+function calcAutoFee(playerIndex, ticker, shares, buyPrice, sellPrice){
+    const profile = getPlayerFeeProfile(playerIndex);
+    if(!ticker || !(shares > 0)) return { fee: 0, tax: 0, usFee: 0, twFee: 0 };
+    const isTW = isTaiwanStock(ticker);
+    if(isTW){
+        if(profile.twDiscount === null) return { fee: 0, tax: 0, usFee: 0, twFee: 0, discount: '' };
+        const rate = 0.001425 * (profile.twDiscount / 10);
+        let twFee = 0, tax = 0;
+        if(sellPrice > 0){
+            twFee = Math.max(1, Math.floor(sellPrice * shares * rate));
+            tax   = Math.floor(sellPrice * shares * 0.003);
+        }
+        return { fee: twFee, tax, usFee: 0, twFee, discount: profile.twDiscount };
+    } else {
+        if(profile.usRate === 0) return { fee: 0, tax: 0, usFee: 0, twFee: 0 };
+        let usFee = 0;
+        if(buyPrice > 0) usFee += buyPrice * shares * profile.usRate;
+        if(sellPrice > 0) usFee += sellPrice * shares * profile.usRate;
+        usFee = parseFloat(usFee.toFixed(2));
+        return { fee: usFee, tax: 0, usFee, twFee: 0 };
+    }
+}
+
+// 將 YYYY-MM-DD 或 YYYY/M/D 轉成 YY/MM/DD (例: 2026-05-15 → 26/05/15)
+function formatDateShort(s){
+    const n = normalizeDate(s);
+    if(!n || n.length < 8) return '';
+    const parts = n.split('-');
+    if(parts.length !== 3) return n;
+    return `${parts[0].slice(-2)}/${parts[1]}/${parts[2]}`;
 }
 
 async function fetchStockPrice(ticker){
@@ -1758,12 +1875,14 @@ function renderDashboard(){
                 const extColor = _sess==='🌆 盤後'?'var(--accent-amber)':'#a78bfa';
                 const extLabel = _sess==='🌆 盤後'?'🌆 盤後':'🌙 夜盤';
 
-                // 建倉日期 & 持有天數 (顯示最早一筆)
+                // 建倉日期 & 持有天數 (顯示範圍: 首次建倉 → 今日)
                 const buyDate = normalizeDate(s.buyDate||'');
                 let buyDateHTML = '';
                 if(buyDate){
-                    const dayDiff = Math.max(0, Math.floor((Date.parse(getTaipeiToday()+'T00:00:00') - Date.parse(buyDate+'T00:00:00'))/86400000));
-                    buyDateHTML = `<span style="color:var(--text-muted);">首次建倉 <span class="mono" style="color:var(--accent-cyan);">${buyDate}</span> <span style="color:var(--text-muted);font-size:10px;">(${dayDiff}天)</span></span>`;
+                    const todayStr = getTaipeiToday();
+                    const dayDiff = Math.max(0, Math.floor((Date.parse(todayStr+'T00:00:00') - Date.parse(buyDate+'T00:00:00'))/86400000));
+                    const dateRangeStr = `${formatDateShort(buyDate)}-${formatDateShort(todayStr)}`;
+                    buyDateHTML = `<span style="color:var(--text-muted);">持倉期間 <span class="mono" style="color:var(--accent-cyan);">${dateRangeStr}</span> <span style="color:var(--text-muted);font-size:10px;">(${dayDiff}天)</span></span>`;
                 } else {
                     buyDateHTML = `<span style="color:var(--text-muted);font-style:italic;">建倉日期未設定</span>`;
                 }
@@ -1914,19 +2033,46 @@ function renderDashboard(){
                 const bp=parseFloat(t.buyPrice)||0;
                 const sp=parseFloat(t.sellPrice)||0;
                 const interest=parseFloat(t.interest)||0;
-                const interestRate=parseFloat(t.interestRate)||0;
+                const tFee=parseFloat(t.fee)||0;
+                const tTax=parseFloat(t.tax)||0;
+                const tUSFee=parseFloat(t.usFee)||0;
+                const tDiscount=parseFloat(t.discount);
                 const pnlPct = bp>0 ? ((sp-bp)/bp*100).toFixed(2) : null;
                 const pnlPctStr = pnlPct!==null ? `${pnl>=0?'+':''}${pnlPct}%` : '--';
                 const nameDisplay = t.stockName ? `<span style="font-size:11px;color:var(--text-secondary);margin-left:6px;font-weight:normal;">${t.stockName}</span>` : '';
                 // ── 依 ticker 自動判定原生幣別 (含 .TW 後綴與純數字代號) ──
                 const tradeCur = getStockCurrency(t.ticker);
+                const isTrTW = isTaiwanStock(t.ticker);
                 const curBadge = tradeCur === 'TWD'
                     ? `<span style="font-size:9px;font-weight:700;letter-spacing:.05em;padding:1px 5px;border-radius:3px;background:rgba(245,158,11,.15);border:1px solid rgba(245,158,11,.3);color:var(--accent-amber);margin-left:6px;">TWD</span>`
                     : `<span style="font-size:9px;font-weight:700;letter-spacing:.05em;padding:1px 5px;border-radius:3px;background:rgba(59,130,246,.15);border:1px solid rgba(59,130,246,.3);color:var(--accent-blue);margin-left:6px;">USD</span>`;
-                const interestDisplay = (interest>0 || interestRate>0) ? 
+
+                // 費用列 (台股 / 美股 顯示不同欄位)
+                let feeRowHTML = '';
+                if(isTrTW){
+                    const items = [];
+                    if(!isNaN(tDiscount) && tDiscount > 0) items.push(`<span>券商折讓 <span class="mono" style="color:var(--text-secondary);">${tDiscount} 折</span></span>`);
+                    if(tFee > 0) items.push(`<span>手續費 <span class="mono" style="color:var(--accent-amber);">-${fmtRaw(tFee,tradeCur,0)}</span></span>`);
+                    if(tTax > 0) items.push(`<span>證券稅 <span class="mono" style="color:var(--accent-amber);">-${fmtRaw(tTax,tradeCur,0)}</span></span>`);
+                    if(items.length > 0){
+                        feeRowHTML = `<div class="trade-card-row" style="color:var(--text-secondary);font-size:11px;margin-top:3px;padding-top:3px;border-top:1px dashed rgba(31,31,36,.6);flex-wrap:wrap;gap:6px;">
+                            ${items.join('')}
+                        </div>`;
+                    }
+                } else {
+                    const usFeeShow = tUSFee > 0 ? tUSFee : tFee;
+                    if(usFeeShow > 0){
+                        feeRowHTML = `<div class="trade-card-row" style="color:var(--text-secondary);font-size:11px;margin-top:3px;padding-top:3px;border-top:1px dashed rgba(31,31,36,.6);">
+                            <span>美股手續費 <span class="mono" style="color:var(--accent-amber);">-${fmtRaw(usFeeShow,tradeCur,2)}</span></span>
+                            <span></span>
+                        </div>`;
+                    }
+                }
+
+                const interestDisplay = interest>0 ?
                     `<div class="trade-card-row" style="color:var(--text-secondary);font-size:11px;margin-top:3px;padding-top:3px;border-top:1px dashed rgba(31,31,36,.6);">
-                        ${interest>0?`<span>利息 <span class="mono" style="color:var(--accent-amber);">-${fmtRaw(interest,tradeCur,2)}</span></span>`:'<span></span>'}
-                        ${interestRate>0?`<span>融資利率 <span class="mono" style="color:var(--accent-amber);">${interestRate}%</span></span>`:'<span></span>'}
+                        <span>融資利息 <span class="mono" style="color:var(--accent-amber);">-${fmtRaw(interest,tradeCur,2)}</span></span>
+                        <span></span>
                     </div>` : '';
                 
                 return`<div class="trade-card">
@@ -1949,6 +2095,7 @@ function renderDashboard(){
                         <span>賣出 <span class="mono text-white">${fmtRaw(sp,tradeCur,2)}</span></span>
                         ${t.date?`<span style="color:var(--text-muted)">${t.date}</span>`:''}
                     </div>
+                    ${feeRowHTML}
                     ${interestDisplay}
                 </div>`;
               }).join('');
@@ -1960,7 +2107,7 @@ function renderDashboard(){
             <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding-top:8px;border-top:1px dashed rgba(31,31,36,.6);font-size:11px;">
                 <button onclick="changeTradePage('${p.name}',-1)" ${prevDisabled?'disabled':''}
                     style="background:${prevDisabled?'rgba(31,31,36,.4)':'rgba(59,130,246,.15)'};border:1px solid ${prevDisabled?'var(--border)':'rgba(59,130,246,.3)'};color:${prevDisabled?'var(--text-muted)':'var(--accent-blue)'};padding:4px 12px;border-radius:5px;font-weight:600;cursor:${prevDisabled?'not-allowed':'pointer'};transition:all .15s;">
-                    « 上一頁
+                    « Back
                 </button>
                 <span style="color:var(--text-secondary);font-weight:600;">
                     第 <span class="mono text-white">${currentPage}</span> / <span class="mono">${totalPages}</span> 頁
@@ -1968,7 +2115,7 @@ function renderDashboard(){
                 </span>
                 <button onclick="changeTradePage('${p.name}',1)" ${nextDisabled?'disabled':''}
                     style="background:${nextDisabled?'rgba(31,31,36,.4)':'rgba(59,130,246,.15)'};border:1px solid ${nextDisabled?'var(--border)':'rgba(59,130,246,.3)'};color:${nextDisabled?'var(--text-muted)':'var(--accent-blue)'};padding:4px 12px;border-radius:5px;font-weight:600;cursor:${nextDisabled?'not-allowed':'pointer'};transition:all .15s;">
-                    下一頁 »
+                    Next »
                 </button>
             </div>` : '';
 
@@ -2104,6 +2251,247 @@ function editName(oldName){
 
 function closeModal(){document.getElementById('editModal').classList.remove('open');document.getElementById('stockSlots').innerHTML='';}
 
+// ── 平倉 Modal ────────────────────────────
+function openClosePositionModal(slotId){
+    const slot = document.querySelector(`.stock-slot[data-slot-id="${slotId}"]`);
+    if(!slot) return;
+    const playerName = document.getElementById('editName').value;
+    const pi = participants.findIndex(p=>p.name===playerName);
+    if(pi === -1) return;
+
+    const ticker = (slot.querySelector('.slot-ticker').value||'').toUpperCase().trim();
+    if(!ticker){ alert('此持股尚未填入股票代號，無法平倉'); return; }
+
+    // 從 lots 計算總股數、平均成本、最早建倉日期
+    let totalShares = 0, totalCost = 0, earliestDate = null;
+    slot.querySelectorAll('.lot-row').forEach(row=>{
+        const s = parseFloat(row.querySelector('.lot-shares').value) || 0;
+        const p = parseFloat(row.querySelector('.lot-buyprice').value) || 0;
+        const d = (row.querySelector('.lot-buydate').value || '').trim();
+        if(s > 0 && p > 0){
+            totalShares += s;
+            totalCost += s * p;
+            if(d && (!earliestDate || d < earliestDate)) earliestDate = d;
+        }
+    });
+    if(totalShares <= 0){ alert('此持股的買入紀錄不完整，無法平倉'); return; }
+
+    const avgCost = totalCost / totalShares;
+    const sCur = getStockCurrency(ticker);
+    const isTW = isTaiwanStock(ticker);
+    const profile = getPlayerFeeProfile(pi);
+
+    // 填入 modal 資料
+    document.getElementById('closePlayerName').value = playerName;
+    document.getElementById('closeSlotId').value = slotId;
+    document.getElementById('closeTickerDisplay').textContent = ticker;
+    document.getElementById('closeSharesDisplay').textContent = totalShares.toLocaleString();
+    document.getElementById('closeCostDisplay').textContent = fmtRaw(totalCost, sCur, sCur==='USD'?2:0);
+    document.getElementById('closeAvgCostDisplay').textContent = avgCost.toFixed(4);
+    document.getElementById('closeBuyDateDisplay').textContent = earliestDate || '--';
+
+    // 預設平倉日期為今日
+    document.getElementById('closeDate').value = getTaipeiToday();
+    // 清空輸入
+    document.getElementById('closePrice').value = '';
+    document.getElementById('closeFee').value = '';
+    document.getElementById('closeTax').value = '';
+    document.getElementById('closeUSFee').value = '';
+    // 預設折讓帶入玩家規則
+    if(isTW && profile.twDiscount !== null){
+        document.getElementById('closeDiscount').value = profile.twDiscount;
+    } else {
+        document.getElementById('closeDiscount').value = '';
+    }
+    // 美股手續費提示
+    document.getElementById('closeUSFeeHint').textContent = profile.usLabel || '';
+
+    // 切換台股/美股區塊
+    document.getElementById('closeTWFieldsBlock').style.display = isTW ? '' : 'none';
+    document.getElementById('closeUSFieldsBlock').style.display = isTW ? 'none' : '';
+
+    // 預計損益顯示重設
+    const pv = document.getElementById('closePnlPreview');
+    pv.textContent = '--';
+    pv.style.color = 'var(--text-muted)';
+
+    document.getElementById('closePositionModal').classList.add('open');
+}
+
+function closeClosePositionModal(){
+    document.getElementById('closePositionModal').classList.remove('open');
+}
+
+// 平倉 modal: 依玩家規則自動算手續費 (覆蓋 fee/tax/usFee, 然後算預估損益)
+// 觸發時機: 「平倉價格」或「券商折讓」變動
+function autoCalcCloseFee(){
+    const playerName = document.getElementById('closePlayerName').value;
+    const pi = participants.findIndex(p=>p.name===playerName);
+    if(pi === -1){ calcClosePreview(); return; }
+    const ticker = document.getElementById('closeTickerDisplay').textContent || '';
+    const shares = parseFloat(document.getElementById('closeSharesDisplay').textContent.replace(/,/g,'')) || 0;
+    const sellPrice = parseFloat(document.getElementById('closePrice').value) || 0;
+    const isTW = isTaiwanStock(ticker);
+    const profile = getPlayerFeeProfile(pi);
+
+    if(shares > 0 && sellPrice > 0){
+        if(isTW){
+            const discountStr = document.getElementById('closeDiscount').value;
+            const discount = parseFloat(discountStr);
+            if(!isNaN(discount) && discount > 0){
+                const rate = 0.001425 * (discount / 10);
+                document.getElementById('closeFee').value = Math.max(1, Math.floor(sellPrice * shares * rate));
+                document.getElementById('closeTax').value = Math.floor(sellPrice * shares * 0.003);
+            } else if(discountStr === '' && profile.twDiscount === null){
+                // 玩家一 (無手續費), 仍計算證券稅 0.3% (台股賣出固定要付)
+                document.getElementById('closeFee').value = 0;
+                document.getElementById('closeTax').value = Math.floor(sellPrice * shares * 0.003);
+            }
+        } else {
+            if(profile.usRate > 0){
+                document.getElementById('closeUSFee').value = (sellPrice * shares * profile.usRate).toFixed(2);
+            } else {
+                document.getElementById('closeUSFee').value = 0;
+            }
+        }
+    }
+    calcClosePreview();
+}
+
+// 平倉 modal: 純算預估損益, 不修改 fee 欄位
+function calcClosePreview(){
+    const ticker = document.getElementById('closeTickerDisplay').textContent || '';
+    const shares = parseFloat(document.getElementById('closeSharesDisplay').textContent.replace(/,/g,'')) || 0;
+    const avgCost = parseFloat(document.getElementById('closeAvgCostDisplay').textContent) || 0;
+    const sellPrice = parseFloat(document.getElementById('closePrice').value) || 0;
+    const isTW = isTaiwanStock(ticker);
+    const sCur = getStockCurrency(ticker);
+
+    const fee = parseFloat(document.getElementById('closeFee').value) || 0;
+    const tax = parseFloat(document.getElementById('closeTax').value) || 0;
+    const usFee = parseFloat(document.getElementById('closeUSFee').value) || 0;
+    const totalCost = avgCost * shares;
+    const totalRevenue = sellPrice * shares;
+    const totalFee = isTW ? (fee + tax) : usFee;
+    const pnl = totalRevenue - totalCost - totalFee;
+
+    const pv = document.getElementById('closePnlPreview');
+    if(sellPrice > 0 && shares > 0){
+        const sign = pnl >= 0 ? '+' : '-';
+        pv.textContent = `${sign}${fmtRaw(Math.abs(pnl), sCur, sCur==='USD'?2:0)}`;
+        pv.style.color = pnl >= 0 ? 'var(--accent-green)' : 'var(--accent-red)';
+    } else {
+        pv.textContent = '--';
+        pv.style.color = 'var(--text-muted)';
+    }
+}
+
+// (已移除 dataset.manual 機制, 改由各 oninput 直接決定計算流程)
+
+// 執行平倉: 從 stocks 移除該支 + 新增一筆 trade
+function executeClosePosition(){
+    const playerName = document.getElementById('closePlayerName').value;
+    const slotId = document.getElementById('closeSlotId').value;
+    const pi = participants.findIndex(p=>p.name===playerName);
+    if(pi === -1) return;
+
+    const slot = document.querySelector(`.stock-slot[data-slot-id="${slotId}"]`);
+    if(!slot){ alert('找不到對應持股'); return; }
+
+    const ticker = document.getElementById('closeTickerDisplay').textContent || '';
+    const shares = parseFloat(document.getElementById('closeSharesDisplay').textContent.replace(/,/g,'')) || 0;
+    const avgCost = parseFloat(document.getElementById('closeAvgCostDisplay').textContent) || 0;
+    const buyDate = document.getElementById('closeBuyDateDisplay').textContent || '';
+    const sellPrice = parseFloat(document.getElementById('closePrice').value) || 0;
+    const closeDate = document.getElementById('closeDate').value;
+    const isTW = isTaiwanStock(ticker);
+
+    if(!(sellPrice > 0)){ alert('請輸入平倉價格'); return; }
+    if(!closeDate){ alert('請選擇平倉日期'); return; }
+
+    const fee   = isTW ? (parseFloat(document.getElementById('closeFee').value)||0) : (parseFloat(document.getElementById('closeUSFee').value)||0);
+    const tax   = isTW ? (parseFloat(document.getElementById('closeTax').value)||0) : 0;
+    const usFee = isTW ? 0 : (parseFloat(document.getElementById('closeUSFee').value)||0);
+    const discount = isTW ? (parseFloat(document.getElementById('closeDiscount').value)||'') : '';
+    // 從 participants 中查找股票名稱
+    const matchedStock = (participants[pi].stocks||[]).find(s => (s.ticker||'').toUpperCase().trim() === ticker.toUpperCase().trim());
+    const stockName = matchedStock?.stockName || '';
+    const pnl = (sellPrice - avgCost) * shares - fee - tax;
+    const dateVal = closeDate.replace(/-/g,'/').replace(/\/0/g,'/'); // YYYY-MM-DD → YYYY/M/D
+
+    // 從 DOM 移除該 slot (使用者按下「同步至雲端」時 saveData 會自動排除已刪除的)
+    slot.remove();
+    renumberSlots();
+
+    // 構建 trade 紀錄
+    const newTrade = {
+        ticker,
+        stockName,
+        shares,
+        buyPrice: avgCost,
+        sellPrice,
+        discount,
+        fee,
+        tax,
+        interest: 0,
+        pnl: parseFloat(pnl.toFixed(2)),
+        date: dateVal,
+        closedFromStock: true,
+        firstBuyDate: buyDate
+    };
+
+    // 立刻同步: 更新 stocks(來自當前 DOM) + trades(加上新平倉)
+    const newStocks = [];
+    document.querySelectorAll('.stock-slot').forEach(s=>{
+        const t = (s.querySelector('.slot-ticker').value||'').toUpperCase().trim();
+        const cp = parseFloat(s.querySelector('.slot-cur-hidden').value)||0;
+        if(!t) return;
+        const lots = [];
+        let tShares = 0, tCost = 0, earliest = null;
+        s.querySelectorAll('.lot-row').forEach(row=>{
+            const sh = parseFloat(row.querySelector('.lot-shares').value) || 0;
+            const pp = parseFloat(row.querySelector('.lot-buyprice').value) || 0;
+            const dd = (row.querySelector('.lot-buydate').value || '').trim();
+            if(sh > 0 && pp > 0){
+                const lot = { shares: sh, buyPrice: pp };
+                if(dd) lot.buyDate = dd;
+                lots.push(lot);
+                tShares += sh;
+                tCost += sh * pp;
+                if(dd && (!earliest || dd < earliest)) earliest = dd;
+            }
+        });
+        if(lots.length === 0 || tShares <= 0) return;
+        const obj = {
+            ticker: t,
+            shares: tShares,
+            buyPrice: tCost / tShares,
+            currentPrice: cp,
+            currency: getStockCurrency(t),
+            lots
+        };
+        if(earliest) obj.buyDate = earliest;
+        newStocks.push(obj);
+    });
+
+    const newTrades = [...(participants[pi].trades||[]), newTrade];
+    const newCash = parseFloat(document.getElementById('editCash').value)||0;
+    const currency = document.getElementById('editCurrency').value;
+
+    db.ref('competitionData/'+pi).set({
+        ...participants[pi],
+        currency,
+        cash: newCash,
+        stocks: newStocks,
+        trades: newTrades
+    });
+
+    tradePageMap[playerName] = 1; // 新增紀錄後跳到第一頁
+    closeClosePositionModal();
+    closeModal();
+    setStatus('loading','🟡 平倉同步中...');
+}
+
 // ── 色票選擇器 ───────────────────────────
 function openColorPicker(type, key, currentColor){
     // type: 'player' | 'index'
@@ -2197,6 +2585,8 @@ function addStockSlot(data={}){
     if(container.querySelectorAll('.stock-slot').length>=MAX_STOCKS){alert(`最多 ${MAX_STOCKS} 支持股`);return;}
     const id=++slotCounter;slotAcItems[id]=[];slotAcIdx[id]=-1;
     const num=container.querySelectorAll('.stock-slot').length+1;
+    // 是否為從既有資料載入(才能平倉) — 只有 data 有 ticker 或 lots 才視為既有
+    const isExisting = !!(data && (data.ticker || (Array.isArray(data.lots) && data.lots.length>0)));
     // 取出 lots: 優先用 data.lots, 沒有則用舊欄位合成一筆
     let lots = Array.isArray(data.lots) && data.lots.length>0 ? data.lots : null;
     if(!lots){
@@ -2211,9 +2601,20 @@ function addStockSlot(data={}){
         }
     }
     const slot=document.createElement('div');slot.className='stock-slot';slot.dataset.slotId=id;
+    slot.dataset.existing = isExisting ? '1' : '0';
+    const closeBtnHTML = isExisting
+        ? `<button type="button" onclick="openClosePositionModal(${id})" 
+              style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.35);color:#fca5a5;padding:4px 12px;border-radius:5px;font-size:11px;font-weight:700;cursor:pointer;margin-right:6px;transition:all .2s;"
+              onmouseover="this.style.background='rgba(239,68,68,.2)';this.style.borderColor='#ef4444';"
+              onmouseout="this.style.background='rgba(239,68,68,.1)';this.style.borderColor='rgba(239,68,68,.35)';"
+              title="一鍵賣出全部持股">⚡ 平倉</button>`
+        : '';
     slot.innerHTML=`<div class="stock-slot-header">
             <span class="slot-num">持股 #${num}</span>
-            <button class="btn-del" onclick="removeSlot(this)">✕ 移除</button>
+            <div style="display:flex;align-items:center;gap:0;">
+                ${closeBtnHTML}
+                <button class="btn-del" onclick="removeSlot(this)">✕ 移除</button>
+            </div>
         </div>
         <div class="ac-wrap" style="margin-bottom:10px;">
             <input type="text" class="modal-input slot-ticker" placeholder="搜尋代號（美股）或輸入數字（台股）" autocomplete="off" value="${data.ticker||''}" style="text-transform:uppercase;"
@@ -2459,6 +2860,8 @@ let tradeAcTimer=null, tradeAcItems=[], tradeAcIdx=-1;
 
 async function onTradeTickerInput(val){
     clearTimeout(tradeAcTimer);
+    // ticker 變動時即時切換台股/美股欄位
+    updateTradeFieldsVisibility();
     const list=document.getElementById('trade-ac-list');
     if(!val||val.length<1){list.classList.remove('open');list.innerHTML='';return;}
     list.innerHTML='<div class="ac-spinner">搜尋中...</div>';list.classList.add('open');
@@ -2485,6 +2888,9 @@ async function selectTradeTicker(idx){
     const input=document.getElementById('tradeTicker');
     input.value=q.symbol;
     document.getElementById('trade-ac-list').classList.remove('open');
+    // 切換台股/美股欄位 + 嘗試自動算費
+    updateTradeFieldsVisibility();
+    autoCalcTradeFee();
     await fetchAndSetTradeName(q.symbol, q.shortname);
 }
 
@@ -2493,6 +2899,7 @@ async function handleTradeTickerBlur(){
         const list=document.getElementById('trade-ac-list');
         if(list.classList.contains('open')) return;
         const val=document.getElementById('tradeTicker').value.toUpperCase().trim();
+        updateTradeFieldsVisibility();
         if(val) await fetchAndSetTradeName(val);
     }, 150);
 }
@@ -2519,36 +2926,85 @@ async function fetchAndSetTradeName(symbol, fallbackName=''){
     }
 }
 
-function autoCalcTWFee() {
-    const discountInput = document.getElementById('tradeDiscount').value;
+// 歷史交易 modal: 依玩家規則自動算手續費
+// 觸發時機: 「股數」「買入價」「賣出價」「券商折讓」變動
+function autoCalcTradeFee() {
+    const name = document.getElementById('tradeName').value;
+    const pi = participants.findIndex(p=>p.name===name);
+    const ticker = (document.getElementById('tradeTicker').value||'').toUpperCase().trim();
     const sh = parseFloat(document.getElementById('tradeShares').value) || 0;
     const bp = parseFloat(document.getElementById('tradeBuyPrice').value) || 0;
     const sp = parseFloat(document.getElementById('tradeSellPrice').value) || 0;
+    const isTW = ticker ? isTaiwanStock(ticker) : true; // 預設台股 (沒有 ticker 時)
+    const profile = pi !== -1 ? getPlayerFeeProfile(pi) : getPlayerFeeProfile(0);
 
-    if (discountInput !== '' && sh > 0) {
-        const discount = parseFloat(discountInput) || 10;
-        const rate = 0.001425 * (discount / 10);
-        
-        let totalFee = 0;
-        
-        if (bp > 0) {
-            totalFee += Math.max(1, Math.floor(bp * sh * rate));
+    if(isTW){
+        const discountInput = document.getElementById('tradeDiscount').value;
+        if (sh > 0) {
+            // 玩家若有 twDiscount 預設值且使用者尚未填寫 → 帶入
+            let discount = parseFloat(discountInput);
+            if((discountInput === '' || isNaN(discount)) && profile.twDiscount !== null){
+                discount = profile.twDiscount;
+                document.getElementById('tradeDiscount').value = profile.twDiscount;
+            }
+            if (!isNaN(discount) && discount > 0) {
+                const rate = 0.001425 * (discount / 10);
+                // 台股: 只有「賣出」才收手續費
+                let totalFee = 0;
+                if (sp > 0) {
+                    totalFee = Math.max(1, Math.floor(sp * sh * rate));
+                }
+                if (sp > 0) {
+                    document.getElementById('tradeTax').value = Math.floor(sp * sh * 0.003);
+                } else {
+                    document.getElementById('tradeTax').value = '';
+                }
+                if (totalFee > 0) {
+                    document.getElementById('tradeFee').value = totalFee;
+                } else if (bp > 0 && sp <= 0) {
+                    // 台股只有買入: 手續費為 0
+                    document.getElementById('tradeFee').value = 0;
+                } else {
+                    document.getElementById('tradeFee').value = '';
+                }
+            } else if(profile.twDiscount === null){
+                // 玩家一: 無手續費
+                document.getElementById('tradeFee').value = sp>0 ? 0 : '';
+                document.getElementById('tradeTax').value = sp>0 ? Math.floor(sp * sh * 0.003) : '';
+            }
         }
-        
-        if (sp > 0) {
-            totalFee += Math.max(1, Math.floor(sp * sh * rate));
-            document.getElementById('tradeTax').value = Math.floor(sp * sh * 0.003);
-        } else {
-            document.getElementById('tradeTax').value = '';
-        }
-        
-        if (totalFee > 0) {
-            document.getElementById('tradeFee').value = totalFee;
-        } else {
-            document.getElementById('tradeFee').value = '';
+    } else {
+        // 美股: 買入和賣出各算一次
+        if(profile.usRate > 0 && sh > 0){
+            let usFee = 0;
+            if(bp > 0) usFee += bp * sh * profile.usRate;
+            if(sp > 0) usFee += sp * sh * profile.usRate;
+            document.getElementById('tradeUSFee').value = usFee > 0 ? usFee.toFixed(2) : '';
+        } else if(profile.usRate === 0){
+            document.getElementById('tradeUSFee').value = 0;
         }
     }
     calcTradePreview();
+}
+
+// 兼容舊呼叫名稱
+function autoCalcTWFee(){ autoCalcTradeFee(); }
+
+// 切換 trade modal 的台股/美股欄位顯示
+function updateTradeFieldsVisibility(){
+    const ticker = (document.getElementById('tradeTicker').value||'').toUpperCase().trim();
+    const name = document.getElementById('tradeName').value;
+    const pi = participants.findIndex(p=>p.name===name);
+    const profile = pi !== -1 ? getPlayerFeeProfile(pi) : getPlayerFeeProfile(0);
+    // 沒有 ticker 時, 預設先顯示台股欄位
+    const isTW = ticker ? isTaiwanStock(ticker) : true;
+    const twBlock = document.getElementById('tradeTWFieldsBlock');
+    const usBlock = document.getElementById('tradeUSFieldsBlock');
+    if(twBlock) twBlock.style.display = isTW ? '' : 'none';
+    if(usBlock) usBlock.style.display = isTW ? 'none' : '';
+    // 美股提示
+    const hint = document.getElementById('tradeUSFeeHint');
+    if(hint) hint.textContent = profile.usLabel || '';
 }
 
 function openTradeModal(name, idx = -1){
@@ -2556,6 +3012,7 @@ function openTradeModal(name, idx = -1){
     document.getElementById('tradeIndex').value = idx === -1 ? '' : idx;
 
     const pi = participants.findIndex(p => p.name === name);
+    const profile = pi !== -1 ? getPlayerFeeProfile(pi) : getPlayerFeeProfile(0);
     let t = null;
     if (idx >= 0 && pi !== -1) {
         t = (participants[pi].trades || [])[idx];
@@ -2572,11 +3029,22 @@ function openTradeModal(name, idx = -1){
         document.getElementById('tradeBuyPrice').value = t.buyPrice || '';
         document.getElementById('tradeSellPrice').value = t.sellPrice || '';
         document.getElementById('tradeDiscount').value = t.discount || '';
-        document.getElementById('tradeFee').value = t.fee || '';
-        document.getElementById('tradeTax').value = t.tax || '';
         document.getElementById('tradeInterest').value = t.interest || '';
-        document.getElementById('tradeInterestRate').value = t.interestRate || '';
         document.getElementById('tradePnl').value = t.pnl || '';
+
+        // 根據 ticker 判斷是台股還是美股, 把儲存的 fee 還原到對應欄位
+        const editTicker = (t.ticker||'').toUpperCase().trim();
+        const editIsTW = editTicker ? isTaiwanStock(editTicker) : true;
+        if(editIsTW){
+            document.getElementById('tradeFee').value = t.fee || '';
+            document.getElementById('tradeTax').value = t.tax || '';
+            document.getElementById('tradeUSFee').value = '';
+        } else {
+            // 美股: 優先用 usFee, 沒有則用 fee
+            document.getElementById('tradeUSFee').value = (t.usFee != null ? t.usFee : (t.fee || ''));
+            document.getElementById('tradeFee').value = '';
+            document.getElementById('tradeTax').value = '';
+        }
 
         let dStr = t.date || '';
         if (dStr.includes('/')) {
@@ -2590,14 +3058,22 @@ function openTradeModal(name, idx = -1){
         }
         document.getElementById('tradeDate').value = dStr;
     } else {
-        ['tradeTicker','tradeShares','tradeBuyPrice','tradeSellPrice','tradeDiscount','tradeFee','tradeTax','tradeInterest','tradeInterestRate','tradePnl'].forEach(id=>document.getElementById(id).value='');
+        ['tradeTicker','tradeShares','tradeBuyPrice','tradeSellPrice','tradeDiscount','tradeFee','tradeTax','tradeUSFee','tradeInterest','tradePnl'].forEach(id=>document.getElementById(id).value='');
         document.getElementById('tradeTicker').dataset.name = '';
         document.getElementById('tradeTickerName').textContent = '';
-        
+
+        // 新增時帶入玩家的台股預設折讓 (若有)
+        if(profile.twDiscount !== null){
+            document.getElementById('tradeDiscount').value = profile.twDiscount;
+        }
+
         const today = new Date();
         const localDateStr = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
         document.getElementById('tradeDate').value = localDateStr;
     }
+
+    // 切換台股/美股欄位顯示
+    updateTradeFieldsVisibility();
 
     document.getElementById('tradeCalcHint').classList.add('hidden');
     document.getElementById('tradeModal').classList.add('open');
@@ -2606,13 +3082,21 @@ function openTradeModal(name, idx = -1){
 function closeTradeModal(){document.getElementById('tradeModal').classList.remove('open');}
 
 function calcTradePreview(){
+    const ticker = (document.getElementById('tradeTicker').value||'').toUpperCase().trim();
     const sh=parseFloat(document.getElementById('tradeShares').value)||0;
     const bp=parseFloat(document.getElementById('tradeBuyPrice').value)||0;
     const sp=parseFloat(document.getElementById('tradeSellPrice').value)||0;
-    const fee=parseFloat(document.getElementById('tradeFee').value)||0;
-    const tax=parseFloat(document.getElementById('tradeTax').value)||0;
     const interest=parseFloat(document.getElementById('tradeInterest').value)||0;
-    
+    const isTW = ticker ? isTaiwanStock(ticker) : true;
+
+    let fee = 0, tax = 0;
+    if(isTW){
+        fee = parseFloat(document.getElementById('tradeFee').value)||0;
+        tax = parseFloat(document.getElementById('tradeTax').value)||0;
+    } else {
+        fee = parseFloat(document.getElementById('tradeUSFee').value)||0;
+    }
+
     if(sh>0&&bp>0&&sp>0){
         const pnl=(sp-bp)*sh - fee - tax - interest;
         const el=document.getElementById('tradeCalcValue');
@@ -2637,11 +3121,19 @@ async function saveTrade(){
     const buyPrice=parseFloat(document.getElementById('tradeBuyPrice').value)||0;
     const sellPrice=parseFloat(document.getElementById('tradeSellPrice').value)||0;
     const discount=parseFloat(document.getElementById('tradeDiscount').value)||'';
-    const fee=parseFloat(document.getElementById('tradeFee').value)||0;
-    const tax=parseFloat(document.getElementById('tradeTax').value)||0;
     const interest=parseFloat(document.getElementById('tradeInterest').value)||0;
-    const interestRate=parseFloat(document.getElementById('tradeInterestRate').value)||0;
     const pnl=parseFloat(document.getElementById('tradePnl').value)||0;
+    const isTW = ticker ? isTaiwanStock(ticker) : true;
+
+    // 依台股/美股決定要儲存的欄位
+    let fee = 0, tax = 0, usFee = 0;
+    if(isTW){
+        fee = parseFloat(document.getElementById('tradeFee').value)||0;
+        tax = parseFloat(document.getElementById('tradeTax').value)||0;
+    } else {
+        usFee = parseFloat(document.getElementById('tradeUSFee').value)||0;
+        fee = usFee; // 為與既有計算邏輯相容, fee 同時存美股手續費總額
+    }
 
     let dateVal = document.getElementById('tradeDate').value;
     if(!dateVal){
@@ -2657,7 +3149,7 @@ async function saveTrade(){
     if(!ticker||shares<=0){alert('請填入股票代號和股數');return;}
     
     const stockName = document.getElementById('tradeTicker').dataset.name || '';
-    const newTrade = { ticker, stockName, shares, buyPrice, sellPrice, discount, fee, tax, interest, interestRate, pnl, date: dateVal };
+    const newTrade = { ticker, stockName, shares, buyPrice, sellPrice, discount, fee, tax, usFee, interest, pnl, date: dateVal };
     const tList = [...(participants[pi].trades||[])];
 
     if (isEdit) {
@@ -2690,7 +3182,7 @@ function changeTradePage(name, delta){
     renderDashboard();
 }
 
-document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal();closeTradeModal();closePokerModal();}});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal();closeTradeModal();closePokerModal();closeClosePositionModal();}});
 
 // ── 璽子打牌紀錄 ──────────────────────────
 function openPokerModal(){
