@@ -863,6 +863,15 @@ function renderBenchmarks(){
         { key:'btc',   label:'BTC',         sub:'比特幣',     color:getIndexColor('btc','#fbbf24'),   data:benchmarkCache.btc   },
         { key:'gold',  label:'黃金',        sub:'GC=F・期貨', color:getIndexColor('gold','#facc15'),  data:benchmarkCache.gold  }
     ];
+    // 依績效（changePct）由高到低排序；尚未載入資料者排到最後
+    items.sort((a,b)=>{
+        const av = (a.data && typeof a.data.changePct === 'number') ? a.data.changePct : null;
+        const bv = (b.data && typeof b.data.changePct === 'number') ? b.data.changePct : null;
+        if(av === null && bv === null) return 0;
+        if(av === null) return 1;
+        if(bv === null) return -1;
+        return bv - av;
+    });
     const headerHtml = `<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:6px;">
         <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider">🌐 市場 <span class="text-slate-600 font-normal normal-case">（自 ${BENCHMARK_START_DATE} 起）</span></div>
         <div id="market-countdown" class="text-xs mono" style="color:var(--text-secondary);"></div>
@@ -2128,7 +2137,7 @@ function renderDashboard(){
                     <h3 class="text-lg font-bold text-white" id="name-${p.name}">${p.name}</h3>
                     <button onclick="editName('${p.name}')" title="修改名稱" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:13px;padding:2px 4px;transition:color .15s;" onmouseover="this.style.color='var(--accent-blue)'" onmouseout="this.style.color='var(--text-muted)'">✏️</button>
                 </div>
-                <div style="display:flex;align-items:center;gap:8px;"><span class="currency-badge">${p.currency}</span><button onclick="openModal('${p.name}')" class="btn-update">更改部位</button></div>
+                <div style="display:flex;align-items:center;gap:8px;"><span class="currency-badge">${p.currency}</span></div>
             </div>
             <div class="net-value-box" style="margin-bottom:16px;">
                 <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">帳戶淨值</div>
@@ -2157,7 +2166,10 @@ function renderDashboard(){
                 <div class="stat-row" style="margin-top:4px; padding-top:4px; border-top:1px solid rgba(31,31,36,.6);"><span class="stat-label">交易成本 <span style="color:var(--text-muted);font-size:10px;">(手續費+證交稅+利息)</span></span><span class="mono text-slate-400">${totalFeeTax > 0 ? '-' : ''}${fmtRaw(totalFeeTax, p.currency)}</span></div>
             </div>
             ${pieHTML}
-            <h4 style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">當前持倉（${stocks.length}/${MAX_STOCKS}）</h4>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                <h4 style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;">當前持倉（${stocks.length}/${MAX_STOCKS}）</h4>
+                <button onclick="openModal('${p.name}')" class="btn-update">更改部位</button>
+            </div>
             ${holdHTML}
             <div class="history-section">
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
