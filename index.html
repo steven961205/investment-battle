@@ -568,12 +568,12 @@ function calcAutoFee(playerIndex, ticker, shares, buyPrice, sellPrice){
         }
         return { fee: twFee, tax, usFee: 0, twFee, discount: profile.twDiscount };
     } else {
-        if(profile.usRate === 0) return { fee: 0, tax: 0, usFee: 0, twFee: 0 };
-        let usFee = 0;
-        if(buyPrice > 0) usFee += buyPrice * shares * profile.usRate;
-        if(sellPrice > 0) usFee += sellPrice * shares * profile.usRate;
-        usFee = parseFloat(usFee.toFixed(2));
-        return { fee: usFee, tax: 0, usFee, twFee: 0 };
+        if(profile.usRate === 0) return { fee: 0, tax: 0, usFee: 0, twFee: 0, buyFee: 0, sellFee: 0 };
+        // 美股: 買入、賣出 各收一次手續費 (分開計算)
+        const buyFee  = buyPrice  > 0 ? parseFloat((buyPrice  * shares * profile.usRate).toFixed(2)) : 0;
+        const sellFee = sellPrice > 0 ? parseFloat((sellPrice * shares * profile.usRate).toFixed(2)) : 0;
+        const usFee   = parseFloat((buyFee + sellFee).toFixed(2));
+        return { fee: usFee, tax: 0, usFee, twFee: 0, buyFee, sellFee };
     }
 }
 
@@ -1736,7 +1736,7 @@ function renderDashboard(){
     renderPlayerNames();
     let lb=[];
     const pdiv=document.getElementById('portfolios');pdiv.innerHTML='';
-    participants.forEach(p=>{
+    participants.forEach((p,pIdx)=>{
         const initCap=getFixedInitialCapital(p.currency);
         const stocks=Array.isArray(p.stocks)?p.stocks:[];
         const trades=Array.isArray(p.trades)?p.trades:[];
@@ -2082,11 +2082,24 @@ function renderDashboard(){
                         </div>`;
                     }
                 } else {
-                    const usFeeShow = tUSFee > 0 ? tUSFee : tFee;
-                    if(usFeeShow > 0){
-                        feeRowHTML = `<div class="trade-card-row" style="color:var(--text-secondary);font-size:11px;margin-top:3px;padding-top:3px;border-top:1px dashed rgba(31,31,36,.6);">
-                            <span>美股手續費 <span class="mono" style="color:var(--accent-amber);">-${fmtRaw(usFeeShow,tradeCur,2)}</span></span>
-                            <span></span>
+                    // 美股: 分開顯示「買入手續費」與「賣出手續費」(各 (股數×價格)×費率)
+                    const usRate = getPlayerFeeProfile(pIdx).usRate || 0;
+                    // 優先用已儲存的拆分值; 舊紀錄缺欄位時, 依費率即時回推
+                    let buyFeeShow  = parseFloat(t.buyFee);
+                    let sellFeeShow = parseFloat(t.sellFee);
+                    if(isNaN(buyFeeShow))  buyFeeShow  = (usRate > 0 && bp > 0) ? parseFloat((bp * (t.shares||0) * usRate).toFixed(2)) : 0;
+                    if(isNaN(sellFeeShow)) sellFeeShow = (usRate > 0 && sp > 0) ? parseFloat((sp * (t.shares||0) * usRate).toFixed(2)) : 0;
+                    // 舊紀錄若只有合計 usFee 而回推為 0, 仍以合計顯示在賣出側, 避免漏列
+                    if(buyFeeShow === 0 && sellFeeShow === 0){
+                        const legacy = tUSFee > 0 ? tUSFee : tFee;
+                        if(legacy > 0) sellFeeShow = legacy;
+                    }
+                    const feeItems = [];
+                    if(buyFeeShow > 0)  feeItems.push(`<span>買入手續費 <span class="mono" style="color:var(--accent-amber);">-${fmtRaw(buyFeeShow,tradeCur,2)}</span></span>`);
+                    if(sellFeeShow > 0) feeItems.push(`<span>賣出手續費 <span class="mono" style="color:var(--accent-amber);">-${fmtRaw(sellFeeShow,tradeCur,2)}</span></span>`);
+                    if(feeItems.length > 0){
+                        feeRowHTML = `<div class="trade-card-row" style="color:var(--text-secondary);font-size:11px;margin-top:3px;padding-top:3px;border-top:1px dashed rgba(31,31,36,.6);flex-wrap:wrap;gap:10px;">
+                            ${feeItems.join('')}
                         </div>`;
                     }
                 }
@@ -2374,7 +2387,11 @@ function autoCalcCloseFee(){
             }
         } else {
             if(profile.usRate > 0){
-                document.getElementById('closeUSFee').value = (sellPrice * shares * profile.usRate).toFixed(2);
+                // 美股平倉: 買入手續費(以平均成本計) + 賣出手續費, 各收一次
+                const avgCost = parseFloat(document.getElementById('closeAvgCostDisplay').textContent) || 0;
+                const buyFee  = avgCost   > 0 ? avgCost   * shares * profile.usRate : 0;
+                const sellFee = sellPrice > 0 ? sellPrice * shares * profile.usRate : 0;
+                document.getElementById('closeUSFee').value = (buyFee + sellFee).toFixed(2);
             } else {
                 document.getElementById('closeUSFee').value = 0;
             }
@@ -2434,10 +2451,19 @@ function executeClosePosition(){
     if(!(sellPrice > 0)){ alert('請輸入平倉價格'); return; }
     if(!closeDate){ alert('請選擇平倉日期'); return; }
 
-    const fee   = isTW ? (parseFloat(document.getElementById('closeFee').value)||0) : (parseFloat(document.getElementById('closeUSFee').value)||0);
     const tax   = isTW ? (parseFloat(document.getElementById('closeTax').value)||0) : 0;
-    const usFee = isTW ? 0 : (parseFloat(document.getElementById('closeUSFee').value)||0);
     const discount = isTW ? (parseFloat(document.getElementById('closeDiscount').value)||'') : '';
+
+    // 美股: 拆分買入手續費(以平均成本計) 與 賣出手續費, 各收一次
+    const profile = getPlayerFeeProfile(pi);
+    let buyFee = 0, sellFee = 0;
+    if(!isTW && profile.usRate > 0){
+        buyFee  = avgCost   > 0 ? parseFloat((avgCost   * shares * profile.usRate).toFixed(2)) : 0;
+        sellFee = sellPrice > 0 ? parseFloat((sellPrice * shares * profile.usRate).toFixed(2)) : 0;
+    }
+    // 台股手續費取輸入欄位; 美股以拆分後的買+賣為準
+    const fee   = isTW ? (parseFloat(document.getElementById('closeFee').value)||0) : parseFloat((buyFee + sellFee).toFixed(2));
+    const usFee = isTW ? 0 : fee;
     // 從 participants 中查找股票名稱
     const matchedStock = (participants[pi].stocks||[]).find(s => (s.ticker||'').toUpperCase().trim() === ticker.toUpperCase().trim());
     const stockName = matchedStock?.stockName || '';
@@ -2458,6 +2484,9 @@ function executeClosePosition(){
         discount,
         fee,
         tax,
+        usFee,
+        buyFee,
+        sellFee,
         interest: 0,
         pnl: parseFloat(pnl.toFixed(2)),
         date: dateVal,
@@ -2999,11 +3028,11 @@ function autoCalcTradeFee() {
             }
         }
     } else {
-        // 美股: 買入和賣出各算一次
+        // 美股: 買入和賣出各算一次 (分開取整後加總, 與儲存邏輯一致)
         if(profile.usRate > 0 && sh > 0){
-            let usFee = 0;
-            if(bp > 0) usFee += bp * sh * profile.usRate;
-            if(sp > 0) usFee += sp * sh * profile.usRate;
+            const buyFee  = bp > 0 ? parseFloat((bp * sh * profile.usRate).toFixed(2)) : 0;
+            const sellFee = sp > 0 ? parseFloat((sp * sh * profile.usRate).toFixed(2)) : 0;
+            const usFee = parseFloat((buyFee + sellFee).toFixed(2));
             document.getElementById('tradeUSFee').value = usFee > 0 ? usFee.toFixed(2) : '';
         } else if(profile.usRate === 0){
             document.getElementById('tradeUSFee').value = 0;
@@ -3151,12 +3180,18 @@ async function saveTrade(){
     const isTW = ticker ? isTaiwanStock(ticker) : true;
 
     // 依台股/美股決定要儲存的欄位
-    let fee = 0, tax = 0, usFee = 0;
+    let fee = 0, tax = 0, usFee = 0, buyFee = 0, sellFee = 0;
     if(isTW){
         fee = parseFloat(document.getElementById('tradeFee').value)||0;
         tax = parseFloat(document.getElementById('tradeTax').value)||0;
     } else {
-        usFee = parseFloat(document.getElementById('tradeUSFee').value)||0;
+        // 美股: 依玩家費率拆分買入 / 賣出手續費, 各收一次
+        const profile = getPlayerFeeProfile(pi);
+        if(profile.usRate > 0){
+            buyFee  = buyPrice  > 0 ? parseFloat((buyPrice  * shares * profile.usRate).toFixed(2)) : 0;
+            sellFee = sellPrice > 0 ? parseFloat((sellPrice * shares * profile.usRate).toFixed(2)) : 0;
+        }
+        usFee = parseFloat((buyFee + sellFee).toFixed(2));
         fee = usFee; // 為與既有計算邏輯相容, fee 同時存美股手續費總額
     }
 
@@ -3174,7 +3209,7 @@ async function saveTrade(){
     if(!ticker||shares<=0){alert('請填入股票代號和股數');return;}
     
     const stockName = document.getElementById('tradeTicker').dataset.name || '';
-    const newTrade = { ticker, stockName, shares, buyPrice, sellPrice, discount, fee, tax, usFee, interest, pnl, date: dateVal };
+    const newTrade = { ticker, stockName, shares, buyPrice, sellPrice, discount, fee, tax, usFee, buyFee, sellFee, interest, pnl, date: dateVal };
     const tList = [...(participants[pi].trades||[])];
 
     if (isEdit) {
