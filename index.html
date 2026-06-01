@@ -2299,7 +2299,7 @@ function renderDashboard(){
         lbDiv.innerHTML += `<div class="rank-card rank-${idx+1}" style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
             <div style="display:flex;align-items:center;gap:12px;flex:0 0 auto;">
                 <span style="font-size:1.6rem;">${medals[idx]||(idx+1)+'.'}</span>
-                <span class="font-bold text-lg text-white">${d.name}</span>
+                <span class="font-bold text-white" style="${[...(d.name||'')].length>6?'font-size:0.95rem;line-height:1.25;max-width:11em;white-space:normal;word-break:break-word;':'font-size:1.125rem;white-space:nowrap;'}">${d.name}</span>
             </div>
             <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;justify-content:flex-end;">
                 <div style="display:flex;flex-direction:column;align-items:flex-end;min-width:0;">
