@@ -68,6 +68,35 @@
         .btn-add-stock:hover{background:rgba(34,211,238,.15);border-color:rgba(34,211,238,.5);}
         .btn-add-trade{display:flex;align-items:center;gap:5px;background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.25);color:var(--accent-green);padding:4px 10px;border-radius:5px;font-size:11px;font-weight:700;cursor:pointer;transition:all .2s;}
         .btn-add-trade:hover{background:rgba(34,197,94,.15);border-color:rgba(34,197,94,.5);}
+        /* ── 密碼鎖 / 霧面玻璃 ── */
+        .btn-lock{display:inline-flex;align-items:center;gap:5px;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.28);color:var(--accent-amber);padding:6px 12px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;transition:all .2s;white-space:nowrap;}
+        .btn-lock:hover{background:rgba(245,158,11,.16);border-color:rgba(245,158,11,.55);box-shadow:0 0 12px rgba(245,158,11,.18);}
+        .btn-lock.unlocked{background:rgba(34,197,94,.08);border-color:rgba(34,197,94,.28);color:var(--accent-green);}
+        .btn-lock.unlocked:hover{background:rgba(34,197,94,.16);border-color:rgba(34,197,94,.55);box-shadow:0 0 12px rgba(34,197,94,.18);}
+        .lock-zone{position:relative;border-radius:12px;}
+        .lock-zone .lock-content{transition:filter .35s ease;}
+        .lock-zone.locked .lock-content{filter:blur(9px) saturate(1.25) brightness(.92);pointer-events:none;user-select:none;-webkit-user-select:none;}
+        .lock-zone .lock-overlay{display:none;}
+        .lock-zone.locked .lock-overlay{display:flex;position:absolute;inset:0;z-index:3;flex-direction:column;align-items:center;justify-content:center;gap:10px;
+            border-radius:12px;cursor:pointer;text-align:center;padding:16px;
+            background:linear-gradient(135deg,rgba(20,20,28,.30),rgba(8,8,12,.42));
+            backdrop-filter:blur(7px) saturate(1.1);-webkit-backdrop-filter:blur(7px) saturate(1.1);
+            border:1px solid rgba(255,255,255,.07);box-shadow:0 1px 0 0 rgba(255,255,255,.04) inset;
+            transition:background .25s;}
+        .lock-zone.locked .lock-overlay:hover{background:linear-gradient(135deg,rgba(26,26,34,.34),rgba(10,10,14,.46));}
+        .lock-overlay-icon{font-size:30px;filter:drop-shadow(0 2px 8px rgba(0,0,0,.5));}
+        .lock-overlay-text{font-size:12px;font-weight:600;letter-spacing:.04em;color:var(--text-secondary);}
+        .lock-overlay-sub{font-size:10px;color:var(--text-muted);letter-spacing:.04em;}
+        /* 密碼輸入框 */
+        .pin-input{width:100%;background:var(--bg-input);border:1px solid var(--border);color:var(--text-primary);
+            padding:12px;border-radius:9px;font-family:'IBM Plex Mono',monospace;font-size:26px;font-weight:700;
+            text-align:center;letter-spacing:.5em;outline:none;transition:border-color .2s,box-shadow .2s;}
+        .pin-input:focus{border-color:var(--accent-cyan);box-shadow:0 0 0 3px rgba(34,211,238,.12);}
+        .pin-input.err{border-color:var(--accent-red);box-shadow:0 0 0 3px rgba(239,68,68,.15);animation:pinShake .35s;}
+        @keyframes pinShake{0%,100%{transform:translateX(0);}20%{transform:translateX(-7px);}40%{transform:translateX(7px);}60%{transform:translateX(-5px);}80%{transform:translateX(5px);}}
+        .lock-link{background:none;border:none;color:var(--accent-cyan);font-size:12px;font-weight:600;cursor:pointer;padding:4px;transition:color .15s;}
+        .lock-link:hover{color:#67e8f9;text-decoration:underline;}
+        .lock-msg{font-size:12px;font-weight:600;min-height:18px;text-align:center;}
         .btn-edit{background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:14px;padding:0 3px;transition:color .15s;}
         .btn-edit:hover{color:var(--accent-cyan);}
         .btn-del{background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:13px;padding:0 3px;transition:color .15s;}
@@ -225,6 +254,48 @@
         <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:18px;">
             <button onclick="closeModal()" class="btn-cancel">取消</button>
             <button onclick="saveData()" class="btn-save">☁ 同步至雲端</button>
+        </div>
+    </div>
+</div>
+
+<div id="lockModal" class="modal-overlay" style="z-index:70">
+    <div class="modal-box" style="width:380px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;">
+            <h2 class="text-lg font-bold text-white" id="lockModalTitle">🔒 解鎖</h2>
+            <button onclick="closeLockModal()" class="text-slate-500 hover:text-white text-xl leading-none">&times;</button>
+        </div>
+        <input type="hidden" id="lockTargetName">
+        <!-- 解鎖視圖 -->
+        <div id="lockViewUnlock">
+            <p style="font-size:12px;color:var(--text-secondary);margin-bottom:12px;line-height:1.5;">請輸入此玩家的 4 位數字密碼以顯示「當前持倉」與「歷史交易紀錄」。</p>
+            <input id="pinUnlock" class="pin-input" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="••••" autocomplete="off">
+            <div id="lockMsgUnlock" class="lock-msg" style="margin-top:10px;color:var(--accent-red);"></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:14px;">
+                <button class="lock-link" onclick="lockSwitchView('change')">🔑 變更密碼</button>
+                <div style="display:flex;gap:10px;">
+                    <button onclick="closeLockModal()" class="btn-cancel">取消</button>
+                    <button onclick="submitUnlock()" class="btn-save">解鎖</button>
+                </div>
+            </div>
+            <p style="font-size:10px;color:var(--text-muted);margin-top:12px;text-align:center;">預設密碼為 0000</p>
+        </div>
+        <!-- 變更密碼視圖 -->
+        <div id="lockViewChange" style="display:none;">
+            <p style="font-size:12px;color:var(--text-secondary);margin-bottom:12px;line-height:1.5;">變更密碼需先通過現有密碼驗證。新密碼須為 4 位數字。</p>
+            <label class="modal-label">目前密碼</label>
+            <input id="pinCurrent" class="pin-input" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="••••" autocomplete="off" style="margin-bottom:12px;">
+            <label class="modal-label">新密碼</label>
+            <input id="pinNew" class="pin-input" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="••••" autocomplete="off" style="margin-bottom:12px;">
+            <label class="modal-label">確認新密碼</label>
+            <input id="pinConfirm" class="pin-input" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="••••" autocomplete="off">
+            <div id="lockMsgChange" class="lock-msg" style="margin-top:10px;color:var(--accent-red);"></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:14px;">
+                <button class="lock-link" onclick="lockSwitchView('unlock')">← 返回</button>
+                <div style="display:flex;gap:10px;">
+                    <button onclick="closeLockModal()" class="btn-cancel">取消</button>
+                    <button onclick="submitChangePwd()" class="btn-save">儲存密碼</button>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -2289,19 +2360,31 @@ function renderDashboard(){
                 
                 <div class="stat-row" style="margin-top:4px; padding-top:4px; border-top:1px solid rgba(31,31,36,.6);"><span class="stat-label">交易成本 <span style="color:var(--text-muted);font-size:10px;">(手續費+證交稅+利息)</span></span><span class="mono text-slate-400">${totalFeeTax > 0 ? '-' : ''}${fmtRaw(totalFeeTax, p.currency)}</span></div>
             </div>
-            ${pieHTML}
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:8px;">
                 <h4 style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;">當前持倉（${stocks.length}/${MAX_STOCKS}）</h4>
-                <button onclick="openModal('${p.name}')" class="btn-update">更改部位</button>
-            </div>
-            ${holdHTML}
-            <div class="history-section">
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-                    <h4 style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;">歷史交易紀錄</h4>
-                    <button class="btn-add-trade" onclick="openTradeModal('${p.name}')">＋ 新增</button>
+                <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
+                    <button id="lockbtn-${p.name}" class="btn-lock ${unlockedCards[p.name]?'unlocked':''}" onclick="toggleLock('${p.name}')">${unlockedCards[p.name]?'🔓 鎖定':'🔒 解鎖'}</button>
+                    <button onclick="requestEdit('${p.name}')" class="btn-update">更改部位</button>
                 </div>
-                <div>${tradeRows}</div>
-                ${pagerHTML}
+            </div>
+            <div class="lock-zone ${unlockedCards[p.name]?'':'locked'}" data-player="${p.name}">
+                <div class="lock-content">
+                    ${pieHTML}
+                    ${holdHTML}
+                    <div class="history-section">
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                            <h4 style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;">歷史交易紀錄</h4>
+                            <button class="btn-add-trade" onclick="requestAddTrade('${p.name}')">＋ 新增</button>
+                        </div>
+                        <div>${tradeRows}</div>
+                        ${pagerHTML}
+                    </div>
+                </div>
+                <div class="lock-overlay" onclick="openLockModal('${p.name}','unlock')">
+                    <div class="lock-overlay-icon">🔒</div>
+                    <div class="lock-overlay-text">已鎖定</div>
+                    <div class="lock-overlay-sub">點擊輸入密碼解鎖</div>
+                </div>
             </div>
         </div>`;
     });
@@ -2386,6 +2469,103 @@ function editName(oldName){
 }
 
 function closeModal(){document.getElementById('editModal').classList.remove('open');document.getElementById('stockSlots').innerHTML='';}
+
+// ── 密碼鎖（當前持倉 + 歷史交易 霧面玻璃遮罩）──────────
+// 解鎖狀態僅存在於本機瀏覽器(記憶體), 重新整理後預設回到「鎖定」
+const unlockedCards = {};
+// 取得某玩家的密碼(預設 0000)
+function getCardPwd(name){
+    const p = participants.find(x=>x.name===name);
+    const v = p && p.lockPwd != null ? String(p.lockPwd) : '0000';
+    return /^\d{4}$/.test(v) ? v : '0000';
+}
+// 即時切換某張卡片的鎖定外觀(不重繪整個 dashboard)
+function applyLockUI(name){
+    const unlocked = !!unlockedCards[name];
+    document.querySelectorAll(`.lock-zone[data-player="${CSS.escape(name)}"]`).forEach(z=>{
+        z.classList.toggle('locked', !unlocked);
+    });
+    const btn = document.getElementById('lockbtn-'+name);
+    if(btn){
+        btn.classList.toggle('unlocked', unlocked);
+        btn.textContent = unlocked ? '🔓 鎖定' : '🔒 解鎖';
+    }
+}
+// 點擊鎖定按鈕: 已解鎖→立即鎖定; 已鎖定→開啟解鎖視窗
+function toggleLock(name){
+    if(unlockedCards[name]){
+        unlockedCards[name] = false;
+        applyLockUI(name);
+    } else {
+        openLockModal(name, 'unlock');
+    }
+}
+// 更改部位 / 新增交易 前的鎖定攔截
+function requestEdit(name){
+    if(unlockedCards[name]) openModal(name);
+    else openLockModal(name, 'unlock');
+}
+function requestAddTrade(name){
+    if(unlockedCards[name]) openTradeModal(name);
+    else openLockModal(name, 'unlock');
+}
+// 開啟密碼視窗
+function openLockModal(name, view){
+    document.getElementById('lockTargetName').value = name;
+    ['pinUnlock','pinCurrent','pinNew','pinConfirm'].forEach(id=>{const e=document.getElementById(id); if(e){e.value='';e.classList.remove('err');}});
+    document.getElementById('lockMsgUnlock').textContent='';
+    document.getElementById('lockMsgChange').textContent='';
+    lockSwitchView(view||'unlock');
+    document.getElementById('lockModal').classList.add('open');
+    setTimeout(()=>{const f=document.getElementById(view==='change'?'pinCurrent':'pinUnlock'); if(f) f.focus();},60);
+}
+function closeLockModal(){document.getElementById('lockModal').classList.remove('open');}
+function lockSwitchView(view){
+    const isChange = view==='change';
+    document.getElementById('lockViewUnlock').style.display = isChange?'none':'block';
+    document.getElementById('lockViewChange').style.display = isChange?'block':'none';
+    document.getElementById('lockModalTitle').textContent = isChange?'🔑 變更密碼':'🔒 解鎖';
+    document.getElementById('lockMsgUnlock').textContent='';
+    document.getElementById('lockMsgChange').textContent='';
+    setTimeout(()=>{const f=document.getElementById(isChange?'pinCurrent':'pinUnlock'); if(f) f.focus();},50);
+}
+// 解鎖
+function submitUnlock(){
+    const name = document.getElementById('lockTargetName').value;
+    const input = document.getElementById('pinUnlock');
+    const msg = document.getElementById('lockMsgUnlock');
+    const val = (input.value||'').trim();
+    if(!/^\d{4}$/.test(val)){ input.classList.add('err'); msg.textContent='請輸入 4 位數字密碼'; setTimeout(()=>input.classList.remove('err'),400); return; }
+    if(val === getCardPwd(name)){
+        unlockedCards[name] = true;
+        applyLockUI(name);
+        closeLockModal();
+        setStatus('ok','🟢 已解鎖 '+name+' 的持倉與交易紀錄');
+    } else {
+        input.classList.add('err'); input.value=''; msg.textContent='密碼錯誤，請重試';
+        setTimeout(()=>input.classList.remove('err'),400); input.focus();
+    }
+}
+// 變更密碼(需通過現有密碼驗證)
+function submitChangePwd(){
+    const name = document.getElementById('lockTargetName').value;
+    const cur = (document.getElementById('pinCurrent').value||'').trim();
+    const neo = (document.getElementById('pinNew').value||'').trim();
+    const conf = (document.getElementById('pinConfirm').value||'').trim();
+    const msg = document.getElementById('lockMsgChange');
+    const shake = id=>{const e=document.getElementById(id); e.classList.add('err'); setTimeout(()=>e.classList.remove('err'),400);};
+    if(cur !== getCardPwd(name)){ shake('pinCurrent'); msg.textContent='目前密碼錯誤'; return; }
+    if(!/^\d{4}$/.test(neo)){ shake('pinNew'); msg.textContent='新密碼須為 4 位數字'; return; }
+    if(neo !== conf){ shake('pinConfirm'); msg.textContent='兩次新密碼不一致'; return; }
+    const pi = participants.findIndex(x=>x.name===name);
+    if(pi === -1){ msg.textContent='找不到玩家'; return; }
+    participants[pi].lockPwd = neo;
+    db.ref('competitionData/'+pi+'/lockPwd').set(neo);
+    msg.style.color = 'var(--accent-green)';
+    msg.textContent = '✓ 密碼已更新';
+    setStatus('loading','🟡 密碼更新中...');
+    setTimeout(()=>{ msg.style.color='var(--accent-red)'; closeLockModal(); },800);
+}
 
 // ── 平倉 Modal ────────────────────────────
 function openClosePositionModal(slotId){
@@ -3435,17 +3615,28 @@ const endDate=new Date('2026-11-04T00:00:00').getTime();
 (function tick(){const d=endDate-Date.now();if(d<0){document.getElementById('countdown').textContent='比賽已結束！';return;}
 document.getElementById('countdown').textContent=`${Math.floor(d/86400000)} 天 ${Math.floor(d%86400000/3600000)} 時 ${Math.floor(d%3600000/60000)} 分`;setTimeout(tick,60000);})();
 
-// ── 自動刷新股價（每 10 秒）────────────────
-const REFRESH_INTERVAL = 60; // 由 10s 拉長至 60s, 大幅降低請求量避免 Yahoo 限流 
+// ── 自動刷新股價（交易時段內每 10 秒）────────────────
+// 持倉/淨值更新時段（台北時間）：台股 09:00~13:31、美股相關 16:00~隔日 04:00
+const REFRESH_INTERVAL = 10;     // 交易時段內每 10 秒刷新一次股價
+const IDLE_CHECK_INTERVAL = 30;  // 非交易時段每 30 秒檢查一次是否進入時段
 let refreshTimer = null;
 let nextRefreshIn = REFRESH_INTERVAL;
-let benchmarkRefreshCount = 0;
+
+// 是否落在「持倉/淨值更新時段」內
+function isActiveRefreshWindow(){
+    const tp = new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Taipei'}));
+    const mins = tp.getHours()*60 + tp.getMinutes();
+    const twWindow = mins >= (9*60) && mins <= (13*60+31);   // 09:00 ~ 13:31
+    const usWindow = mins >= (16*60) || mins <= (4*60);      // 16:00 ~ 隔日 04:00
+    return twWindow || usWindow;
+}
 
 function updateRefreshCountdown(){
     const statusEl = document.getElementById('system-status');
     if(statusEl && statusEl.className.includes('status-ok')){
         const base = `🟢 已連線｜1 USD = ${usdToTwd.toFixed(2)} TWD`;
-        statusEl.textContent = `${base}｜${new Date().toLocaleTimeString('zh-TW')}｜下次刷新：${nextRefreshIn}s`;
+        const tail = isActiveRefreshWindow() ? `下次刷新：${nextRefreshIn}s` : '非交易時段 · 暫停刷新';
+        statusEl.textContent = `${base}｜${new Date().toLocaleTimeString('zh-TW')}｜${tail}`;
     }
 }
 
@@ -3501,12 +3692,7 @@ async function refreshPrices(){
         }
     });
     
-    // 每 6 次刷新（約 60 秒）更新一次大盤指數
-    benchmarkRefreshCount++;
-    if(benchmarkRefreshCount >= 6){
-        benchmarkRefreshCount = 0;
-        await refreshBenchmarks();
-    }
+    // 大盤「市場」價格改為每小時更新一次（見下方獨立排程），此處不再隨股價刷新
     
     renderDashboard(); 
     // 股價已更新 → 重繪曲線(今日端點會根據最新未實現損益移動)
@@ -3518,13 +3704,17 @@ async function refreshPrices(){
 
 function startRefreshCountdown(){
     clearInterval(refreshTimer);
-    nextRefreshIn = REFRESH_INTERVAL;
+    nextRefreshIn = isActiveRefreshWindow() ? REFRESH_INTERVAL : IDLE_CHECK_INTERVAL;
     refreshTimer = setInterval(async()=>{
         nextRefreshIn--;
         updateRefreshCountdown();
         if(nextRefreshIn <= 0){
-            nextRefreshIn = REFRESH_INTERVAL;
-            await refreshPrices();
+            if(isActiveRefreshWindow()){
+                nextRefreshIn = REFRESH_INTERVAL;   // 交易時段 → 每 10 秒刷新
+                await refreshPrices();
+            } else {
+                nextRefreshIn = IDLE_CHECK_INTERVAL; // 非交易時段 → 暫停刷新, 僅週期性檢查
+            }
         }
     }, 1000);
 }
@@ -3537,6 +3727,8 @@ let lastVisibleRefresh = 0;
 document.addEventListener('visibilitychange', ()=>{
     if(document.visibilityState === 'visible'){
         startRefreshCountdown();
+        // 僅在交易時段才立即補抓; 非交易時段保留快取
+        if(!isActiveRefreshWindow()) return;
         // 30 秒內剛全抓過就不重抓, 避免反覆切分頁觸發大量請求
         if(Date.now() - lastVisibleRefresh < 30000) return;
         lastVisibleRefresh = Date.now();
@@ -3554,8 +3746,8 @@ refreshBenchmarkHistory();
 setInterval(refreshBenchmarkHistory, 30 * 60 * 1000);
 setInterval(refreshStockHistory, 30 * 60 * 1000);
 
-// 每 5 分鐘刷新一次大盤即時績效 (含 BTC/Gold)
-setInterval(refreshBenchmarks, 5 * 60 * 1000);
+// 「市場」大盤即時價格 → 每小時更新一次 (含 BTC/Gold)
+setInterval(refreshBenchmarks, 60 * 60 * 1000);
 
 // 每秒更新美股開盤倒數
 setInterval(updateMarketCountdown, 1000);
