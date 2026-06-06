@@ -73,6 +73,16 @@
         .btn-lock:hover{background:rgba(245,158,11,.16);border-color:rgba(245,158,11,.55);box-shadow:0 0 12px rgba(245,158,11,.18);}
         .btn-lock.unlocked{background:rgba(34,197,94,.08);border-color:rgba(34,197,94,.28);color:var(--accent-green);}
         .btn-lock.unlocked:hover{background:rgba(34,197,94,.16);border-color:rgba(34,197,94,.55);box-shadow:0 0 12px rgba(34,197,94,.18);}
+        /* 圖示式鎖頭按鈕(僅鎖/解鎖圖示) */
+        .btn-lock-icon{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:7px;cursor:pointer;transition:all .2s;flex-shrink:0;background:var(--bg-elevated);border:1px solid var(--border);color:var(--text-secondary);padding:0;}
+        .btn-lock-icon svg{display:block;}
+        .btn-lock-icon:hover{border-color:var(--border-bright);color:var(--text-primary);}
+        .btn-lock-icon.locked{background:rgba(245,158,11,.10);border-color:rgba(245,158,11,.32);color:var(--accent-amber);}
+        .btn-lock-icon.locked:hover{background:rgba(245,158,11,.18);border-color:rgba(245,158,11,.6);box-shadow:0 0 12px rgba(245,158,11,.18);}
+        .btn-lock-icon.unlocked{background:rgba(34,197,94,.10);border-color:rgba(34,197,94,.32);color:var(--accent-green);}
+        .btn-lock-icon.unlocked:hover{background:rgba(34,197,94,.18);border-color:rgba(34,197,94,.6);box-shadow:0 0 12px rgba(34,197,94,.18);}
+        .btn-lock-icon.nopwd{background:var(--bg-elevated);border-color:var(--border);color:var(--text-muted);}
+        .btn-lock-icon.nopwd:hover{border-color:var(--border-bright);color:var(--text-secondary);}
         .lock-zone{position:relative;border-radius:12px;}
         .lock-zone .lock-content{transition:filter .35s ease;}
         .lock-zone.locked .lock-content{filter:blur(9px) saturate(1.25) brightness(.92);pointer-events:none;user-select:none;-webkit-user-select:none;}
@@ -166,6 +176,7 @@
         <p class="text-slate-400 mt-2 tracking-wide" id="player-names">載入中...</p>
         <div class="mt-5"><div class="countdown-badge"><span class="text-blue-300 font-semibold text-sm">⏱ 賽程倒數</span><span class="text-white font-bold ml-2 mono" id="countdown">計算中...</span></div></div>
         <div class="mt-4"><span id="system-status" class="status-pill status-loading">🟡 系統連線中...</span></div>
+        <div class="mt-3" id="market-session-indicator" style="font-size:12px;"></div>
     </header>
     <section class="card p-6 mb-8">
         <h2 class="text-lg font-bold text-white mb-4 flex items-center gap-2"><span>📊</span> 即時排名 <span class="text-xs font-normal text-slate-400 ml-1">（新台幣計價）</span></h2>
@@ -265,10 +276,23 @@
             <button onclick="closeLockModal()" class="text-slate-500 hover:text-white text-xl leading-none">&times;</button>
         </div>
         <input type="hidden" id="lockTargetName">
+        <!-- 設定密碼視圖(尚未設定密碼鎖時) -->
+        <div id="lockViewSet" style="display:none;">
+            <p style="font-size:12px;color:var(--text-secondary);margin-bottom:12px;line-height:1.5;">設定 4 位數字密碼後，將鎖定此玩家的「當前持倉」與「歷史交易紀錄」。<br>不設定密碼則保持公開、不鎖定。</p>
+            <label class="modal-label">設定密碼</label>
+            <input id="pinSetNew" class="pin-input" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="••••" autocomplete="off" style="margin-bottom:12px;" onkeydown="if(event.key==='Enter')submitSetPwd()">
+            <label class="modal-label">確認密碼</label>
+            <input id="pinSetConfirm" class="pin-input" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="••••" autocomplete="off" onkeydown="if(event.key==='Enter')submitSetPwd()">
+            <div id="lockMsgSet" class="lock-msg" style="margin-top:10px;color:var(--accent-red);"></div>
+            <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:14px;">
+                <button onclick="closeLockModal()" class="btn-cancel">取消</button>
+                <button onclick="submitSetPwd()" class="btn-save">設定並鎖定</button>
+            </div>
+        </div>
         <!-- 解鎖視圖 -->
         <div id="lockViewUnlock">
             <p style="font-size:12px;color:var(--text-secondary);margin-bottom:12px;line-height:1.5;">請輸入此玩家的 4 位數字密碼以顯示「當前持倉」與「歷史交易紀錄」。</p>
-            <input id="pinUnlock" class="pin-input" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="••••" autocomplete="off">
+            <input id="pinUnlock" class="pin-input" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="••••" autocomplete="off" onkeydown="if(event.key==='Enter')submitUnlock()">
             <div id="lockMsgUnlock" class="lock-msg" style="margin-top:10px;color:var(--accent-red);"></div>
             <div style="display:flex;justify-content:space-between;align-items:center;margin-top:14px;">
                 <button class="lock-link" onclick="lockSwitchView('change')">🔑 變更密碼</button>
@@ -277,22 +301,21 @@
                     <button onclick="submitUnlock()" class="btn-save">解鎖</button>
                 </div>
             </div>
-            <p style="font-size:10px;color:var(--text-muted);margin-top:12px;text-align:center;">預設密碼為 0000</p>
         </div>
-        <!-- 變更密碼視圖 -->
+        <!-- 變更 / 移除密碼視圖 -->
         <div id="lockViewChange" style="display:none;">
-            <p style="font-size:12px;color:var(--text-secondary);margin-bottom:12px;line-height:1.5;">變更密碼需先通過現有密碼驗證。新密碼須為 4 位數字。</p>
+            <p style="font-size:12px;color:var(--text-secondary);margin-bottom:12px;line-height:1.5;">變更或移除密碼鎖需先通過現有密碼驗證。新密碼須為 4 位數字。</p>
             <label class="modal-label">目前密碼</label>
             <input id="pinCurrent" class="pin-input" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="••••" autocomplete="off" style="margin-bottom:12px;">
             <label class="modal-label">新密碼</label>
             <input id="pinNew" class="pin-input" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="••••" autocomplete="off" style="margin-bottom:12px;">
             <label class="modal-label">確認新密碼</label>
-            <input id="pinConfirm" class="pin-input" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="••••" autocomplete="off">
+            <input id="pinConfirm" class="pin-input" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="••••" autocomplete="off" onkeydown="if(event.key==='Enter')submitChangePwd()">
             <div id="lockMsgChange" class="lock-msg" style="margin-top:10px;color:var(--accent-red);"></div>
             <div style="display:flex;justify-content:space-between;align-items:center;margin-top:14px;">
                 <button class="lock-link" onclick="lockSwitchView('unlock')">← 返回</button>
                 <div style="display:flex;gap:10px;">
-                    <button onclick="closeLockModal()" class="btn-cancel">取消</button>
+                    <button onclick="submitRemoveLock()" class="btn-cancel" style="color:var(--accent-red);border-color:rgba(239,68,68,.4);">移除密碼鎖</button>
                     <button onclick="submitChangePwd()" class="btn-save">儲存密碼</button>
                 </div>
             </div>
@@ -1047,21 +1070,92 @@ function calcCurrentNetValue(p){
         const unPnlRaw = (s.shares||0) * (lp - (s.buyPrice||0));
         totalUnPnl += convertCurrency(unPnlRaw, sCur, p.currency);
     });
-    const realPnl = trades.reduce((sum,t)=>sum+(parseFloat(t.pnl)||0),0);
+    // 已實現損益需依交易 ticker 幣別換算到記帳幣別 (與 renderDashboard / 曲線圖一致)
+    const realPnl = trades.reduce((sum,t)=>{
+        const tCur = getStockCurrency(t.ticker);
+        return sum + convertCurrency(parseFloat(t.pnl)||0, tCur, p.currency);
+    }, 0);
     return initCap + realPnl + totalUnPnl;
 }
 
+// ── 美東夏令/標準時自動偵測 ─────────────────
+// 回傳美東相對 UTC 的時差(小時): 夏令 EDT = 4, 標準時 EST = 5
+function getETOffsetHours(){
+    const now = new Date();
+    const et  = new Date(now.toLocaleString('en-US',{timeZone:'America/New_York'}));
+    const utc = new Date(now.toLocaleString('en-US',{timeZone:'UTC'}));
+    return Math.round((utc.getTime() - et.getTime()) / 3600000);   // 4(EDT) 或 5(EST)
+}
+// 美股收盤(16:00 ET)換算成台北「當日分鐘數」: 夏令 04:00 → 240, 標準時 05:00 → 300
+function getUSCloseMinTaipei(){
+    const etOff = getETOffsetHours();                 // 4 或 5
+    const closeHourTaipei = (16 + 8 + etOff) % 24;    // (16+12)=28%24=4 / (16+13)=29%24=5
+    return closeHourTaipei * 60;                      // 240 或 300
+}
+// 美東目前日期 (YYYY-MM-DD) = 美股當前交易日 (收盤快照鍵用,不受台北換日影響)
+function getUSTradingDate(){
+    const et = new Date(new Date().toLocaleString('en-US',{timeZone:'America/New_York'}));
+    const y=et.getFullYear(), m=String(et.getMonth()+1).padStart(2,'0'), d=String(et.getDate()).padStart(2,'0');
+    return `${y}-${m}-${d}`;
+}
+
 // ── 取得台北時間「今日」(YYYY-MM-DD) ──────
-// 交易日視窗:早上 09:00 → 隔日凌晨 04:00
-// 凌晨 00:00–08:59(含 04:00–09:00 結算後空檔)仍視為「前一個交易日」
+// 交易日以「美股收盤 16:00 ET」為換日界,自動判斷夏令(台北 04:00)/標準時(台北 05:00):
+//   一個交易日 = 美股收盤 → 隔日美股收盤
+//   含當日台股盤(09:00–13:30) + 當日美股盤(21:30 → 隔日收盤)
+//   美股一收盤即進入新交易日,其後盤後/盤前的淨值變化都對應「前一日美股收盤」為基準
 function getTaipeiToday(){
     const tw = new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Taipei'}));
-    // 09:00 之前回推一天,讓「今日」對齊 09:00 開始的交易日
-    if(tw.getHours() < 9){
+    const min = tw.getHours()*60 + tw.getMinutes();
+    // 美股收盤前 → 仍算前一個交易日;收盤後 → 進入新交易日(盤前)
+    if(min < getUSCloseMinTaipei()){
         tw.setDate(tw.getDate() - 1);
     }
     const y=tw.getFullYear(), m=String(tw.getMonth()+1).padStart(2,'0'), d=String(tw.getDate()).padStart(2,'0');
     return `${y}-${m}-${d}`;
+}
+
+// ── 取得前一交易日的收盤快照淨值 (作為今日變動基準) ────────────────
+// 快照鍵使用美東日期 (getUSTradingDate)，在收盤視窗 (16:00 ET ± / 台股 14:00) 寫入
+// 取得邏輯 (確保「今日」一定能正常顯示):
+//   1) 由近往遠回溯交易日，取第一筆已寫入的收盤快照 (us 優先，其次 tw)
+//   2) 若完全沒有任何快照 → 改用前一交易日收盤價即時計算淨值作為基準
+function getPrevUSCloseSnapshotNetValue(playerIndex){
+    // 取得所有交易日 (美股+台股合併去重排序)
+    const tradingDates = getAllTradingDates();
+    if(tradingDates.length === 0) return null;
+    // 目前美東交易日
+    const todayET = getUSTradingDate();
+    // 找「小於今日」的最近一個交易日 (即前一交易日)
+    let prevTradingDate = null;
+    for(let i = tradingDates.length - 1; i >= 0; i--){
+        if(tradingDates[i] < todayET){
+            prevTradingDate = tradingDates[i];
+            break;
+        }
+    }
+    if(!prevTradingDate) return null;
+
+    // 1) 僅採用「緊鄰前一交易日(prevTradingDate)」當天的收盤快照 (us 優先, 其次 tw)。
+    //    過期快照(例如頁面多日未開, 上一筆快照停在更早之前)一律不採用,
+    //    否則會把「多日累積變動」誤算成「今日變動」(週末/連假尤其明顯)。
+    if(dailySnapshots[playerIndex]){
+        const daySnap = dailySnapshots[playerIndex][prevTradingDate];
+        const snap = daySnap && (daySnap.us || daySnap.tw);
+        if(snap && snap.netValue != null){
+            return { netValue: snap.netValue, date: prevTradingDate, currency: snap.currency };
+        }
+    }
+
+    // 2) 前一交易日無快照 → 以該交易日收盤價即時計算淨值作為基準 (與 takeDailySnapshot 同邏輯)
+    const p = participants[playerIndex];
+    if(p){
+        const baseNet = calcNetValueOnDate(p, prevTradingDate, false);
+        if(baseNet != null && !isNaN(baseNet)){
+            return { netValue: baseNet, date: prevTradingDate, currency: p.currency };
+        }
+    }
+    return null;
 }
 
 // ── 判斷目前是否落在「收盤定錨視窗」內 ───
@@ -1071,8 +1165,9 @@ function getTaipeiToday(){
 function getSnapshotWindow(){
     const tp = new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Taipei'}));
     const min = tp.getHours()*60 + tp.getMinutes();
-    // 美股收盤定錨視窗: 03:55–04:30 (含夏令/標準時切換的容錯)
-    if(min >= 235 && min < 270) return 'us';
+    const usClose = getUSCloseMinTaipei();              // 夏令 240 / 標準時 300
+    // 美股收盤定錨視窗: 收盤前 5 分 ~ 收盤後 30 分 (隨夏令/標準時自動平移)
+    if(min >= usClose - 5 && min < usClose + 30) return 'us';
     // 台股收盤定錨視窗: 13:55–14:30
     if(min >= 835 && min < 870) return 'tw';
     return null;
@@ -1081,13 +1176,16 @@ function getSnapshotWindow(){
 // 取得目前(或最近一次)應寫入的視窗描述,用於 UI 顯示
 function getWindowStatusText(){
     const w = getSnapshotWindow();
-    if(w === 'us') return '🔴 美股收盤窗開啟中 (04:00 結算)';
+    const usClose = getUSCloseMinTaipei();
+    const usWinStart = usClose - 5;
+    const closeStr = `${String(Math.floor(usClose/60)).padStart(2,'0')}:00`;
+    if(w === 'us') return `🔴 美股收盤窗開啟中 (${closeStr} 結算)`;
     if(w === 'tw') return '🔴 台股收盤窗開啟中 (14:00 結算)';
     const tp = new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Taipei'}));
     const min = tp.getHours()*60 + tp.getMinutes();
-    if(min < 235)        return `⏳ 等待美股收盤窗 (還剩 ${Math.floor((235-min)/60)}h${(235-min)%60}m)`;
+    if(min < usWinStart) return `⏳ 等待美股收盤窗 (還剩 ${Math.floor((usWinStart-min)/60)}h${(usWinStart-min)%60}m)`;
     if(min < 835)        return `⏳ 等待台股收盤窗 (還剩 ${Math.floor((835-min)/60)}h${(835-min)%60}m)`;
-    const nextDay = (24*60 + 235) - min;
+    const nextDay = (24*60 + usWinStart) - min;
     return `⏳ 等待明日美股收盤窗 (還剩 ${Math.floor(nextDay/60)}h${nextDay%60}m)`;
 }
 
@@ -1099,16 +1197,18 @@ async function takeDailySnapshot(){
         // 非視窗時段,完全不寫
         return;
     }
-    const today = getTaipeiToday();
+    // 收盤快照鍵的「交易日」: 美股窗用美東日期(=該盤交易日,不受台北換日影響);台股窗用台北日期
+    const snapDay = (win === 'us') ? getUSTradingDate() : getTaipeiToday();
     const updates = {};
     let writeCount = 0;
     participants.forEach((p,i)=>{
-        const existingDay = dailySnapshots[i]?.[today];
+        const existingDay = dailySnapshots[i]?.[snapDay];
         // 已有真實(非 backfilled)的該視窗快照,鎖定不覆寫
         const existingWin = existingDay?.[win];
         if(existingWin && !existingWin.backfilled) return;
-        const netVal = calcCurrentNetValue(p);
-        updates[`dailySnapshots/${i}/${today}/${win}`] = {
+        // 使用該交易日收盤價計算淨值(含當日持股未實現損益、持倉期間內已平倉未實現損益)
+        const netVal = calcNetValueOnDate(p, snapDay, false);
+        updates[`dailySnapshots/${i}/${snapDay}/${win}`] = {
             netValue: netVal,
             currency: p.currency,
             initCap: getFixedInitialCapital(p.currency),
@@ -1123,7 +1223,7 @@ async function takeDailySnapshot(){
     }
     try{
         await db.ref().update(updates);
-        console.log(`📸 ${win.toUpperCase()} 收盤快照寫入 ${today}: ${writeCount} 位玩家`);
+        console.log(`📸 ${win.toUpperCase()} 收盤快照寫入 ${snapDay}: ${writeCount} 位玩家`);
     }catch(e){
         console.warn('快照寫入失敗:', e.message);
     }
@@ -1194,7 +1294,8 @@ async function backfillHistoricalSnapshots(){
             const hasRealFlat = ex && typeof ex.netValue==='number' && !ex.backfilled;
             if(hasRealUS || hasRealFlat) continue;
 
-            const netVal = initCap + cumPnl;
+            // 使用 calcNetValueOnDate 計算該日完整淨值(含當日持股未實現損益、持倉期間內已平倉未實現損益)
+            const netVal = calcNetValueOnDate(p, date, false);
             updates[`dailySnapshots/${idx}/${date}/us`] = {
                 netValue: netVal,
                 currency: p.currency,
@@ -1355,12 +1456,21 @@ async function refreshStockHistory(){
 function getStockCloseOnOrBefore(ticker, dateStr){
     const hist = stockHistory[ticker] || [];
     if(!hist.length) return null;
+    // 先找歷史資料中 <= dateStr 的最新收盤價
     let result = null;
     for(let i=0;i<hist.length;i++){
         if(hist[i].date <= dateStr){
             result = hist[i].close;
         } else {
             break;
+        }
+    }
+    // 若查詢日期晚於最新可用歷史日期 (代表該日歷史收盤尚未出爐)，改用即時股票的 currentPrice (正規盤收盤價)
+    const latestHistDate = hist.length ? hist[hist.length-1].date : null;
+    if(latestHistDate && dateStr > latestHistDate){
+        const p = participants.flatMap(p=>p.stocks||[]).find(s=>s.ticker===ticker);
+        if(p && p.currentPrice && p.currentPrice > 0){
+            return p.currentPrice;
         }
     }
     return result;
@@ -1502,95 +1612,12 @@ function renderPerformanceChart(){
     const datasets = [];
     participants.forEach((p, idx)=>{
         const initCap = getFixedInitialCapital(p.currency);
-        const trades = Array.isArray(p.trades) ? p.trades : [];
-        const stocks = Array.isArray(p.stocks) ? p.stocks : [];
-        // 交易已實現損益: 用 ticker 判定幣別後換算到記帳幣別
-        const tradesByDate = trades.map(t => ({
-            date: normalizeDate(t.date || ''),
-            pnl: convertCurrency(parseFloat(t.pnl)||0, getStockCurrency(t.ticker), p.currency)
-        })).filter(t => t.date).sort((a,b) => a.date.localeCompare(b.date));
-
-        // 預先把每支持股展開成 lot 陣列, 每個 lot 都帶 ticker 上層資訊
-        const stockInfo = stocks.map(s => {
-            const lots = (Array.isArray(s.lots)&&s.lots.length>0) ? s.lots : [{
-                shares: s.shares, buyPrice: s.buyPrice, buyDate: s.buyDate
-            }];
-            return {
-                ticker: s.ticker || '',
-                currency: getStockCurrency(s.ticker) || s.currency || p.currency,
-                session: s.session || '',
-                currentPrice: parseFloat(s.currentPrice) || 0,
-                prePrice: parseFloat(s.prePrice) || 0,
-                postPrice: parseFloat(s.postPrice) || 0,
-                lots: lots.map(lot => ({
-                    shares: parseFloat(lot.shares) || 0,
-                    buyPrice: parseFloat(lot.buyPrice) || 0,
-                    buyDate: normalizeDate(lot.buyDate || '')
-                }))
-            };
-        });
-
-        // ── 已平倉交易的「持倉視窗」: 在 [建倉日, 平倉日) 期間以每日收盤價逐日定錨 ──
-        //    平倉日當天(含之後)改由上方 cumPnl 計入最終已實現損益, 故此處視窗為「左閉右開」避免重複計算
-        //    僅納入有完整 建倉日/平倉日/股數/成本 且 建倉日<平倉日 的紀錄
-        const closedHoldings = trades.map(t => {
-            const open  = normalizeDate(t.firstBuyDate || '');
-            const close = normalizeDate(t.date || '');
-            return {
-                ticker:   t.ticker || '',
-                currency: getStockCurrency(t.ticker) || p.currency,
-                shares:   parseFloat(t.shares)   || 0,
-                buyPrice: parseFloat(t.buyPrice) || 0,
-                open, close
-            };
-        }).filter(h => h.ticker && h.shares > 0 && h.buyPrice > 0 && h.open && h.close && h.open < h.close);
-
-        let cumPnl = 0;
-        let ti = 0;
+        // 每日報酬率曲線統一改用 calcNetValueOnDate() 計算,與「即時排名」「今日變動」共用同一套定錨邏輯:
+        //   每日淨值 = 初始本金 + 累積已實現損益(<=該日) + 當日持股未實現損益
+        //   「當前持股」依各 lot 的 buyDate 定錨; 「歷史交易紀錄」依 [建倉日, 平倉日) 持倉視窗定錨
+        //   最後一個交易日(端點)改用即時價(含夜盤/盤後),其餘日子用該日(或之前最近)收盤價
         const data = allDates.map(date => {
-            while(ti < tradesByDate.length && tradesByDate[ti].date <= date){
-                cumPnl += tradesByDate[ti].pnl;
-                ti++;
-            }
-            const isLastPoint = (date === lastTradingDayStr);
-
-            // 計算該日持股的未實現損益
-            let unrealized = 0;
-            stockInfo.forEach(s => {
-                if(!s.ticker) return;
-
-                let priceOnDate;
-                if(isLastPoint){
-                    priceOnDate = (s.session==='🌙 夜盤' && s.prePrice>0)  ? s.prePrice  :
-                                  (s.session==='🌆 盤後' && s.postPrice>0) ? s.postPrice :
-                                  s.currentPrice || getStockCloseOnOrBefore(s.ticker, date);
-                } else {
-                    priceOnDate = getStockCloseOnOrBefore(s.ticker, date);
-                }
-
-                // 逐 lot: 每筆 lot 只在自己的 buyDate <= date 才生效
-                s.lots.forEach(lot => {
-                    if(lot.shares <= 0) return;
-                    if(lot.buyDate && lot.buyDate > date) return;
-                    let useP = priceOnDate;
-                    if(!useP || useP <= 0) useP = lot.buyPrice;
-                    const unPnlRaw = lot.shares * (useP - lot.buyPrice);
-                    unrealized += convertCurrency(unPnlRaw, s.currency, p.currency);
-                });
-            });
-
-            // 已平倉交易: 持倉視窗 [建倉日, 平倉日) 內逐日以收盤價市值評估
-            //   - 平倉日當天(date >= close)不計, 改由 cumPnl 計入最終已實現損益, 避免重複
-            //   - 該日無收盤價(尚無日K)則略過, 不扭曲曲線
-            closedHoldings.forEach(h => {
-                if(date < h.open || date >= h.close) return;
-                const dayClose = getStockCloseOnOrBefore(h.ticker, date);
-                if(!dayClose || dayClose <= 0) return;
-                const mtmRaw = h.shares * (dayClose - h.buyPrice);
-                unrealized += convertCurrency(mtmRaw, h.currency, p.currency);
-            });
-
-            const netVal = initCap + cumPnl + unrealized;
+            const netVal = calcNetValueOnDate(p, date, date === lastTradingDayStr);
             return ((netVal - initCap) / initCap) * 100;
         });
 
@@ -1934,22 +1961,24 @@ function renderDashboard(){
         const valTWD=p.currency==='USD'?netVal*usdToTwd:netVal;
         const valUSD=p.currency==='TWD'?netVal/usdToTwd:netVal;
 
-        // ── 今日變動 (相較昨日淨值) ────────────────
-        // 昨日 = 賽程日期列表中最後一個 < 今日的日期
+        // ── 今日變動 (相較前一交易日美股收盤快照) ────────────────
+        // 基準 = 前一交易日 16:00 ET 的快照淨值 (已含當日收盤價)
+        // 當前淨值使用即時價格 (含盤前/盤後)，與該基準比較
+        // 嚴格：僅有「緊鄰前一交易日」的快照時才計算；否則顯示 --
         let dailyChange = 0, dailyChangePct = 0;
+        let prevCloseSnap = null;
         try {
-            const tradingDates = getAllTradingDates();
-            const todayStr = getTaipeiToday();
-            let yesterday = null;
-            for(let i=tradingDates.length-1;i>=0;i--){
-                if(tradingDates[i] < todayStr){ yesterday = tradingDates[i]; break; }
+            prevCloseSnap = getPrevUSCloseSnapshotNetValue(pIdx);
+            if(prevCloseSnap){
+                // 僅在有前一交易日快照時計算
+                dailyChange = netVal - prevCloseSnap.netValue;
+                dailyChangePct = prevCloseSnap.netValue !== 0 ? (dailyChange / prevCloseSnap.netValue) * 100 : 0;
+            } else {
+                // 無前一交易日快照 → 不顯示今日變動 (顯示 --)
+                dailyChange = 0;
+                dailyChangePct = 0;
             }
-            if(yesterday){
-                const yesterdayNetVal = calcNetValueOnDate(p, yesterday, false);
-                dailyChange = netVal - yesterdayNetVal;
-                dailyChangePct = yesterdayNetVal !== 0 ? (dailyChange / yesterdayNetVal) * 100 : 0;
-            }
-        } catch(e){ console.warn('today change calc fail:', e); }
+        } catch(e){ console.warn('today change calc fail:', e); dailyChange = 0; dailyChangePct = 0; }
         
         // ── 重新定義的現金水位 / 槓桿邏輯 ──
         // 用戶定義：現金水位 = 持股市值 - 帳戶淨值（正數=借款，負數=持有現金）
@@ -1978,7 +2007,8 @@ function renderDashboard(){
             initCapStr:fmtRaw(initCap,p.currency),
             netValueStr:fmtRaw(netVal,p.currency),
             dailyChange,
-            dailyChangePct
+            dailyChangePct,
+            dailyBaselineDate: prevCloseSnap ? prevCloseSnap.date : null  // 美股收盤快照日期
         });
 
         const holdHTML=stocks.length===0
@@ -2357,17 +2387,18 @@ function renderDashboard(){
                 ${hasLev?`<div class="leverage-bar-wrap"><div class="leverage-bar" style="width:${Math.min(usagePct,100).toFixed(0)}%"></div></div>`:''}
                 <div class="stat-row" style="margin-top:4px;"><span class="stat-label">已實現損益</span><span class="${realCls}">${realSign}${fmtRaw(Math.abs(realPnl),p.currency)}</span></div>
                 <div class="stat-row"><span class="stat-label">未實現損益（所有持股）</span><span class="font-bold mono ${upCls}">${upSign}${fmtRaw(totalUnPnl,p.currency)}</span></div>
+                ${prevCloseSnap ? `<div class="stat-row" style="margin-top:4px;"><span class="stat-label">今日變動 (vs ${prevCloseSnap.date} 收盤)</span><span class="font-bold mono ${dailyChange>=0?'text-emerald-400':'text-red-400'}">${dailyChange>=0?'▲':'▼'} ${fmtRaw(Math.abs(dailyChange),p.currency)} (${dailyChange>=0?'▲':'▼'} ${Math.abs(dailyChangePct).toFixed(2)}%)</span></div>` : ''}
                 
                 <div class="stat-row" style="margin-top:4px; padding-top:4px; border-top:1px solid rgba(31,31,36,.6);"><span class="stat-label">交易成本 <span style="color:var(--text-muted);font-size:10px;">(手續費+證交稅+利息)</span></span><span class="mono text-slate-400">${totalFeeTax > 0 ? '-' : ''}${fmtRaw(totalFeeTax, p.currency)}</span></div>
             </div>
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:8px;">
                 <h4 style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;">當前持倉（${stocks.length}/${MAX_STOCKS}）</h4>
                 <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
-                    <button id="lockbtn-${p.name}" class="btn-lock ${unlockedCards[p.name]?'unlocked':''}" onclick="toggleLock('${p.name}')">${unlockedCards[p.name]?'🔓 鎖定':'🔒 解鎖'}</button>
+                    ${renderLockBtn(p.name)}
                     <button onclick="requestEdit('${p.name}')" class="btn-update">更改部位</button>
                 </div>
             </div>
-            <div class="lock-zone ${unlockedCards[p.name]?'':'locked'}" data-player="${p.name}">
+            <div class="lock-zone ${isCardLocked(p.name)?'locked':''}" data-player="${p.name}">
                 <div class="lock-content">
                     ${pieHTML}
                     ${holdHTML}
@@ -2471,63 +2502,119 @@ function editName(oldName){
 function closeModal(){document.getElementById('editModal').classList.remove('open');document.getElementById('stockSlots').innerHTML='';}
 
 // ── 密碼鎖（當前持倉 + 歷史交易 霧面玻璃遮罩）──────────
-// 解鎖狀態僅存在於本機瀏覽器(記憶體), 重新整理後預設回到「鎖定」
+// 鎖定為「選擇性」: 玩家可不設密碼(完全公開), 或自設 4 位數密碼啟用鎖定。
+// 解鎖狀態僅存在於本機瀏覽器(記憶體), 重新整理後若有密碼則回到「鎖定」。
 const unlockedCards = {};
-// 取得某玩家的密碼(預設 0000)
+// 鎖頭圖示(SVG)
+const LOCK_ICON_CLOSED = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>`;
+const LOCK_ICON_OPEN   = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 7.7-1.6"/></svg>`;
+// 此玩家是否已設定 4 位數密碼(= 啟用鎖定)
+function hasCardPwd(name){
+    const p = participants.find(x=>x.name===name);
+    const v = p && p.lockPwd != null ? String(p.lockPwd) : '';
+    return /^\d{4}$/.test(v);
+}
+// 取得密碼(未設定回傳空字串)
 function getCardPwd(name){
     const p = participants.find(x=>x.name===name);
-    const v = p && p.lockPwd != null ? String(p.lockPwd) : '0000';
-    return /^\d{4}$/.test(v) ? v : '0000';
+    const v = p && p.lockPwd != null ? String(p.lockPwd) : '';
+    return /^\d{4}$/.test(v) ? v : '';
+}
+// 該卡片目前是否「鎖定中」(= 有密碼且尚未在本機解鎖)
+function isCardLocked(name){
+    return hasCardPwd(name) && !unlockedCards[name];
+}
+// 產生鎖頭按鈕(渲染卡片時呼叫)
+function renderLockBtn(name){
+    const hasPwd = hasCardPwd(name);
+    const locked = hasPwd && !unlockedCards[name];
+    let cls, icon, title;
+    if(locked){ cls='locked'; icon=LOCK_ICON_CLOSED; title='已鎖定 · 點擊輸入密碼解鎖'; }
+    else if(hasPwd){ cls='unlocked'; icon=LOCK_ICON_OPEN; title='已解鎖 · 點擊立即鎖定'; }
+    else { cls='nopwd'; icon=LOCK_ICON_OPEN; title='未設定密碼鎖 · 點擊設定 4 位數密碼以鎖定'; }
+    return `<button id="lockbtn-${name}" class="btn-lock-icon ${cls}" title="${title}" aria-label="${title}" onclick="toggleLock('${name}')">${icon}</button>`;
 }
 // 即時切換某張卡片的鎖定外觀(不重繪整個 dashboard)
 function applyLockUI(name){
-    const unlocked = !!unlockedCards[name];
+    const locked = isCardLocked(name);
     document.querySelectorAll(`.lock-zone[data-player="${CSS.escape(name)}"]`).forEach(z=>{
-        z.classList.toggle('locked', !unlocked);
+        z.classList.toggle('locked', locked);
     });
     const btn = document.getElementById('lockbtn-'+name);
     if(btn){
-        btn.classList.toggle('unlocked', unlocked);
-        btn.textContent = unlocked ? '🔓 鎖定' : '🔒 解鎖';
+        const hasPwd = hasCardPwd(name);
+        btn.classList.remove('locked','unlocked','nopwd');
+        if(locked){ btn.classList.add('locked'); btn.innerHTML=LOCK_ICON_CLOSED; btn.title='已鎖定 · 點擊輸入密碼解鎖'; }
+        else if(hasPwd){ btn.classList.add('unlocked'); btn.innerHTML=LOCK_ICON_OPEN; btn.title='已解鎖 · 點擊立即鎖定'; }
+        else { btn.classList.add('nopwd'); btn.innerHTML=LOCK_ICON_OPEN; btn.title='未設定密碼鎖 · 點擊設定 4 位數密碼以鎖定'; }
+        btn.setAttribute('aria-label', btn.title);
     }
 }
-// 點擊鎖定按鈕: 已解鎖→立即鎖定; 已鎖定→開啟解鎖視窗
+// 點擊鎖頭按鈕:
+//   未設定密碼 → 開啟「設定密碼」視窗(設定後即啟用鎖定)
+//   已解鎖     → 立即重新鎖定(免輸入)
+//   已鎖定     → 開啟解鎖視窗(亦可直接點下方遮罩)
 function toggleLock(name){
-    if(unlockedCards[name]){
+    if(!hasCardPwd(name)){
+        openLockModal(name, 'set');
+    } else if(unlockedCards[name]){
         unlockedCards[name] = false;
         applyLockUI(name);
+        setStatus('ok','🔒 已鎖定 '+name+' 的持倉與交易紀錄');
     } else {
         openLockModal(name, 'unlock');
     }
 }
-// 更改部位 / 新增交易 前的鎖定攔截
+// 更改部位 / 新增交易 前的鎖定攔截(未設密碼=不鎖定,直接放行)
 function requestEdit(name){
-    if(unlockedCards[name]) openModal(name);
+    if(!isCardLocked(name)) openModal(name);
     else openLockModal(name, 'unlock');
 }
 function requestAddTrade(name){
-    if(unlockedCards[name]) openTradeModal(name);
+    if(!isCardLocked(name)) openTradeModal(name);
     else openLockModal(name, 'unlock');
 }
 // 開啟密碼視窗
 function openLockModal(name, view){
     document.getElementById('lockTargetName').value = name;
-    ['pinUnlock','pinCurrent','pinNew','pinConfirm'].forEach(id=>{const e=document.getElementById(id); if(e){e.value='';e.classList.remove('err');}});
-    document.getElementById('lockMsgUnlock').textContent='';
-    document.getElementById('lockMsgChange').textContent='';
+    ['pinUnlock','pinCurrent','pinNew','pinConfirm','pinSetNew','pinSetConfirm'].forEach(id=>{const e=document.getElementById(id); if(e){e.value='';e.classList.remove('err');}});
+    ['lockMsgSet','lockMsgUnlock','lockMsgChange'].forEach(id=>{const e=document.getElementById(id); if(e){e.textContent=''; e.style.color='var(--accent-red)';}});
+    // 未設定密碼者只能進入「設定」視窗
+    if(view!=='set' && !hasCardPwd(name)) view='set';
     lockSwitchView(view||'unlock');
     document.getElementById('lockModal').classList.add('open');
-    setTimeout(()=>{const f=document.getElementById(view==='change'?'pinCurrent':'pinUnlock'); if(f) f.focus();},60);
 }
 function closeLockModal(){document.getElementById('lockModal').classList.remove('open');}
 function lockSwitchView(view){
+    const isSet = view==='set';
     const isChange = view==='change';
-    document.getElementById('lockViewUnlock').style.display = isChange?'none':'block';
+    const isUnlock = !isSet && !isChange;
+    document.getElementById('lockViewSet').style.display    = isSet?'block':'none';
+    document.getElementById('lockViewUnlock').style.display = isUnlock?'block':'none';
     document.getElementById('lockViewChange').style.display = isChange?'block':'none';
-    document.getElementById('lockModalTitle').textContent = isChange?'🔑 變更密碼':'🔒 解鎖';
-    document.getElementById('lockMsgUnlock').textContent='';
-    document.getElementById('lockMsgChange').textContent='';
-    setTimeout(()=>{const f=document.getElementById(isChange?'pinCurrent':'pinUnlock'); if(f) f.focus();},50);
+    document.getElementById('lockModalTitle').textContent = isSet?'🔒 設定密碼鎖' : (isChange?'🔑 變更 / 移除密碼':'🔒 解鎖');
+    ['lockMsgSet','lockMsgUnlock','lockMsgChange'].forEach(id=>{const e=document.getElementById(id); if(e){e.textContent=''; e.style.color='var(--accent-red)';}});
+    const focusId = isSet?'pinSetNew':(isChange?'pinCurrent':'pinUnlock');
+    setTimeout(()=>{const f=document.getElementById(focusId); if(f) f.focus();},50);
+}
+// 設定密碼(首次啟用鎖定)
+function submitSetPwd(){
+    const name = document.getElementById('lockTargetName').value;
+    const neo = (document.getElementById('pinSetNew').value||'').trim();
+    const conf = (document.getElementById('pinSetConfirm').value||'').trim();
+    const msg = document.getElementById('lockMsgSet');
+    const shake = id=>{const e=document.getElementById(id); e.classList.add('err'); setTimeout(()=>e.classList.remove('err'),400);};
+    if(!/^\d{4}$/.test(neo)){ shake('pinSetNew'); msg.textContent='密碼須為 4 位數字'; return; }
+    if(neo !== conf){ shake('pinSetConfirm'); msg.textContent='兩次密碼不一致'; return; }
+    const pi = participants.findIndex(x=>x.name===name);
+    if(pi === -1){ msg.textContent='找不到玩家'; return; }
+    participants[pi].lockPwd = neo;
+    db.ref('competitionData/'+pi+'/lockPwd').set(neo);
+    unlockedCards[name] = false;   // 設定完成 → 立即鎖定
+    applyLockUI(name);
+    msg.style.color='var(--accent-green)'; msg.textContent='✓ 已設定密碼並鎖定';
+    setStatus('ok','🔒 已啟用 '+name+' 的密碼鎖');
+    setTimeout(()=>{ msg.style.color='var(--accent-red)'; closeLockModal(); },700);
 }
 // 解鎖
 function submitUnlock(){
@@ -2540,7 +2627,7 @@ function submitUnlock(){
         unlockedCards[name] = true;
         applyLockUI(name);
         closeLockModal();
-        setStatus('ok','🟢 已解鎖 '+name+' 的持倉與交易紀錄');
+        setStatus('ok','🔓 已解鎖 '+name+' 的持倉與交易紀錄');
     } else {
         input.classList.add('err'); input.value=''; msg.textContent='密碼錯誤，請重試';
         setTimeout(()=>input.classList.remove('err'),400); input.focus();
@@ -2561,9 +2648,28 @@ function submitChangePwd(){
     if(pi === -1){ msg.textContent='找不到玩家'; return; }
     participants[pi].lockPwd = neo;
     db.ref('competitionData/'+pi+'/lockPwd').set(neo);
+    applyLockUI(name);
     msg.style.color = 'var(--accent-green)';
     msg.textContent = '✓ 密碼已更新';
     setStatus('loading','🟡 密碼更新中...');
+    setTimeout(()=>{ msg.style.color='var(--accent-red)'; closeLockModal(); },800);
+}
+// 移除密碼鎖(需通過現有密碼驗證) → 回到「公開、不鎖定」
+function submitRemoveLock(){
+    const name = document.getElementById('lockTargetName').value;
+    const cur = (document.getElementById('pinCurrent').value||'').trim();
+    const msg = document.getElementById('lockMsgChange');
+    const shake = id=>{const e=document.getElementById(id); e.classList.add('err'); setTimeout(()=>e.classList.remove('err'),400);};
+    if(cur !== getCardPwd(name)){ shake('pinCurrent'); msg.textContent='請先輸入目前密碼以移除密碼鎖'; return; }
+    const pi = participants.findIndex(x=>x.name===name);
+    if(pi === -1){ msg.textContent='找不到玩家'; return; }
+    participants[pi].lockPwd = null;
+    db.ref('competitionData/'+pi+'/lockPwd').remove();
+    unlockedCards[name] = true;   // 無密碼 → 視為公開
+    applyLockUI(name);
+    msg.style.color = 'var(--accent-green)';
+    msg.textContent = '✓ 已移除密碼鎖（公開顯示）';
+    setStatus('ok','🔓 已移除 '+name+' 的密碼鎖');
     setTimeout(()=>{ msg.style.color='var(--accent-red)'; closeLockModal(); },800);
 }
 
@@ -3622,12 +3728,21 @@ const IDLE_CHECK_INTERVAL = 30;  // 非交易時段每 30 秒檢查一次是否�
 let refreshTimer = null;
 let nextRefreshIn = REFRESH_INTERVAL;
 
-// 是否落在「持倉/淨值更新時段」內
+// 是否落在「持倉/淨值更新時段」內 (週末休市不刷新)
 function isActiveRefreshWindow(){
     const tp = new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Taipei'}));
+    const day = tp.getDay();                       // 0=週日 ... 6=週六
     const mins = tp.getHours()*60 + tp.getMinutes();
-    const twWindow = mins >= (9*60) && mins <= (13*60+31);   // 09:00 ~ 13:31
-    const usWindow = mins >= (16*60) || mins <= (4*60);      // 16:00 ~ 隔日 04:00
+    // 台股 09:00~13:31，僅週一至週五
+    const twWindow = (day>=1 && day<=5) && (mins >= (9*60) && mins <= (13*60+31));
+    // 美股相關時段(台北時間)：
+    //   傍晚段 16:00~24:00 → 屬於「當日」開始的美股盤 → 當日須為週一至週五
+    //   清晨段 00:00~04:00 → 屬於「前一日」美股盤的延續 → 前一日須為週一至週五
+    //     (例: 週六 00:00~04:00 仍是週五美股盤, 維持刷新; 週日/週一清晨則休市)
+    const prevDay = (day + 6) % 7;                  // 前一天的星期
+    const usEvening = (mins >= 16*60) && (day>=1 && day<=5);
+    const usMorning = (mins <= 4*60)  && (prevDay>=1 && prevDay<=5);
+    const usWindow = usEvening || usMorning;
     return twWindow || usWindow;
 }
 
@@ -3749,8 +3864,52 @@ setInterval(refreshStockHistory, 30 * 60 * 1000);
 // 「市場」大盤即時價格 → 每小時更新一次 (含 BTC/Gold)
 setInterval(refreshBenchmarks, 60 * 60 * 1000);
 
-// 每秒更新美股開盤倒數
-setInterval(updateMarketCountdown, 1000);
+// ── 更新市場時段指示器 (每秒) ─────────────────
+function updateMarketSessionIndicator(){
+    const el = document.getElementById('market-session-indicator');
+    if(!el) return;
+    const now = new Date();
+    const et = new Date(now.toLocaleString('en-US',{timeZone:'America/New_York'}));
+    const h = et.getHours(), m = et.getMinutes(), day = et.getDay();
+    const totalMin = h*60 + m;
+    const isWeekday = day>=1 && day<=5;
+    const todayET = `${et.getFullYear()}-${String(et.getMonth()+1).padStart(2,'0')}-${String(et.getDate()).padStart(2,'0')}`;
+    const isHoliday = US_MARKET_HOLIDAYS.has(todayET);
+    
+    let session = '', sessionColor = '', detail = '';
+    
+    if(!isWeekday || isHoliday){
+        session = isHoliday ? '💤 休市(假日)' : '💤 週末休市';
+        sessionColor = 'var(--text-muted)';
+    } else if(totalMin >= 240 && totalMin < 570){  // 04:00-09:30 ET 盤前
+        session = '🌙 盤前';
+        sessionColor = 'var(--accent-cyan)';
+        detail = '今日變動基準：前一交易日 16:00 收盤快照';
+    } else if(totalMin >= 570 && totalMin < 960){  // 09:30-16:00 ET 盤中
+        session = '🔔 盤中';
+        sessionColor = 'var(--accent-green)';
+        detail = '今日變動基準：前一交易日 16:00 收盤快照';
+    } else if(totalMin >= 960 && totalMin < 1200){  // 16:00-20:00 ET 盤後
+        session = '🌆 盤後';
+        sessionColor = 'var(--accent-amber)';
+        detail = '今日變動基準：今日 16:00 收盤快照(視窗內寫入中)';
+    } else {
+        session = '💤 休市';
+        sessionColor = 'var(--text-muted)';
+    }
+    
+    const etStr = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')} ET`;
+    const isDST = getETOffsetHours() === 4;
+    const zoneLabel = isDST ? 'EDT (夏令)' : 'EST (冬令)';
+    
+    el.innerHTML = `<span style="color:${sessionColor};font-weight:600;">${session}</span> ｜ <span style="color:var(--text-secondary);">${etStr} (${zoneLabel})</span> ｜ <span style="color:var(--text-muted);font-size:11px;">${detail}</span>`;
+}
+
+// 每秒更新美股開盤倒數 + 市場時段指示器
+setInterval(()=>{
+    updateMarketCountdown();
+    updateMarketSessionIndicator();
+}, 1000);
 </script>
 </body>
 </html>
