@@ -113,7 +113,7 @@
         .btn-del:hover{color:var(--accent-red);}
         .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);backdrop-filter:blur(8px);align-items:center;justify-content:center;z-index:50;}
         .modal-overlay.open{display:flex;}
-        .modal-box{background:var(--bg-card);border:1px solid var(--border-bright);border-radius:16px;padding:28px;width:580px;max-height:92vh;overflow-y:auto;
+        .modal-box{background:var(--bg-card);border:1px solid var(--border-bright);border-radius:16px;padding:28px;width:min(580px,94vw);max-height:92vh;overflow-y:auto;
             box-shadow:0 1px 0 0 rgba(255,255,255,.03) inset, 0 25px 70px rgba(0,0,0,.8);}
         .modal-label{font-size:11px;font-weight:600;color:var(--text-secondary);letter-spacing:.05em;text-transform:uppercase;margin-bottom:6px;display:block;}
         .modal-input{width:100%;background:var(--bg-input);border:1px solid var(--border);color:var(--text-primary);padding:9px 12px;border-radius:7px;font-size:14px;font-family:'Inter',sans-serif;outline:none;transition:border-color .2s,box-shadow .2s;}
@@ -166,6 +166,19 @@
         .holding-pie-ticker{font-family:'IBM Plex Mono',monospace;font-weight:600;color:var(--text-primary);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0;}
         .holding-pie-pct{font-family:'IBM Plex Mono',monospace;font-weight:700;color:var(--text-secondary);font-size:12px;flex-shrink:0;}
         .holding-pie-empty{padding:20px;text-align:center;color:var(--text-muted);font-size:12px;}
+        /* ── 手機 RWD ───────────────────────── */
+        @media (max-width:640px){
+            .modal-box{padding:18px;border-radius:13px;max-height:90vh;}
+            .rank-card{padding:11px 13px;}
+            .rank-card span[style*="1.6rem"]{font-size:1.25rem !important;}
+            .benchmark-card{padding:10px 13px;}
+            .portfolio-card{padding:14px;}
+            .countdown-badge{padding:6px 16px;font-size:13px;}
+            .pin-input{font-size:22px;}
+            .holding-pie-canvas-wrap{width:108px;height:108px;}
+            header h1{font-size:1.6rem !important;}
+            #market-session-indicator{line-height:1.7;}
+        }
     </style>
 </head>
 <body class="p-4 md:p-8">
@@ -175,7 +188,12 @@
         <h1 class="text-4xl md:text-5xl font-bold text-white mb-1 header-glow">🏆 投資績效大賽</h1>
         <p class="text-slate-400 mt-2 tracking-wide" id="player-names">載入中...</p>
         <div class="mt-5"><div class="countdown-badge"><span class="text-blue-300 font-semibold text-sm">⏱ 賽程倒數</span><span class="text-white font-bold ml-2 mono" id="countdown">計算中...</span></div></div>
-        <div class="mt-4"><span id="system-status" class="status-pill status-loading">🟡 系統連線中...</span></div>
+        <div class="mt-4" style="display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;">
+            <span id="system-status" class="status-pill status-loading">🟡 系統連線中...</span>
+            <button onclick="exportBackup()" class="btn-update" style="font-size:11px;padding:5px 12px;" title="下載整個資料庫的 JSON 備份檔">💾 備份</button>
+            <button onclick="document.getElementById('backupFileInput').click()" class="btn-update" style="font-size:11px;padding:5px 12px;" title="從 JSON 備份檔還原資料">📂 還原</button>
+            <input type="file" id="backupFileInput" accept=".json,application/json" style="display:none;" onchange="importBackup(this)">
+        </div>
         <div class="mt-3" id="market-session-indicator" style="font-size:12px;"></div>
     </header>
     <section class="card p-6 mb-8">
@@ -217,7 +235,7 @@
 </div>
 
 <div id="pokerModal" class="modal-overlay" style="z-index:70">
-    <div class="modal-box" style="width:380px;">
+    <div class="modal-box" style="width:min(380px,94vw);">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
             <h2 class="text-lg font-bold text-white">新增打牌紀錄</h2>
             <button onclick="closePokerModal()" class="text-slate-500 hover:text-white text-xl leading-none">&times;</button>
@@ -270,7 +288,7 @@
 </div>
 
 <div id="lockModal" class="modal-overlay" style="z-index:70">
-    <div class="modal-box" style="width:380px;">
+    <div class="modal-box" style="width:min(380px,94vw);">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;">
             <h2 class="text-lg font-bold text-white" id="lockModalTitle">🔒 解鎖</h2>
             <button onclick="closeLockModal()" class="text-slate-500 hover:text-white text-xl leading-none">&times;</button>
@@ -292,7 +310,7 @@
         <!-- 解鎖視圖 -->
         <div id="lockViewUnlock">
             <p style="font-size:12px;color:var(--text-secondary);margin-bottom:12px;line-height:1.5;">請輸入此玩家的 4 位數字密碼以顯示「當前持倉」與「歷史交易紀錄」。</p>
-            <input id="pinUnlock" class="pin-input" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="••••" autocomplete="off" onkeydown="if(event.key==='Enter')submitUnlock()">
+            <input id="pinUnlock" class="pin-input" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="••••" autocomplete="off" onkeydown="if(event.key==='Enter')submitUnlock()" oninput="if(this.value.length===4)submitUnlock()">
             <div id="lockMsgUnlock" class="lock-msg" style="margin-top:10px;color:var(--accent-red);"></div>
             <div style="display:flex;justify-content:space-between;align-items:center;margin-top:14px;">
                 <button class="lock-link" onclick="lockSwitchView('change')">🔑 變更密碼</button>
@@ -324,7 +342,7 @@
 </div>
 
 <div id="tradeModal" class="modal-overlay" style="z-index:60">
-    <div class="modal-box" style="width:420px;">
+    <div class="modal-box" style="width:min(420px,94vw);">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
             <h2 class="text-lg font-bold text-white" id="tradeModalTitle">新增交易紀錄</h2>
             <button onclick="closeTradeModal()" class="text-slate-500 hover:text-white text-xl leading-none">&times;</button>
@@ -395,7 +413,7 @@
 
 <!-- 平倉 Modal -->
 <div id="closePositionModal" class="modal-overlay" style="z-index:65">
-    <div class="modal-box" style="width:460px;">
+    <div class="modal-box" style="width:min(460px,94vw);">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;">
             <h2 class="text-lg font-bold text-white">⚡ 平倉持股</h2>
             <button onclick="closeClosePositionModal()" class="text-slate-500 hover:text-white text-xl leading-none">&times;</button>
@@ -491,10 +509,16 @@
 const firebaseConfig={apiKey:"AIzaSyB0JZSBEgE11JQvPINRIHkztapNazgCrPU",authDomain:"investment-competition.firebaseapp.com",databaseURL:"https://investment-competition-default-rtdb.firebaseio.com",projectId:"investment-competition",storageBucket:"investment-competition.firebasestorage.app",messagingSenderId:"1086646313342",appId:"1:1086646313342:web:8a4607827ade76528a532f"};
 if(!firebase.apps.length)firebase.initializeApp(firebaseConfig);
 const db=firebase.database();
-const FINNHUB_KEY='d7tibnpr01qugn0ann00d7tibnpr01qugn0ann0g';
+// ── API 代理 (所有第三方金鑰均存於 Cloudflare Worker Secrets, 前端不再持有任何 key) ──
+const CF_PROXY='https://yf-proxy.steven961205.workers.dev';
 
 // ── 請求節流工具 (避免 Yahoo 429 Too Many Requests) ──────────
 const sleep = ms => new Promise(r=>setTimeout(r, ms));
+// ── XSS 防護: 所有來自 Firebase / 外部 API 的字串進入 innerHTML 前必須跳脫 ──
+// esc():   用於 HTML 內文與屬性值
+// escJs(): 用於 onclick="fn('...')" 內的 JS 字串字面值 (同時對 HTML 屬性安全)
+function esc(s){return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+function escJs(s){return String(s??'').replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'\\u0022').replace(/</g,'\\u003c').replace(/>/g,'\\u003e').replace(/&/g,'\\u0026');}
 // 併發限制: 同時最多 limit 個請求, 每批之間 gap 毫秒
 async function mapLimit(items, limit, gap, worker){
     const results = new Array(items.length);
@@ -526,8 +550,6 @@ async function fetchYF(proxyUrl, timeout=12000, retries=3){
         }
     }
 }
-const TIINGO_KEY='7329af027abffaca87bb56a2764ef4e81c78f481';
-const FUGLE_KEY='NTYwZmE2MjMtMTY3Ny00N2U3LTlkOGMtMTUxMmIxNTYyNmI4IDFhN2I2ZGQ2LTY2MzQtNGI0Yi1hYmE0LTI5YzZmYTE1ZjM4Zg==';
 const MAX_STOCKS=20;
 const BENCHMARK_START_DATE='2026-05-04'; // 大盤對照起始日
 
@@ -564,6 +586,20 @@ const TW_MARKET_HOLIDAYS = new Set([
     '2026-10-09', // 國慶日 (補假)
     '2026-10-26'  // 台灣光復節 (補假)
 ]);
+
+// ── 假日表過期偵測: 表中只涵蓋到特定年度, 跨年後提醒手動更新, 避免無聲失效 ──
+(function checkHolidayTableCoverage(){
+    const maxYear = Math.max(...[...US_MARKET_HOLIDAYS, ...TW_MARKET_HOLIDAYS].map(d=>parseInt(d.slice(0,4))));
+    const nowYear = new Date().getFullYear();
+    if(nowYear > maxYear){
+        console.warn(`⚠️ 假日表僅涵蓋至 ${maxYear} 年, 現在已是 ${nowYear} 年, 假日判斷將失效, 請更新 US_MARKET_HOLIDAYS / TW_MARKET_HOLIDAYS`);
+        setTimeout(()=>{
+            const el = document.getElementById('market-session-indicator');
+            if(el) el.insertAdjacentHTML('beforebegin',
+                `<div style="margin-top:8px;font-size:12px;color:var(--accent-amber);font-weight:600;">⚠️ 市場假日表僅涵蓋至 ${maxYear} 年，請更新程式中的休市日清單，否則假日將被誤判為交易日</div>`);
+        }, 1500);
+    }
+})();
 
 // 給定 YYYY-MM-DD 判斷是否為市場休市日 (含週末)
 function isMarketClosed(market, ymd){
@@ -752,7 +788,7 @@ function getMarketSession(){
     return '💤 休市';
 }
 async function fetchFinnhubPrice(ticker){
-    const CF='https://yf-proxy.steven961205.workers.dev';
+    const CF=CF_PROXY;
     const yfUrl=`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?interval=1m&range=1d&includePrePost=true`;
     try{
         const r=await fetchYF(`${CF}?url=${encodeURIComponent(yfUrl)}`,10000);
@@ -815,7 +851,7 @@ async function fetchFinnhubPrice(ticker){
     }catch(e){console.warn(`YF失敗(${ticker}):`,e.message);}
 
     try{
-        const r=await fetch(`https://finnhub.io/api/v1/quote?symbol=${encodeURIComponent(ticker)}&token=${FINNHUB_KEY}`,{signal:AbortSignal.timeout(8000)});
+        const r=await fetch(`${CF_PROXY}?api=finnhub&endpoint=quote&symbol=${encodeURIComponent(ticker)}`,{signal:AbortSignal.timeout(8000)});
         const d=await r.json();
         const price=(d.c&&d.c>0)?d.c:(d.pc>0?d.pc:null);
         if(price) return {price, prevClose:d.pc||null, postPrice:null, prePrice:null, session:'💤 休市', name:null};
@@ -834,8 +870,8 @@ async function fetchTWSEPrice(ticker){
 
     try{
         const r = await fetch(
-            `https://api.fugle.tw/marketdata/v1.0/stock/intraday/quote/${code}`,
-            { headers:{'X-API-KEY': FUGLE_KEY}, signal:AbortSignal.timeout(8000) }
+            `${CF_PROXY}?api=fugle&endpoint=intraday&code=${encodeURIComponent(code)}`,
+            { signal:AbortSignal.timeout(8000) }
         );
         if(r.ok){
             const d = await r.json();
@@ -856,8 +892,8 @@ async function fetchTWSEPrice(ticker){
         const past = new Date(today); past.setDate(past.getDate()-7);
         const pastStr = past.toISOString().slice(0,10);
         const r = await fetch(
-            `https://api.fugle.tw/marketdata/v1.0/stock/historical/candles/${code}?startDate=${pastStr}&endDate=${dateStr}&resolution=D`,
-            { headers:{'X-API-KEY': FUGLE_KEY}, signal:AbortSignal.timeout(8000) }
+            `${CF_PROXY}?api=fugle&endpoint=candles&code=${encodeURIComponent(code)}&startDate=${pastStr}&endDate=${dateStr}`,
+            { signal:AbortSignal.timeout(8000) }
         );
         if(r.ok){
             const d = await r.json();
@@ -1396,8 +1432,8 @@ async function fetchStockHistoryTW(ticker){
     const startStr = startD.toISOString().slice(0,10);
     try {
         const r = await fetch(
-            `https://api.fugle.tw/marketdata/v1.0/stock/historical/candles/${code}?startDate=${startStr}&endDate=${dateStr}&resolution=D`,
-            { headers:{'X-API-KEY': FUGLE_KEY}, signal:AbortSignal.timeout(12000) }
+            `${CF_PROXY}?api=fugle&endpoint=candles&code=${encodeURIComponent(code)}&startDate=${startStr}&endDate=${dateStr}`,
+            { signal:AbortSignal.timeout(12000) }
         );
         if(!r.ok) return [];
         const d = await r.json();
@@ -1866,7 +1902,7 @@ async function searchTickers(query){
         ];
     }
     try{
-        const r=await fetch(`https://finnhub.io/api/v1/search?q=${encodeURIComponent(query)}&token=${FINNHUB_KEY}`,{signal:AbortSignal.timeout(5000)});
+        const r=await fetch(`${CF_PROXY}?api=finnhub&endpoint=search&q=${encodeURIComponent(query)}`,{signal:AbortSignal.timeout(5000)});
         const d=await r.json();
         return(d?.result||[]).filter(q=>q.type==='Common Stock'||q.type==='ETP'||q.type==='ADR').slice(0,8).map(q=>({symbol:q.symbol,shortname:q.description,exchDisp:q.type}));
     }catch{return[];}
@@ -1909,6 +1945,58 @@ db.ref('competitionData').on('value',async snapshot=>{
 });
 
 function setStatus(type,msg){const el=document.getElementById('system-status');el.className=`status-pill status-${type}`;el.textContent=msg;}
+
+// ── 資料庫 JSON 備份 / 還原 ─────────────────────────────
+// 匯出: 抓取整個 RTDB 根節點 → 下載為帶時間戳的 JSON 檔
+async function exportBackup(){
+    try{
+        setStatus('loading','💾 正在產生備份...');
+        const snap = await db.ref('/').once('value');
+        const data = snap.val() || {};
+        const meta = { _backupMeta:{ exportedAt:new Date().toISOString(), source:'investment-battle/index.html' } };
+        const blob = new Blob([JSON.stringify({...meta, ...data}, null, 2)], {type:'application/json'});
+        const ts = new Date();
+        const pad = n=>String(n).padStart(2,'0');
+        const fname = `investment-backup-${ts.getFullYear()}${pad(ts.getMonth()+1)}${pad(ts.getDate())}-${pad(ts.getHours())}${pad(ts.getMinutes())}.json`;
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = fname;
+        a.click();
+        URL.revokeObjectURL(a.href);
+        setStatus('ok',`🟢 備份已下載：${fname}`);
+    }catch(e){
+        setStatus('loading','🔴 備份失敗：'+e.message);
+    }
+}
+// 還原: 讀取備份檔 → 確認後逐一覆寫檔案中存在的頂層節點 (不會刪除檔案中沒有的節點)
+async function importBackup(input){
+    const file = input.files && input.files[0];
+    input.value = '';   // 允許重複選同一檔案
+    if(!file) return;
+    let data;
+    try{ data = JSON.parse(await file.text()); }
+    catch(e){ alert('❌ 檔案不是有效的 JSON：'+e.message); return; }
+    if(typeof data !== 'object' || data === null){ alert('❌ 備份格式不正確'); return; }
+    delete data._backupMeta;
+    const keys = Object.keys(data);
+    if(keys.length === 0){ alert('❌ 備份檔內沒有任何資料節點'); return; }
+    const ok = confirm(
+        `⚠️ 即將用備份檔覆寫以下 ${keys.length} 個資料節點：\n\n` +
+        keys.map(k=>`• ${k}`).join('\n') +
+        `\n\n現有同名節點的資料將被完全取代（建議先按「💾 備份」保存目前狀態）。\n確定要還原嗎？`
+    );
+    if(!ok) return;
+    try{
+        setStatus('loading','📂 正在還原資料...');
+        for(const k of keys){
+            await db.ref(k).set(data[k]);
+        }
+        setStatus('ok','🟢 還原完成，頁面資料已同步');
+    }catch(e){
+        setStatus('loading','🔴 還原失敗：'+e.message);
+        alert('❌ 還原過程發生錯誤：'+e.message+'\n部分節點可能已寫入，請檢查資料或重新還原。');
+    }
+}
 function fmtRaw(amount,currency,decimals=0){const abs=Math.abs(amount);if(currency==='TWD')return`NT$ ${abs.toLocaleString('zh-TW',{minimumFractionDigits:decimals,maximumFractionDigits:decimals})}`;return`$${abs.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}`;}
 function fmtC(amount,currency,white=false){const raw=fmtRaw(amount,currency);const neg=amount<0;const sign=neg?'-':'';if(white)return`<span class="mono font-bold text-white">${sign}${raw}</span>`;const cls=neg?'text-red-400 font-bold mono':(amount===0?'text-slate-400 mono':'text-emerald-400 font-bold mono');return`<span class="${cls}">${sign}${raw}</span>`;}
 
@@ -2130,7 +2218,7 @@ function renderDashboard(){
                     <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
                         <div>
                             <span class="mono font-bold text-cyan-400">${s.ticker}</span>
-                            ${stockName?`<span style="font-size:11px;color:var(--text-muted);margin-left:6px;">${stockName}</span>`:''}
+                            ${stockName?`<span style="font-size:11px;color:var(--text-muted);margin-left:6px;">${esc(stockName)}</span>`:''}
                         </div>
                         <span class="text-white font-semibold">${(s.shares||0).toLocaleString()} 股</span>
                     </div>
@@ -2206,7 +2294,7 @@ function renderDashboard(){
                 </div>
                 <div class="holding-pie-body">
                     <div class="holding-pie-canvas-wrap">
-                        <canvas id="pie-${p.name}"></canvas>
+                        <canvas id="pie-${esc(p.name)}"></canvas>
                         <div class="holding-pie-center">
                             <div class="holding-pie-center-num">${stocks.length}</div>
                             <div class="holding-pie-center-lbl">檔持股</div>
@@ -2253,7 +2341,7 @@ function renderDashboard(){
                 const tDiscount=parseFloat(t.discount);
                 const pnlPct = bp>0 ? ((sp-bp)/bp*100).toFixed(2) : null;
                 const pnlPctStr = pnlPct!==null ? `${pnl>=0?'+':''}${pnlPct}%` : '--';
-                const nameDisplay = t.stockName ? `<span style="font-size:11px;color:var(--text-secondary);margin-left:6px;font-weight:normal;">${t.stockName}</span>` : '';
+                const nameDisplay = t.stockName ? `<span style="font-size:11px;color:var(--text-secondary);margin-left:6px;font-weight:normal;">${esc(t.stockName)}</span>` : '';
                 // ── 依 ticker 自動判定原生幣別 (含 .TW 後綴與純數字代號) ──
                 const tradeCur = getStockCurrency(t.ticker);
                 const isTrTW = isTaiwanStock(t.ticker);
@@ -2312,8 +2400,8 @@ function renderDashboard(){
                         <div style="display:flex;align-items:center;gap:8px;">
                             <span class="${cls}" style="font-size:13px;font-weight:700;">${pnl>=0?'+':'-'}${fmtRaw(Math.abs(pnl),tradeCur)}</span>
                             <span class="${cls}" style="font-size:11px;opacity:.85;">(${pnlPctStr})</span>
-                            <button class="btn-edit" onclick="openTradeModal('${p.name}', ${idx})" title="編輯">✎</button>
-                            <button class="btn-del" onclick="deleteTrade('${p.name}', ${idx})" title="刪除">✕</button>
+                            <button class="btn-edit" onclick="openTradeModal('${escJs(p.name)}', ${idx})" title="編輯">✎</button>
+                            <button class="btn-del" onclick="deleteTrade('${escJs(p.name)}', ${idx})" title="刪除">✕</button>
                         </div>
                     </div>
                     <div class="trade-card-row" style="color:var(--text-secondary);font-size:11px;">
@@ -2339,7 +2427,7 @@ function renderDashboard(){
         const nextDisabled = currentPage >= totalPages;
         const pagerHTML = sortedTrades.length > TRADES_PER_PAGE ? `
             <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding-top:8px;border-top:1px dashed rgba(31,31,36,.6);font-size:11px;">
-                <button onclick="changeTradePage('${p.name}',-1)" ${prevDisabled?'disabled':''}
+                <button onclick="changeTradePage('${escJs(p.name)}',-1)" ${prevDisabled?'disabled':''}
                     style="background:${prevDisabled?'rgba(31,31,36,.4)':'rgba(59,130,246,.15)'};border:1px solid ${prevDisabled?'var(--border)':'rgba(59,130,246,.3)'};color:${prevDisabled?'var(--text-muted)':'var(--accent-blue)'};padding:4px 12px;border-radius:5px;font-weight:600;cursor:${prevDisabled?'not-allowed':'pointer'};transition:all .15s;">
                     « Back
                 </button>
@@ -2347,7 +2435,7 @@ function renderDashboard(){
                     第 <span class="mono text-white">${currentPage}</span> / <span class="mono">${totalPages}</span> 頁
                     <span style="color:var(--text-muted);margin-left:6px;">（共 ${sortedTrades.length} 筆）</span>
                 </span>
-                <button onclick="changeTradePage('${p.name}',1)" ${nextDisabled?'disabled':''}
+                <button onclick="changeTradePage('${escJs(p.name)}',1)" ${nextDisabled?'disabled':''}
                     style="background:${nextDisabled?'rgba(31,31,36,.4)':'rgba(59,130,246,.15)'};border:1px solid ${nextDisabled?'var(--border)':'rgba(59,130,246,.3)'};color:${nextDisabled?'var(--text-muted)':'var(--accent-blue)'};padding:4px 12px;border-radius:5px;font-weight:600;cursor:${nextDisabled?'not-allowed':'pointer'};transition:all .15s;">
                     Next »
                 </button>
@@ -2356,11 +2444,11 @@ function renderDashboard(){
         pdiv.innerHTML+=`<div class="portfolio-card">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
                 <div style="display:flex;align-items:center;gap:6px;">
-                    <button onclick="openColorPicker('player','${p.name}','${getPlayerColor(p.name,'#a855f7')}')" 
+                    <button onclick="openColorPicker('player','${escJs(p.name)}','${getPlayerColor(p.name,'#a855f7')}')" 
                         title="變更曲線顏色"
                         style="width:18px;height:18px;border-radius:50%;background:${getPlayerColor(p.name,'#a855f7')};border:2px solid rgba(255,255,255,.5);cursor:pointer;padding:0;flex-shrink:0;box-shadow:0 0 8px ${getPlayerColor(p.name,'#a855f7')}66;"></button>
-                    <h3 class="text-lg font-bold text-white" id="name-${p.name}">${p.name}</h3>
-                    <button onclick="editName('${p.name}')" title="修改名稱" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:13px;padding:2px 4px;transition:color .15s;" onmouseover="this.style.color='var(--accent-blue)'" onmouseout="this.style.color='var(--text-muted)'">✏️</button>
+                    <h3 class="text-lg font-bold text-white" id="name-${esc(p.name)}">${esc(p.name)}</h3>
+                    <button onclick="editName('${escJs(p.name)}')" title="修改名稱" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:13px;padding:2px 4px;transition:color .15s;" onmouseover="this.style.color='var(--accent-blue)'" onmouseout="this.style.color='var(--text-muted)'">✏️</button>
                 </div>
                 <div style="display:flex;align-items:center;gap:8px;"><span class="currency-badge">${p.currency}</span></div>
             </div>
@@ -2395,23 +2483,23 @@ function renderDashboard(){
                 <h4 style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;">當前持倉（${stocks.length}/${MAX_STOCKS}）</h4>
                 <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
                     ${renderLockBtn(p.name)}
-                    <button onclick="requestEdit('${p.name}')" class="btn-update">更改部位</button>
+                    <button onclick="requestEdit('${escJs(p.name)}')" class="btn-update">更改部位</button>
                 </div>
             </div>
-            <div class="lock-zone ${isCardLocked(p.name)?'locked':''}" data-player="${p.name}">
+            <div class="lock-zone ${isCardLocked(p.name)?'locked':''}" data-player="${esc(p.name)}">
                 <div class="lock-content">
                     ${pieHTML}
                     ${holdHTML}
                     <div class="history-section">
                         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
                             <h4 style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;">歷史交易紀錄</h4>
-                            <button class="btn-add-trade" onclick="requestAddTrade('${p.name}')">＋ 新增</button>
+                            <button class="btn-add-trade" onclick="requestAddTrade('${escJs(p.name)}')">＋ 新增</button>
                         </div>
                         <div>${tradeRows}</div>
                         ${pagerHTML}
                     </div>
                 </div>
-                <div class="lock-overlay" onclick="openLockModal('${p.name}','unlock')">
+                <div class="lock-overlay" onclick="openLockModal('${escJs(p.name)}','unlock')">
                     <div class="lock-overlay-icon">🔒</div>
                     <div class="lock-overlay-text">已鎖定</div>
                     <div class="lock-overlay-sub">點擊輸入密碼解鎖</div>
@@ -2442,7 +2530,7 @@ function renderDashboard(){
         lbDiv.innerHTML += `<div class="rank-card rank-${idx+1}" style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
             <div style="display:flex;align-items:center;gap:12px;flex:0 0 auto;">
                 <span style="font-size:1.6rem;">${medals[idx]||(idx+1)+'.'}</span>
-                <span class="font-bold text-white" style="${[...(d.name||'')].length>6?'font-size:0.95rem;line-height:1.25;max-width:11em;white-space:normal;word-break:break-word;':'font-size:1.125rem;white-space:nowrap;'}">${d.name}</span>
+                <span class="font-bold text-white" style="${[...(d.name||'')].length>6?'font-size:0.95rem;line-height:1.25;max-width:11em;white-space:normal;word-break:break-word;':'font-size:1.125rem;white-space:nowrap;'}">${esc(d.name)}</span>
             </div>
             <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;justify-content:flex-end;">
                 <div style="display:flex;flex-direction:column;align-items:flex-end;min-width:0;">
@@ -2532,7 +2620,7 @@ function renderLockBtn(name){
     if(locked){ cls='locked'; icon=LOCK_ICON_CLOSED; title='已鎖定 · 點擊輸入密碼解鎖'; }
     else if(hasPwd){ cls='unlocked'; icon=LOCK_ICON_OPEN; title='已解鎖 · 點擊立即鎖定'; }
     else { cls='nopwd'; icon=LOCK_ICON_OPEN; title='未設定密碼鎖 · 點擊設定 4 位數密碼以鎖定'; }
-    return `<button id="lockbtn-${name}" class="btn-lock-icon ${cls}" title="${title}" aria-label="${title}" onclick="toggleLock('${name}')">${icon}</button>`;
+    return `<button id="lockbtn-${esc(name)}" class="btn-lock-icon ${cls}" title="${title}" aria-label="${title}" onclick="toggleLock('${escJs(name)}')">${icon}</button>`;
 }
 // 即時切換某張卡片的鎖定外觀(不重繪整個 dashboard)
 function applyLockUI(name){
