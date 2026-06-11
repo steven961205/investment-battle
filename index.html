@@ -1,3 +1,40 @@
+/* * Service Worker — 投資績效大賽
+ * 策略: Network-First, Cache-Fallback
+ * - 永遠優先抓最新版頁面（不會看到過期的程式碼）
+ * - 網路抓到的同源資源順手寫入快取
+ * - 斷網時 fallback 到最後一次快取的版本（至少能看到上次的畫面）
+ */
+const CACHE = 'invest-battle-v1';
+
+self.addEventListener('install', e => { self.skipWaiting(); });
+
+self.addEventListener('activate', e => {
+  e.waitUntil(
+    caches.keys().then(keys =>
+      Promise.all(
+        keys.filter(k => k !== CACHE).map(k => caches.delete(k))
+      )
+    ).then(() => self.clients.claim())
+  );
+});
+
+self.addEventListener('fetch', e => {
+  const url = new URL(e.request.url);
+
+  // 只處理同源 GET；API / Firebase / CDN 請求一律直通不快取
+  if (e.request.method !== 'GET' || url.origin !== location.origin) return;
+
+  e.respondWith(
+    fetch(e.request)
+      .then(resp => {
+        const clone = resp.clone();
+        caches.open(CACHE).then(c => c.put(e.request, clone));
+        return resp;
+      })
+      .catch(() => caches.match(e.request))
+  );
+});
+
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
@@ -5295,37 +5332,3 @@ if('serviceWorker' in navigator){
     { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ]
 }
-
-/**
- * Service Worker — 投資績效大賽
- * 策略: Network-First, Cache-Fallback
- *   - 永遠優先抓最新版頁面 (不會看到過期的程式碼)
- *   - 網路抓到的同源資源順手寫入快取
- *   - 斷網時 fallback 到最後一次快取的版本 (至少能看到上次的畫面)
- */
-const CACHE = 'invest-battle-v1';
-
-self.addEventListener('install', e => { self.skipWaiting(); });
-
-self.addEventListener('activate', e => {
-  e.waitUntil(
-    caches.keys()
-      .then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))
-      .then(() => self.clients.claim())
-  );
-});
-
-self.addEventListener('fetch', e => {
-  const url = new URL(e.request.url);
-  // 只處理同源 GET; API / Firebase / CDN 請求一律直通不快取
-  if (e.request.method !== 'GET' || url.origin !== location.origin) return;
-  e.respondWith(
-    fetch(e.request)
-      .then(resp => {
-        const clone = resp.clone();
-        caches.open(CACHE).then(c => c.put(e.request, clone));
-        return resp;
-      })
-      .catch(() => caches.match(e.request))
-  );
-});
