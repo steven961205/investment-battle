@@ -12,12 +12,12 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="投資大賽">
-    <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800;900&family=JetBrains+Mono:wght@500;600;700;800&family=Noto+Sans+TC:wght@500;600;700;800;900&display=swap');
         :root {
             /* Dark Mode — 純黑/中性灰系, 更靜的氛圍 */
             --bg-base:#050505;          /* near-black base */
@@ -36,11 +36,18 @@
             --accent-amber:#f59e0b;
         }
         *{box-sizing:border-box;}
-        body{font-family:'Inter',sans-serif;background-color:var(--bg-base);color:var(--text-primary);min-height:100vh;
+        body{font-family:'Inter','Noto Sans TC',system-ui,sans-serif;background-color:var(--bg-base);color:var(--text-primary);min-height:100vh;
             background-image:radial-gradient(ellipse 90% 60% at 50% -20%,rgba(34,211,238,.05) 0%,transparent 70%),
                              radial-gradient(ellipse 50% 40% at 85% 85%,rgba(245,158,11,.035) 0%,transparent 65%),
                              radial-gradient(ellipse 50% 40% at 15% 90%,rgba(168,85,247,.03) 0%,transparent 65%);}
-        .mono{font-family:'IBM Plex Mono',monospace;}
+        .mono{font-family:'JetBrains Mono','IBM Plex Mono',monospace;}
+        .ui-icon{display:inline-block;width:1em;height:1em;flex:0 0 auto;background:currentColor;vertical-align:-.14em;mask:center/contain no-repeat;-webkit-mask:center/contain no-repeat;}
+        .i-history{mask-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v15l-3-1.7-3 1.7-3-1.7-3 1.7-4-2.2v-13Z' fill='none' stroke='black' stroke-width='2' stroke-linejoin='round'/%3E%3Cpath d='M8 7h8M8 11h8M8 15h5' stroke='black' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");-webkit-mask-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v15l-3-1.7-3 1.7-3-1.7-3 1.7-4-2.2v-13Z' fill='none' stroke='black' stroke-width='2' stroke-linejoin='round'/%3E%3Cpath d='M8 7h8M8 11h8M8 15h5' stroke='black' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");}
+        .i-activity{mask-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M4 13h4l2-7 4 12 2-5h4' fill='none' stroke='black' stroke-width='2.3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");-webkit-mask-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M4 13h4l2-7 4 12 2-5h4' fill='none' stroke='black' stroke-width='2.3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");}
+        .i-plus{mask-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M12 5v14M5 12h14' stroke='black' stroke-width='2.4' stroke-linecap='round'/%3E%3C/svg%3E");-webkit-mask-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M12 5v14M5 12h14' stroke='black' stroke-width='2.4' stroke-linecap='round'/%3E%3C/svg%3E");}
+        .i-edit{mask-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M4 16.5V20h3.5L18.2 9.3l-3.5-3.5L4 16.5Z' fill='none' stroke='black' stroke-width='2' stroke-linejoin='round'/%3E%3Cpath d='m13.8 6.7 3.5 3.5' stroke='black' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");-webkit-mask-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M4 16.5V20h3.5L18.2 9.3l-3.5-3.5L4 16.5Z' fill='none' stroke='black' stroke-width='2' stroke-linejoin='round'/%3E%3Cpath d='m13.8 6.7 3.5 3.5' stroke='black' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");}
+        .i-chevron-left{mask-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='m15 6-6 6 6 6' fill='none' stroke='black' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");-webkit-mask-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='m15 6-6 6 6 6' fill='none' stroke='black' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");}
+        .i-chevron-right{mask-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='m9 6 6 6-6 6' fill='none' stroke='black' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");-webkit-mask-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='m9 6 6 6-6 6' fill='none' stroke='black' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");}
         .card{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;
             box-shadow:0 1px 0 0 rgba(255,255,255,.02) inset, 0 8px 32px -8px rgba(0,0,0,.5);}
         .header-glow{text-shadow:0 0 24px rgba(34,211,238,.35),0 0 60px rgba(34,211,238,.15);}
@@ -57,13 +64,24 @@
         .rank-card.rank-3{border-color:rgba(180,83,9,.4);background:linear-gradient(135deg,rgba(180,83,9,.05),var(--bg-elevated));}
         .benchmark-card{display:flex;justify-content:space-between;align-items:center;padding:12px 20px;border-radius:12px;border:1px dashed var(--border);background:rgba(10,10,12,.6);transition:border-color .2s,background .2s;}
         .benchmark-card:hover{border-color:var(--border-bright);background:rgba(15,15,18,.7);}
-        .portfolio-card{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:20px;transition:border-color .2s,box-shadow .2s;
-            box-shadow:0 1px 0 0 rgba(255,255,255,.02) inset;}
-        .portfolio-card:hover{border-color:var(--border-bright);box-shadow:0 1px 0 0 rgba(255,255,255,.03) inset, 0 8px 28px -8px rgba(0,0,0,.7);}
-        .net-value-box{background:linear-gradient(180deg, rgba(15,15,18,.9), var(--bg-input));border:1px solid var(--border-bright);border-radius:12px;padding:16px;
-            box-shadow:0 1px 0 0 rgba(255,255,255,.03) inset;}
-        .stat-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;font-size:13px;}
+        .portfolio-card{--player-color:#3b82f6;background:linear-gradient(180deg,rgba(16,16,19,.96),rgba(8,8,10,.98));border:1px solid color-mix(in srgb,var(--player-color) 22%,var(--border));border-radius:12px;padding:20px;transition:border-color .2s,box-shadow .2s;
+            box-shadow:0 1px 0 0 rgba(255,255,255,.04) inset,0 18px 44px -22px color-mix(in srgb,var(--player-color) 34%,transparent),0 18px 54px -24px rgba(0,0,0,.78);}
+        .portfolio-card::before{content:'';position:absolute;inset:0;pointer-events:none;z-index:0;
+            background:radial-gradient(95% 42% at 50% 0%,color-mix(in srgb,var(--player-color) 12%,transparent),transparent 64%),
+                       linear-gradient(180deg,rgba(255,255,255,.025),transparent 22%);
+            opacity:.78;}
+        .portfolio-card>*{position:relative;z-index:1;}
+        .portfolio-card:hover{border-color:color-mix(in srgb,var(--player-color) 42%,var(--border-bright));box-shadow:0 1px 0 0 rgba(255,255,255,.05) inset,0 10px 32px -12px color-mix(in srgb,var(--player-color) 30%,transparent),0 20px 56px -22px rgba(0,0,0,.82);}
+        .net-value-box{position:relative;overflow:hidden;background:linear-gradient(180deg,rgba(20,20,25,.86),rgba(8,8,11,.94));border:1px solid color-mix(in srgb,var(--player-color) 22%,var(--border-bright));border-radius:12px;padding:17px;
+            box-shadow:0 1px 0 0 rgba(255,255,255,.05) inset,0 14px 34px -20px color-mix(in srgb,var(--player-color) 40%,transparent);}
+        .net-value-box::before{content:'';position:absolute;left:0;right:0;top:0;height:1px;background:linear-gradient(90deg,transparent,var(--player-color),transparent);opacity:.75;}
+        .stat-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;font-size:13px;}
         .stat-label{color:var(--text-secondary);}
+        .portfolio-stats{margin-bottom:16px;padding:10px 12px;border:1px solid rgba(255,255,255,.055);border-radius:12px;background:linear-gradient(180deg,rgba(255,255,255,.026),rgba(255,255,255,.008));box-shadow:inset 0 1px 0 rgba(255,255,255,.025);}
+        .portfolio-stats .stat-row{border-bottom:1px solid rgba(255,255,255,.035);}
+        .portfolio-stats .stat-row:last-child{border-bottom:none;}
+        .portfolio-stats .stat-label{font-weight:650;color:#a9a9b0;}
+        .portfolio-stats .stat-row span:last-child{text-shadow:0 0 14px rgba(0,0,0,.35);}
         .holding-row{background:var(--bg-input);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:6px;font-size:12px;transition:border-color .2s;}
         .holding-row:hover{border-color:var(--border-bright);}
         .btn-update{background:linear-gradient(135deg,#1a1a1f,#0d0d10);border:1px solid var(--border-bright);color:var(--text-primary);padding:6px 14px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;transition:all .2s;}
@@ -82,7 +100,7 @@
         .btn-lock.unlocked{background:rgba(34,197,94,.08);border-color:rgba(34,197,94,.28);color:var(--accent-green);}
         .btn-lock.unlocked:hover{background:rgba(34,197,94,.16);border-color:rgba(34,197,94,.55);box-shadow:0 0 12px rgba(34,197,94,.18);}
         /* 圖示式鎖頭按鈕(僅鎖/解鎖圖示) */
-        .btn-lock-icon{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:8px;cursor:pointer;transition:all .2s;flex-shrink:0;background:var(--bg-elevated);border:1px solid var(--border);color:var(--text-secondary);padding:0;}
+        .btn-lock-icon{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:10px;cursor:pointer;transition:all .2s;flex-shrink:0;background:var(--bg-elevated);border:1px solid var(--border);color:var(--text-secondary);padding:0;}
         .btn-lock-icon svg{display:block;}
         .btn-lock-icon:hover{border-color:var(--border-bright);color:var(--text-primary);}
         .btn-lock-icon.locked{background:rgba(245,158,11,.10);border-color:rgba(245,158,11,.32);color:var(--accent-amber);}
@@ -91,25 +109,89 @@
         .btn-lock-icon.unlocked:hover{background:rgba(34,197,94,.18);border-color:rgba(34,197,94,.6);box-shadow:0 0 12px rgba(34,197,94,.18);}
         .btn-lock-icon.nopwd{background:var(--bg-elevated);border-color:var(--border);color:var(--text-muted);}
         .btn-lock-icon.nopwd:hover{border-color:var(--border-bright);color:var(--text-secondary);}
-        .lock-zone{position:relative;border-radius:12px;}
+        .hold-lock-toolbar{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;margin:20px 0 12px;padding:10px 12px;border-radius:10px;gap:14px;
+            background:linear-gradient(135deg,rgba(18,18,22,.92),rgba(7,7,9,.86));
+            border:1px solid rgba(255,255,255,.08);
+            box-shadow:inset 0 1px 0 rgba(255,255,255,.04),0 10px 28px rgba(0,0,0,.22);}
+        .hold-lock-title{display:flex;align-items:center;gap:10px;min-width:0;overflow:hidden;}
+        .hold-lock-label{position:relative;font-size:11px;font-weight:800;color:#ededf2;text-transform:uppercase;letter-spacing:.08em;white-space:nowrap;padding-left:12px;}
+        .hold-lock-label::before{content:'';position:absolute;left:0;top:50%;width:5px;height:5px;border-radius:50%;transform:translateY(-50%);background:var(--player-color);box-shadow:0 0 10px color-mix(in srgb,var(--player-color) 70%,transparent);}
+        .hold-lock-count{font-size:10px;font-weight:800;color:color-mix(in srgb,var(--player-color) 82%,#fff);font-family:'JetBrains Mono','IBM Plex Mono',monospace;white-space:nowrap;padding:3px 8px;border-radius:999px;background:color-mix(in srgb,var(--player-color) 12%,transparent);border:1px solid color-mix(in srgb,var(--player-color) 28%,transparent);flex:0 0 auto;}
+        .hold-lock-actions{display:flex;align-items:center;gap:12px;flex-shrink:0;}
+        .lock-zone{position:relative;border-radius:14px;border:1px solid color-mix(in srgb,var(--player-color) 28%,rgba(255,255,255,.05));background:rgba(6,6,8,.58);
+            box-shadow:0 20px 42px rgba(0,0,0,.28),0 0 28px -18px color-mix(in srgb,var(--player-color) 58%,transparent),inset 0 1px 0 rgba(255,255,255,.04);}
         .lock-zone .lock-content{transition:filter .35s ease;}
-        .lock-zone.locked .lock-content{filter:blur(9px) saturate(1.25) brightness(.92);pointer-events:none;user-select:none;-webkit-user-select:none;}
+        .lock-zone.locked .lock-content{filter:blur(3px) saturate(1.12) brightness(.76);pointer-events:none;user-select:none;-webkit-user-select:none;}
         .lock-zone .lock-overlay{display:none;}
         .lock-zone.locked .lock-overlay{display:flex;position:absolute;inset:0;z-index:3;flex-direction:column;align-items:center;justify-content:center;gap:10px;
-            border-radius:12px;cursor:pointer;text-align:center;padding:16px;
-            background:linear-gradient(135deg,rgba(20,20,28,.30),rgba(8,8,12,.42));
-            backdrop-filter:blur(7px) saturate(1.1);-webkit-backdrop-filter:blur(7px) saturate(1.1);
-            border:1px solid rgba(255,255,255,.07);box-shadow:0 1px 0 0 rgba(255,255,255,.04) inset;
+            border-radius:14px;cursor:pointer;text-align:center;padding:20px;
+            background:radial-gradient(70% 65% at 50% 46%,rgba(5,5,7,.38),rgba(5,5,7,.78) 72%,rgba(5,5,7,.88));
+            backdrop-filter:blur(1.5px) saturate(1.08);-webkit-backdrop-filter:blur(1.5px) saturate(1.08);
+            border:none;box-shadow:inset 0 1px 0 rgba(255,255,255,.04);
             transition:background .25s;}
-        .lock-zone.locked .lock-overlay:hover{background:linear-gradient(135deg,rgba(26,26,34,.34),rgba(10,10,14,.46));}
-        .lock-overlay-icon{font-size:30px;filter:drop-shadow(0 2px 8px rgba(0,0,0,.5));}
-        .lock-overlay-text{font-size:12px;font-weight:600;letter-spacing:.04em;color:var(--text-secondary);}
-        .lock-overlay-sub{font-size:10px;color:var(--text-muted);letter-spacing:.04em;}
+        .lock-zone.locked .lock-overlay:hover{background:radial-gradient(70% 65% at 50% 46%,rgba(8,8,11,.34),rgba(5,5,7,.80) 72%,rgba(5,5,7,.9));}
+        .lock-overlay-panel{display:contents;}
+        /* 金色圓徽鎖頭: 呼吸光暈 + 緩轉光弧外環 */
+        .lock-badge{width:64px;height:64px;border-radius:50%;display:flex;align-items:center;justify-content:center;position:relative;
+            background:linear-gradient(145deg,#191920,#09090c);
+            border:1px solid color-mix(in srgb,var(--player-color) 58%,rgba(255,255,255,.18));
+            box-shadow:0 0 0 5px color-mix(in srgb,var(--player-color) 9%,transparent),0 0 28px color-mix(in srgb,var(--player-color) 24%,transparent),inset 0 1px 0 rgba(255,255,255,.08);
+            animation:lockBreath 2.8s ease-in-out infinite;}
+        .lock-badge::before{content:'';position:absolute;inset:-6px;border-radius:50%;pointer-events:none;
+            background:conic-gradient(from 0deg,transparent 0 62%,color-mix(in srgb,var(--player-color) 10%,transparent) 72%,color-mix(in srgb,var(--player-color) 86%,#fff) 84%,#fff 88%,color-mix(in srgb,var(--player-color) 12%,transparent) 96%,transparent 100%);
+            -webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 3.5px),#000 calc(100% - 2.5px));
+            mask:radial-gradient(farthest-side,transparent calc(100% - 3.5px),#000 calc(100% - 2.5px));
+            animation:ringSpin 5.5s linear infinite;}
+        @keyframes ringSpin{to{transform:rotate(360deg);}}
+        .lock-badge{color:color-mix(in srgb,var(--player-color) 82%,#fff);}
+        .lock-badge svg{width:26px;height:26px;color:inherit;filter:drop-shadow(0 0 8px color-mix(in srgb,var(--player-color) 62%,transparent));}
+        @keyframes lockBreath{0%,100%{box-shadow:0 0 0 4px color-mix(in srgb,var(--player-color) 8%,transparent),0 0 24px color-mix(in srgb,var(--player-color) 18%,transparent),inset 0 1px 0 rgba(255,255,255,.06);}50%{box-shadow:0 0 0 7px color-mix(in srgb,var(--player-color) 12%,transparent),0 0 34px color-mix(in srgb,var(--player-color) 28%,transparent),inset 0 1px 0 rgba(255,255,255,.06);}}
+        .lock-kicker{font-size:9px;font-weight:800;letter-spacing:.18em;color:color-mix(in srgb,var(--player-color) 82%,#fff);text-transform:uppercase;}
+        .lock-overlay-text{font-size:14px;font-weight:900;letter-spacing:.1em;color:#fff;text-shadow:0 1px 8px rgba(0,0,0,.7);}
+        .lock-overlay-sub{font-size:11px;color:#a4a8b4;letter-spacing:.04em;line-height:1.6;}
+        .lock-chip-row{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-top:2px;}
+        .lock-chip{font-size:9px;font-weight:800;letter-spacing:.08em;color:color-mix(in srgb,var(--player-color) 82%,#fff);border:1px solid color-mix(in srgb,var(--player-color) 28%,transparent);background:color-mix(in srgb,var(--player-color) 10%,transparent);border-radius:999px;padding:3px 7px;text-transform:uppercase;}
+        /* ── 鎖定視覺: 金融資料保險庫 ────────────────────────── */
+        .lock-content-empty{position:relative;overflow:hidden;min-height:300px;border-radius:14px;
+            background:linear-gradient(180deg,rgba(21,21,27,.96),rgba(7,7,10,.96));
+            border:1px solid color-mix(in srgb,var(--player-color) 28%,rgba(255,255,255,.06));
+            box-shadow:inset 0 1px 0 rgba(255,255,255,.06),inset 0 -1px 0 color-mix(in srgb,var(--player-color) 16%,transparent);}
+        .lock-content-empty::before{content:'';position:absolute;inset:0;pointer-events:none;
+            background:linear-gradient(90deg,transparent,color-mix(in srgb,var(--player-color) 12%,transparent),transparent);
+            transform:translateX(-100%);animation:vaultSheen 7s ease-in-out infinite;}
+        .lock-content-empty::after{content:'';position:absolute;inset:0;pointer-events:none;
+            background:radial-gradient(120% 80% at 50% 0%,rgba(255,255,255,.06),transparent 48%),
+                       linear-gradient(180deg,transparent 0%,rgba(0,0,0,.38) 100%);}
+        @keyframes vaultSheen{0%,18%{transform:translateX(-100%);opacity:0;}28%{opacity:1;}56%{transform:translateX(100%);opacity:0;}100%{transform:translateX(100%);opacity:0;}}
+        .lock-grid-lines{position:absolute;inset:0;pointer-events:none;opacity:.52;
+            background-image:linear-gradient(rgba(148,163,184,.10) 1px,transparent 1px),linear-gradient(90deg,rgba(148,163,184,.10) 1px,transparent 1px);
+            background-size:28px 28px;
+            -webkit-mask-image:linear-gradient(180deg,transparent 0%,#000 18%,#000 82%,transparent 100%);
+            mask-image:linear-gradient(180deg,transparent 0%,#000 18%,#000 82%,transparent 100%);}
+        .lock-sweep{position:absolute;left:-4%;width:108%;height:72px;top:-90px;pointer-events:none;
+            background:linear-gradient(180deg,transparent,color-mix(in srgb,var(--player-color) 6%,transparent) 38%,color-mix(in srgb,var(--player-color) 20%,transparent) 50%,color-mix(in srgb,var(--player-color) 6%,transparent) 62%,transparent);
+            box-shadow:0 0 30px color-mix(in srgb,var(--player-color) 8%,transparent);
+            animation:lockSweep 4.6s cubic-bezier(.45,.08,.55,.92) infinite;}
+        @keyframes lockSweep{0%{top:-90px;opacity:0;}8%{opacity:1;}62%{opacity:1;}78%,100%{top:112%;opacity:0;}}
+        .lock-vault-header{position:absolute;left:16px;right:16px;top:16px;display:flex;justify-content:space-between;align-items:center;font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:800;letter-spacing:.12em;color:color-mix(in srgb,var(--player-color) 78%,#fff);text-transform:uppercase;}
+        .lock-vault-status{color:#050506;background:linear-gradient(135deg,var(--player-color),color-mix(in srgb,var(--player-color) 38%,#fff));border-radius:999px;padding:3px 8px;box-shadow:0 0 18px color-mix(in srgb,var(--player-color) 24%,transparent);}
+        .lock-preview{position:absolute;left:16px;right:16px;bottom:16px;display:grid;grid-template-columns:1fr;gap:8px;opacity:.70;}
+        .lock-preview-row{display:grid;grid-template-columns:50px 1fr 58px;align-items:center;height:30px;padding:0 10px;border-radius:9px;border:1px solid rgba(255,255,255,.075);background:linear-gradient(90deg,rgba(255,255,255,.075),rgba(255,255,255,.018));font-family:'IBM Plex Mono',monospace;font-size:9px;color:rgba(226,232,240,.76);}
+        .lock-preview-row span:nth-child(2){height:5px;border-radius:999px;background:linear-gradient(90deg,rgba(148,163,184,.36),rgba(148,163,184,.08));}
+        .lock-preview-row span:nth-child(3){color:#34d399;text-align:right;font-weight:800;}
+        .lock-preview-row:nth-child(3) span:nth-child(3){color:#fb7185;}
+        .lock-corner{position:absolute;width:34px;height:34px;border-color:rgba(251,191,36,.34);pointer-events:none;}
+        .lock-corner.tl{top:14px;left:14px;border-top:1px solid;border-left:1px solid;border-color:rgba(251,191,36,.34);}
+        .lock-corner.br{right:14px;bottom:14px;border-right:1px solid;border-bottom:1px solid;border-color:rgba(251,191,36,.34);}
+        @media (prefers-reduced-motion:reduce){
+            .lock-content-empty::before,.lock-content-empty::after,.lock-sweep,.lock-badge,.lock-badge::before{animation:none;}
+            .lock-sweep{display:none;}
+        }
         /* 密碼輸入框 */
-        .pin-input{width:100%;background:var(--bg-input);border:1px solid var(--border);color:var(--text-primary);
-            padding:12px;border-radius:8px;font-family:'IBM Plex Mono',monospace;font-size:26px;font-weight:700;
-            text-align:center;letter-spacing:.5em;outline:none;transition:border-color .2s,box-shadow .2s;}
-        .pin-input:focus{border-color:var(--accent-cyan);box-shadow:0 0 0 3px rgba(34,211,238,.12);}
+        .pin-input{width:100%;background:linear-gradient(180deg,rgba(4,4,6,.95),rgba(9,9,12,.95));border:1px solid var(--border);color:var(--text-primary);
+            padding:15px 14px;border-radius:12px;font-family:'IBM Plex Mono',monospace;font-size:28px;font-weight:800;
+            text-align:center;letter-spacing:.48em;outline:none;transition:border-color .2s,box-shadow .2s,background .2s;caret-color:var(--accent-cyan);}
+        .pin-input:focus{border-color:var(--accent-cyan);box-shadow:0 0 0 1px rgba(34,211,238,.45),0 0 0 5px rgba(34,211,238,.08),0 18px 42px -24px rgba(34,211,238,.7);}
         .pin-input.err{border-color:var(--accent-red);box-shadow:0 0 0 3px rgba(239,68,68,.15);animation:pinShake .35s;}
         @keyframes pinShake{0%,100%{transform:translateX(0);}20%{transform:translateX(-7px);}40%{transform:translateX(7px);}60%{transform:translateX(-5px);}80%{transform:translateX(5px);}}
         .lock-link{background:none;border:none;color:var(--accent-cyan);font-size:12px;font-weight:600;cursor:pointer;padding:4px;transition:color .15s;}
@@ -123,6 +205,24 @@
         .modal-overlay.open{display:flex;}
         .modal-box{background:var(--bg-card);border:1px solid var(--border-bright);border-radius:16px;padding:28px;width:min(580px,94vw);max-height:92vh;overflow-y:auto;
             box-shadow:0 1px 0 0 rgba(255,255,255,.03) inset, 0 25px 70px rgba(0,0,0,.8);}
+        .lock-modal-box{position:relative;overflow-y:auto;overflow-x:hidden;max-height:92vh;background:linear-gradient(180deg,rgba(17,17,22,.98),rgba(8,8,11,.98));border:1px solid rgba(148,163,184,.22);border-radius:20px;padding:28px;width:min(440px,94vw);
+            box-shadow:0 1px 0 rgba(255,255,255,.06) inset,0 28px 90px rgba(0,0,0,.86),0 0 42px -22px rgba(34,211,238,.65);}
+        .lock-modal-box::before{content:'';position:absolute;inset:0;pointer-events:none;background:radial-gradient(80% 44% at 50% 0%,rgba(34,211,238,.13),transparent 58%),linear-gradient(180deg,rgba(255,255,255,.025),transparent 26%);}
+        .lock-modal-box>*{position:relative;z-index:1;}
+        .lock-modal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:22px;}
+        .lock-title-wrap{display:flex;align-items:center;gap:11px;}
+        .lock-modal-icon{width:36px;height:36px;border-radius:11px;display:flex;align-items:center;justify-content:center;background:rgba(34,211,238,.10);border:1px solid rgba(34,211,238,.28);box-shadow:0 0 22px rgba(34,211,238,.12);}
+        .lock-modal-eyebrow{font-size:9px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:var(--accent-cyan);margin-bottom:3px;}
+        .lock-modal-title{font-size:18px;font-weight:850;color:#fff;line-height:1.2;}
+        .lock-close{width:32px;height:32px;border-radius:9px;border:1px solid rgba(148,163,184,.18);background:rgba(255,255,255,.04);color:#aab0bd;font-size:20px;line-height:1;cursor:pointer;transition:all .18s;}
+        .lock-close:hover{color:#fff;border-color:rgba(34,211,238,.36);background:rgba(34,211,238,.08);}
+        .lock-copy{font-size:13px;color:#b5b8c2;line-height:1.75;margin-bottom:16px;padding:12px 14px;border-radius:12px;background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.06);}
+        .lock-pin-shell{position:relative;margin-bottom:8px;}
+        .lock-pin-shell::before{content:'SECURE PIN';position:absolute;left:12px;top:-8px;padding:0 7px;background:#0d0d11;color:var(--accent-cyan);font-size:9px;font-weight:800;letter-spacing:.12em;z-index:2;}
+        .lock-form-actions{display:flex;justify-content:space-between;align-items:center;margin-top:18px;gap:12px;}
+        .lock-form-actions-main{display:flex;gap:10px;align-items:center;}
+        .lock-modal-box .btn-cancel,.lock-modal-box .btn-save{border-radius:11px;padding:11px 20px;}
+        .lock-modal-box .btn-save{box-shadow:0 10px 26px -12px rgba(34,211,238,.9);}
         .modal-label{font-size:11px;font-weight:600;color:var(--text-secondary);letter-spacing:.05em;text-transform:uppercase;margin-bottom:6px;display:block;}
         .modal-input{width:100%;background:var(--bg-input);border:1px solid var(--border);color:var(--text-primary);padding:9px 12px;border-radius:8px;font-size:14px;font-family:'Inter',sans-serif;outline:none;transition:border-color .2s,box-shadow .2s;}
         .modal-input:focus{border-color:var(--accent-cyan);box-shadow:0 0 0 3px rgba(34,211,238,.15);}
@@ -143,11 +243,13 @@
         .ac-name{font-size:11px;color:var(--text-secondary);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
         .ac-exch{font-size:10px;color:var(--text-muted);background:rgba(31,31,36,.8);padding:2px 6px;border-radius:4px;}
         .ac-spinner{padding:10px 14px;color:var(--text-muted);font-size:12px;text-align:center;}
-        .history-section{margin-top:16px;border-top:1px solid var(--border);padding-top:14px;}
-        .trade-card{background:var(--bg-input);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:6px;font-size:12px;transition:border-color .2s;}
-        .trade-card:hover{border-color:var(--border-bright);}
+        .history-section{margin-top:18px;border-top:1px solid rgba(255,255,255,.06);padding-top:14px;}
+        .trade-card{position:relative;overflow:hidden;background:linear-gradient(180deg,rgba(14,14,18,.96),rgba(8,8,11,.96));border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:12px 14px;margin-bottom:8px;font-size:12px;transition:border-color .2s,box-shadow .2s,transform .2s;}
+        .trade-card::before{content:'';position:absolute;left:0;top:12px;bottom:12px;width:2px;border-radius:999px;background:color-mix(in srgb,var(--player-color) 62%,var(--accent-cyan));opacity:.65;}
+        .trade-card:hover{border-color:color-mix(in srgb,var(--player-color) 34%,var(--border-bright));box-shadow:0 12px 30px -20px color-mix(in srgb,var(--player-color) 45%,transparent);transform:translateY(-1px);}
         .trade-card:last-child{margin-bottom:0;}
-        .trade-card-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;}
+        .trade-card-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;gap:8px;flex-wrap:wrap;min-width:0;}
+        .trade-card-row>div{min-width:0;}
         .trade-card-row:last-child{margin-bottom:0;}
         .profit-pos{color:var(--accent-green);font-weight:700;font-family:'IBM Plex Mono',monospace;}
         .profit-neg{color:var(--accent-red);font-weight:700;font-family:'IBM Plex Mono',monospace;}
@@ -159,21 +261,40 @@
         @keyframes pulse-dot{0%,100%{opacity:1}50%{opacity:.3}}
         ::-webkit-scrollbar{width:5px;height:5px;}::-webkit-scrollbar-track{background:transparent;}::-webkit-scrollbar-thumb{background:var(--border-bright);border-radius:3px;}::-webkit-scrollbar-thumb:hover{background:#4a4a52;}
         /* ── 持倉圓餅圖 ── */
-        .holding-pie-wrap{margin:14px 0 16px;padding:14px;background:rgba(10,10,12,.6);border:1px solid var(--border);border-radius:12px;}
-        .holding-pie-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
-        .holding-pie-title{font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;}
-        .holding-pie-cash{font-size:10px;color:var(--text-secondary);}
-        .holding-pie-body{display:flex;align-items:center;gap:14px;}
-        .holding-pie-canvas-wrap{position:relative;width:130px;height:130px;flex-shrink:0;}
+        .holding-pie-wrap{position:relative;overflow:hidden;margin:14px 0 16px;padding:16px 18px 18px;background:linear-gradient(180deg,rgba(10,10,14,.98),rgba(3,3,6,.99));border:1px solid color-mix(in srgb,var(--player-color) 24%,rgba(255,255,255,.08));border-radius:16px;box-shadow:0 1px 0 rgba(255,255,255,.05) inset,0 18px 40px -26px color-mix(in srgb,var(--player-color) 42%,transparent),0 18px 46px -30px rgba(0,0,0,.9);}
+        .holding-pie-wrap::before{content:'';position:absolute;inset:0;pointer-events:none;background:radial-gradient(68% 40% at 50% 8%,color-mix(in srgb,var(--player-color) 10%,transparent),transparent 68%);}
+        .holding-pie-wrap::after{content:'';position:absolute;inset:1px;border-radius:15px;pointer-events:none;border:1px solid rgba(255,255,255,.035);}
+        .holding-pie-wrap>*{position:relative;z-index:1;}
+        .holding-pie-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;padding-bottom:11px;border-bottom:1px solid rgba(255,255,255,.06);gap:10px;}
+        .holding-pie-title{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:900;color:#e9edf4;text-transform:uppercase;letter-spacing:.06em;}
+        .holding-pie-title::before{content:'';width:8px;height:8px;border-radius:3px;background:var(--player-color);box-shadow:0 0 14px color-mix(in srgb,var(--player-color) 70%,transparent);}
+        .holding-pie-cash{font-size:11px;color:#c2c7d2;font-weight:750;padding:4px 8px;border-radius:999px;background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.06);white-space:nowrap;}
+        .holding-pie-body{display:grid;grid-template-columns:1fr;justify-items:center;gap:0;min-width:0;}
+        .holding-pie-canvas-wrap{position:relative;width:min(282px,92%);max-width:282px;aspect-ratio:1;filter:drop-shadow(0 18px 24px rgba(0,0,0,.46));}
+        .holding-pie-canvas-wrap::before{content:'';position:absolute;inset:29%;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,.06),rgba(255,255,255,.018) 58%,transparent 60%);border:1px solid rgba(255,255,255,.055);}
         .holding-pie-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;}
-        .holding-pie-center-num{font-family:'IBM Plex Mono',monospace;font-size:24px;font-weight:700;color:var(--text-primary);line-height:1;}
-        .holding-pie-center-lbl{font-size:10px;color:var(--text-muted);margin-top:4px;letter-spacing:.05em;}
-        .holding-pie-legend{flex:1;display:flex;flex-direction:column;gap:6px;min-width:0;}
-        .holding-pie-legend-row{display:flex;align-items:center;gap:8px;font-size:12px;min-width:0;}
-        .holding-pie-dot{width:10px;height:10px;border-radius:3px;flex-shrink:0;}
-        .holding-pie-ticker{font-family:'IBM Plex Mono',monospace;font-weight:600;color:var(--text-primary);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0;}
-        .holding-pie-pct{font-family:'IBM Plex Mono',monospace;font-weight:700;color:var(--text-secondary);font-size:12px;flex-shrink:0;}
-        .holding-pie-empty{padding:20px;text-align:center;color:var(--text-muted);font-size:12px;}
+        .holding-pie-center-num{font-family:'JetBrains Mono','IBM Plex Mono',monospace;font-size:28px;font-weight:900;color:#fff;line-height:1;text-shadow:0 0 22px color-mix(in srgb,var(--player-color) 30%,transparent);}
+        .holding-pie-center-lbl{font-size:11px;color:#c6cbd4;margin-top:5px;letter-spacing:.04em;font-weight:850;}
+        .holding-pie-legend{display:none;}
+        .holding-pie-legend-row{width:100%;display:grid;grid-template-columns:12px minmax(0,1fr) auto;align-items:center;gap:9px;font-size:12px;min-width:0;padding:7px 9px;border-radius:10px;background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.045);}
+        .holding-pie-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;box-shadow:0 0 12px currentColor;}
+        .holding-pie-ticker{font-family:'JetBrains Mono','IBM Plex Mono',monospace;font-weight:750;color:#eef2f7;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;}
+        .holding-pie-pct{font-family:'JetBrains Mono','IBM Plex Mono',monospace;font-weight:850;color:#cbd5e1;font-size:12px;flex-shrink:0;}
+        .holding-pie-value{grid-column:2 / 4;height:4px;border-radius:999px;background:rgba(255,255,255,.055);overflow:hidden;margin-top:-1px;}
+        .holding-pie-value span{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,currentColor,rgba(255,255,255,.75));}
+        .holding-pie-empty{padding:22px;text-align:center;color:var(--text-muted);font-size:12px;}
+        .holding-row{position:relative;overflow:hidden;background:linear-gradient(180deg,rgba(13,13,17,.96),rgba(8,8,11,.96));border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:14px 15px;margin-bottom:10px;font-size:12px;transition:border-color .2s,box-shadow .2s,transform .2s;}
+        .holding-row::before{content:'';position:absolute;left:0;top:14px;bottom:14px;width:3px;border-radius:999px;background:color-mix(in srgb,var(--player-color) 70%,var(--accent-cyan));box-shadow:0 0 12px color-mix(in srgb,var(--player-color) 46%,transparent);}
+        .holding-row:hover{border-color:color-mix(in srgb,var(--player-color) 36%,var(--border-bright));box-shadow:0 14px 34px -24px color-mix(in srgb,var(--player-color) 42%,transparent);transform:translateY(-1px);}
+        .lot-breakdown{margin-top:10px;padding:10px;border-radius:12px;border:1px solid color-mix(in srgb,var(--player-color) 18%,rgba(255,255,255,.07));background:rgba(255,255,255,.025);}
+        .lot-breakdown-title{font-size:11px;color:color-mix(in srgb,var(--player-color) 72%,#fff);font-weight:850;margin-bottom:7px;letter-spacing:.03em;}
+        .lot-list{display:flex;flex-direction:column;gap:7px;}
+        .lot-card{padding:8px 9px;background:rgba(0,0,0,.22);border:1px solid rgba(255,255,255,.055);border-radius:10px;font-size:11px;}
+        .lot-card-main{display:grid;grid-template-columns:46px minmax(0,1fr);gap:6px 10px;align-items:center;}
+        .lot-card-main span{min-width:0;overflow-wrap:anywhere;}
+        .lot-card-main span:nth-child(4){text-align:left!important;}
+        .lot-tag{color:color-mix(in srgb,var(--player-color) 76%,#fff);font-weight:850;}
+        .lot-card-sub{display:flex;justify-content:space-between;align-items:center;margin-top:6px;padding-top:6px;border-top:1px dashed rgba(255,255,255,.065);gap:8px;flex-wrap:wrap;font-size:10px;}
         /* ── 卡片漲跌閃光 (交易所終端風) ── */
         @keyframes cardFlashUp{0%{border-color:rgba(34,197,94,.85);box-shadow:0 0 0 1px rgba(34,197,94,.5),0 0 30px rgba(34,197,94,.3);}100%{border-color:var(--border);box-shadow:0 1px 0 0 rgba(255,255,255,.02) inset;}}
         @keyframes cardFlashDown{0%{border-color:rgba(239,68,68,.85);box-shadow:0 0 0 1px rgba(239,68,68,.5),0 0 30px rgba(239,68,68,.3);}100%{border-color:var(--border);box-shadow:0 1px 0 0 rgba(255,255,255,.02) inset;}}
@@ -184,6 +305,8 @@
         .gap-bar-top{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;font-size:12px;color:var(--text-secondary);margin-bottom:8px;}
         .gap-bar-track{height:14px;border-radius:999px;overflow:hidden;display:flex;background:var(--bg-base);border:1px solid var(--border-bright);}
         .gap-bar-track>div{transition:width .8s cubic-bezier(.4,0,.2,1);}
+        .forecast-row{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:4px 10px;margin-top:9px;padding-top:8px;border-top:1px dashed rgba(31,31,36,.7);font-size:11px;color:var(--text-secondary);}
+        .forecast-note{font-size:9px;color:var(--text-muted);font-style:italic;}
         .gap-bar-seg{height:100%;min-width:0;}
         .gap-bar-legend{display:flex;gap:8px 14px;flex-wrap:wrap;margin-top:8px;font-size:11px;color:var(--text-secondary);}
         .gap-bar-legend-item{display:flex;align-items:center;gap:6px;min-width:0;}
@@ -249,7 +372,7 @@
         .rank-card.rank-1 .rank-medal{display:inline-block;animation:crownfloat 2.6s ease-in-out infinite;}
         @keyframes crownfloat{0%,100%{transform:translateY(0) rotate(-4deg);}50%{transform:translateY(-3px) rotate(4deg);}}
         /* 排名變動箭頭 */
-        .rank-move{display:inline-flex;align-items:center;font-size:11px;font-weight:700;padding:1px 7px;border-radius:999px;margin-left:6px;font-family:'IBM Plex Mono',monospace;flex-shrink:0;}
+        .rank-move{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:800;padding:2px 7px;border-radius:999px;margin-left:6px;font-family:'JetBrains Mono','IBM Plex Mono',monospace;flex-shrink:0;}
         .rank-move.up{background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.3);color:var(--accent-green);}
         .rank-move.down{background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.3);color:var(--accent-red);}
         .rank-move.flat{background:rgba(90,90,96,.12);border:1px solid var(--border);color:var(--text-muted);}
@@ -322,18 +445,161 @@
         /* ── 手機 RWD ───────────────────────── */
         @media (max-width:640px){
             .modal-box{padding:18px;border-radius:12px;max-height:90vh;}
+            .lock-modal-box{padding:22px 18px;border-radius:16px;}
+            .lock-form-actions{align-items:stretch;flex-direction:column;}
+            .lock-form-actions-main{justify-content:flex-end;}
+            .pin-input{font-size:24px;padding:14px 12px;letter-spacing:.42em;}
             .rank-card{padding:11px 13px;}
             .rank-card span[style*="1.6rem"]{font-size:1.25rem !important;}
             .benchmark-card{padding:10px 13px;}
             .portfolio-card{padding:14px;}
             .countdown-badge{padding:6px 16px;font-size:13px;}
-            .pin-input{font-size:22px;}
-            .holding-pie-canvas-wrap{width:108px;height:108px;}
+            .holding-pie-wrap{padding:14px;}
+            .holding-pie-body{gap:12px;}
+            .holding-pie-canvas-wrap{width:min(230px,94%);}
+            .holding-pie-center-num{font-size:23px;}
+            .lot-card-main{grid-template-columns:42px 1fr;gap:5px 8px;}
+            .lot-card-main span:nth-child(4){text-align:left!important;}
+            .trade-card{padding:11px 12px;}
+            .trade-pager{grid-template-columns:1fr 1fr;gap:8px;}
+            .pager-status{grid-column:1 / -1;grid-row:1;text-align:center;min-width:0;}
+            .pager-btn.prev{grid-column:1;grid-row:2;}
+            .pager-btn.next{grid-column:2;grid-row:2;}
+            .hold-lock-toolbar{gap:10px;padding:10px;}
+            .hold-lock-actions{gap:10px;}
+            .btn-lock-icon{width:34px;height:34px;}
             header h1{font-size:1.6rem !important;}
             #market-session-indicator{line-height:1.7;}
             .stats-val{font-size:15px;}
             .month-cell{min-width:50px;padding:5px 9px;}
         }
+    </style>
+    <style id="tw-equiv">
+        /* ══ Tailwind 等價樣式 (取代 CDN) ══════════════════════
+           僅包含本頁實際用到的 utility, 數值對齊 Tailwind v3 預設。
+           置於主樣式之後: 模擬原 CDN 注入順序, 同權重時維持原本的勝出關係。 */
+        .flex{display:flex;}
+        .flex-col{flex-direction:column;}
+        .grid{display:grid;}
+        .grid-cols-1{grid-template-columns:repeat(1,minmax(0,1fr));}
+        .hidden{display:none;}
+        .items-center{align-items:center;}
+        .text-center{text-align:center;}
+        .text-right{text-align:right;}
+        .mx-auto{margin-left:auto;margin-right:auto;}
+        .max-w-6xl{width:100%;max-width:1680px;}
+        .gap-2{gap:.5rem;}
+        .gap-3{gap:.75rem;}
+        .gap-5{gap:1.25rem;}
+        .space-y-1>:not([hidden])~:not([hidden]){margin-top:.25rem;}
+        .p-4{padding:1rem;}
+        .p-6{padding:1.5rem;}
+        .px-2{padding-left:.5rem;padding-right:.5rem;}
+        .py-2{padding-top:.5rem;padding-bottom:.5rem;}
+        .py-8{padding-top:2rem;padding-bottom:2rem;}
+        .py-12{padding-top:3rem;padding-bottom:3rem;}
+        .mb-1{margin-bottom:.25rem;}
+        .mb-3{margin-bottom:.75rem;}
+        .mb-4{margin-bottom:1rem;}
+        .mb-5{margin-bottom:1.25rem;}
+        .mb-8{margin-bottom:2rem;}
+        .mb-10{margin-bottom:2.5rem;}
+        .mt-1{margin-top:.25rem;}
+        .mt-2{margin-top:.5rem;}
+        .mt-3{margin-top:.75rem;}
+        .mt-4{margin-top:1rem;}
+        .mt-5{margin-top:1.25rem;}
+        .mt-8{margin-top:2rem;}
+        .ml-1{margin-left:.25rem;}
+        .ml-2{margin-left:.5rem;}
+        .text-xs{font-size:.75rem;line-height:1rem;}
+        .text-sm{font-size:.875rem;line-height:1.25rem;}
+        .text-lg{font-size:1.125rem;line-height:1.75rem;}
+        .text-xl{font-size:1.25rem;line-height:1.75rem;}
+        .text-2xl{font-size:1.5rem;line-height:2rem;}
+        .text-3xl{font-size:1.875rem;line-height:2.25rem;}
+        .text-4xl{font-size:2.25rem;line-height:2.5rem;}
+        .font-normal{font-weight:400;}
+        .font-semibold{font-weight:600;}
+        .font-bold{font-weight:700;}
+        .leading-none{line-height:1;}
+        .uppercase{text-transform:uppercase;}
+        .normal-case{text-transform:none;}
+        .tracking-wide{letter-spacing:.025em;}
+        .tracking-wider{letter-spacing:.05em;}
+        .tracking-widest{letter-spacing:.1em;}
+        .opacity-70{opacity:.7;}
+        .text-white{color:#fff;}
+        .text-slate-400{color:#94a3b8;}
+        .text-slate-500{color:#64748b;}
+        .text-slate-600{color:#475569;}
+        .text-blue-300{color:#93c5fd;}
+        .text-blue-400{color:#60a5fa;}
+        .text-cyan-300{color:#67e8f9;}
+        .text-cyan-400{color:#22d3ee;}
+        .text-emerald-400{color:#34d399;}
+        .text-red-400{color:#f87171;}
+        .text-amber-300{color:#fcd34d;}
+        .text-amber-400{color:#fbbf24;}
+        .hover\:text-white:hover{color:#fff;}
+        @media (min-width:768px){
+            .md\:grid-cols-3{grid-template-columns:repeat(3,minmax(0,1fr));}
+            .md\:p-8{padding:2rem;}
+            .md\:text-5xl{font-size:3rem;line-height:1;}
+        }
+        /* 統計/貢獻度分頁的卡片格線 (取代原 #stats-panel 的 tailwind grid) */
+        .stats-panel-grid{display:grid;grid-template-columns:repeat(1,minmax(0,1fr));gap:1.25rem;}
+        @media (min-width:768px){.stats-panel-grid{grid-template-columns:repeat(3,minmax(0,1fr));}}
+        /* 個股貢獻度橫條 */
+        .attr-list{display:flex;flex-direction:column;gap:7px;}
+        .attr-row{display:grid;grid-template-columns:minmax(72px,auto) 1fr 84px;align-items:center;gap:8px;font-size:11px;}
+        .attr-label{display:flex;align-items:center;gap:5px;min-width:0;}
+        .attr-name{color:var(--text-muted);font-size:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:90px;}
+        .attr-track{height:9px;border-radius:999px;background:var(--bg-base);border:1px solid var(--border);overflow:hidden;}
+        .attr-bar{height:100%;border-radius:999px;transition:width .6s cubic-bezier(.4,0,.2,1);}
+        .attr-pp{text-align:right;font-weight:700;font-size:11px;}
+        .card-tabs{display:flex;gap:5px;background:rgba(0,0,0,.28);border:1px solid rgba(255,255,255,.075);border-radius:11px;padding:4px;box-shadow:inset 0 1px 0 rgba(255,255,255,.025);}
+        .card-tab{border:none;background:transparent;color:var(--text-muted);font-size:11px;font-weight:800;padding:6px 11px;border-radius:8px;cursor:pointer;letter-spacing:.02em;transition:all .18s;white-space:nowrap;}
+        .card-tab:hover{color:var(--text-secondary);background:rgba(255,255,255,.035);}
+        .card-tab.active{background:linear-gradient(180deg,rgba(255,255,255,.09),rgba(255,255,255,.045));color:#fff;box-shadow:0 1px 8px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.06);}
+        .card-tab,.btn-add-trade,.btn-update{display:inline-flex;align-items:center;justify-content:center;gap:7px;}
+        .card-tab .ui-icon{font-size:15px;}
+        .card-tab.active .ui-icon{color:color-mix(in srgb,var(--player-color) 58%,#fff);}
+        .btn-add-trade{border-radius:12px;padding:7px 12px;}
+        .btn-add-trade .ui-icon{font-size:14px;}
+        .icon-edit-btn{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:8px;background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.07);color:var(--text-muted);cursor:pointer;transition:all .18s;}
+        .icon-edit-btn:hover{color:var(--accent-cyan);border-color:rgba(34,211,238,.32);background:rgba(34,211,238,.08);}
+        .history-toolbar{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;margin-bottom:10px;gap:10px;}
+        .history-toolbar .card-tabs{min-width:0;overflow:hidden;}
+        .history-toolbar .btn-add-trade{min-width:54px;max-width:72px;white-space:normal;line-height:1.15;padding:7px 10px;}
+        .trade-pager{display:grid;grid-template-columns:1fr 1fr;align-items:center;gap:8px;margin-top:12px;padding:10px;border-radius:14px;border:1px solid rgba(255,255,255,.07);background:linear-gradient(180deg,rgba(255,255,255,.035),rgba(255,255,255,.012));box-shadow:inset 0 1px 0 rgba(255,255,255,.035);min-width:0;}
+        .pager-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:38px;min-width:0;border-radius:11px;border:1px solid color-mix(in srgb,var(--player-color) 26%,rgba(255,255,255,.08));background:color-mix(in srgb,var(--player-color) 10%,rgba(10,10,14,.9));color:color-mix(in srgb,var(--player-color) 80%,#fff);font-size:11px;font-weight:850;cursor:pointer;transition:all .18s;padding:7px 10px;overflow:hidden;}
+        .pager-btn.next{justify-self:end;}
+        .pager-btn.prev{justify-self:start;}
+        .pager-btn:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 10px 24px -16px color-mix(in srgb,var(--player-color) 70%,transparent);}
+        .pager-btn:disabled{cursor:not-allowed;color:var(--text-muted);background:rgba(255,255,255,.025);border-color:rgba(255,255,255,.055);opacity:.58;}
+        .pager-status{grid-column:1 / -1;grid-row:1;text-align:center;min-width:0;}
+        .pager-btn.prev{grid-column:1;grid-row:2;justify-self:stretch;}
+        .pager-btn.next{grid-column:2;grid-row:2;justify-self:stretch;}
+        .pager-page{font-family:'JetBrains Mono','IBM Plex Mono',monospace;font-size:13px;font-weight:850;color:#fff;line-height:1.25;}
+        .pager-total{font-size:10px;font-weight:700;color:var(--text-muted);line-height:1.35;}
+        .trend-badge{display:inline-flex;align-items:center;gap:6px;white-space:nowrap;min-width:0;}
+        .daily-change-value{justify-content:flex-end;white-space:normal;flex-wrap:wrap;line-height:1.45;text-align:right;max-width:190px;}
+        .trend-arrow{width:16px;height:16px;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;background:currentColor;box-shadow:0 0 14px color-mix(in srgb,currentColor 24%,transparent);}
+        .trend-arrow::before{content:'';width:0;height:0;border-left:4px solid transparent;border-right:4px solid transparent;}
+        .trend-arrow.up::before{border-bottom:6px solid #06120d;transform:translateY(-1px);}
+        .trend-arrow.down::before{border-top:6px solid #160607;transform:translateY(1px);}
+        .trend-arrow.small{width:14px;height:14px;border-radius:5px;}
+        .trend-arrow.small::before{border-left-width:3.5px;border-right-width:3.5px;}
+        @media (max-width:640px){
+            .trade-pager{grid-template-columns:1fr 1fr;gap:8px;}
+            .pager-status{grid-column:1 / -1;grid-row:1;text-align:center;min-width:0;}
+            .pager-btn.prev{grid-column:1;grid-row:2;justify-self:stretch;}
+            .pager-btn.next{grid-column:2;grid-row:2;justify-self:stretch;}
+        }
+        .card-pane-attr{padding-top:2px;}
+        .attr-sum{font-size:11px;color:var(--text-secondary);margin-bottom:9px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+        .attr-sum-note{font-size:9px;color:var(--text-muted);}
     </style>
 </head>
 <body class="p-4 md:p-8">
@@ -354,6 +620,7 @@
                     <button onclick="exportBackup();closeToolsMenu();">💾 資料庫備份</button>
                     <button onclick="document.getElementById('backupFileInput').click();closeToolsMenu();">📂 還原備份</button>
                     <button onclick="openSnapshotAudit();closeToolsMenu();">🩺 快照健檢</button>
+                    <button onclick="openAutoBakRestore();closeToolsMenu();">🕘 本機自動備份還原</button>
                 </div>
             </div>
             <input type="file" id="backupFileInput" accept=".json,application/json" style="display:none;" onchange="importBackup(this)">
@@ -389,16 +656,10 @@
         </div>
     </section>
 
-    <section class="card p-6 mb-8">
-        <h2 class="text-lg font-bold text-white mb-4 flex items-center gap-2">
-            <span>📐</span> 績效統計
-        </h2>
-        <div id="stats-panel" class="grid grid-cols-1 md:grid-cols-3 gap-5"><div class="skeleton" style="height:300px;"></div><div class="skeleton" style="height:300px;"></div><div class="skeleton" style="height:300px;"></div></div>
-    </section>
     <section class="card p-6 mb-8" id="advanced-panel">
         <div class="adv-head">
             <h2 class="text-lg font-bold text-white flex items-center gap-2">
-                <span id="adv-page-icon">👑</span> <span id="adv-page-title">王座爭奪戰</span>
+                <span id="adv-page-icon">📐</span> <span id="adv-page-title">績效統計</span>
                 <span class="text-xs font-normal text-slate-400 ml-1" id="adv-page-sub"></span>
             </h2>
             <div class="adv-nav">
@@ -480,33 +741,39 @@
 </div>
 
 <div id="lockModal" class="modal-overlay" style="z-index:70">
-    <div class="modal-box" style="width:min(380px,94vw);">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;">
-            <h2 class="text-lg font-bold text-white" id="lockModalTitle">🔒 解鎖</h2>
-            <button onclick="closeLockModal()" class="text-slate-500 hover:text-white text-xl leading-none">&times;</button>
+    <div class="lock-modal-box">
+        <div class="lock-modal-head">
+            <div class="lock-title-wrap">
+                <div class="lock-modal-icon">🔒</div>
+                <div>
+                    <div class="lock-modal-eyebrow">Secure Access</div>
+                    <h2 class="lock-modal-title" id="lockModalTitle">解鎖</h2>
+                </div>
+            </div>
+            <button onclick="closeLockModal()" class="lock-close" aria-label="關閉">&times;</button>
         </div>
         <input type="hidden" id="lockTargetName">
         <!-- 設定密碼視圖(尚未設定密碼鎖時) -->
         <div id="lockViewSet" style="display:none;">
-            <p style="font-size:12px;color:var(--text-secondary);margin-bottom:12px;line-height:1.5;">設定 4 位數字密碼後，將鎖定此玩家的「當前持倉」與「歷史交易紀錄」。<br>不設定密碼則保持公開、不鎖定。</p>
+            <p class="lock-copy">設定 4 位數字密碼後，將鎖定此玩家的「當前持倉」與「歷史交易紀錄」。不設定密碼則保持公開。</p>
             <label class="modal-label">設定密碼</label>
-            <input id="pinSetNew" class="pin-input" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="••••" autocomplete="off" style="margin-bottom:12px;" onkeydown="if(event.key==='Enter')submitSetPwd()">
+            <div class="lock-pin-shell"><input id="pinSetNew" class="pin-input" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="••••" autocomplete="off" style="margin-bottom:12px;" onkeydown="if(event.key==='Enter')submitSetPwd()"></div>
             <label class="modal-label">確認密碼</label>
-            <input id="pinSetConfirm" class="pin-input" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="••••" autocomplete="off" onkeydown="if(event.key==='Enter')submitSetPwd()">
+            <div class="lock-pin-shell"><input id="pinSetConfirm" class="pin-input" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="••••" autocomplete="off" onkeydown="if(event.key==='Enter')submitSetPwd()"></div>
             <div id="lockMsgSet" class="lock-msg" style="margin-top:10px;color:var(--accent-red);"></div>
-            <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:14px;">
+            <div class="lock-form-actions" style="justify-content:flex-end;">
                 <button onclick="closeLockModal()" class="btn-cancel">取消</button>
                 <button onclick="submitSetPwd()" class="btn-save">設定並鎖定</button>
             </div>
         </div>
         <!-- 解鎖視圖 -->
         <div id="lockViewUnlock">
-            <p style="font-size:12px;color:var(--text-secondary);margin-bottom:12px;line-height:1.5;">請輸入此玩家的 4 位數字密碼以顯示「當前持倉」與「歷史交易紀錄」。</p>
-            <input id="pinUnlock" class="pin-input" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="••••" autocomplete="off" onkeydown="if(event.key==='Enter')submitUnlock()" oninput="if(this.value.length===4)submitUnlock()">
+            <p class="lock-copy">請輸入此玩家的 4 位數字密碼，以顯示「當前持倉」與「歷史交易紀錄」。</p>
+            <div class="lock-pin-shell"><input id="pinUnlock" class="pin-input" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="••••" autocomplete="off" onkeydown="if(event.key==='Enter')submitUnlock()" oninput="if(this.value.length===4)submitUnlock()"></div>
             <div id="lockMsgUnlock" class="lock-msg" style="margin-top:10px;color:var(--accent-red);"></div>
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:14px;">
+            <div class="lock-form-actions">
                 <button class="lock-link" onclick="lockSwitchView('change')">🔑 變更密碼</button>
-                <div style="display:flex;gap:10px;">
+                <div class="lock-form-actions-main">
                     <button onclick="closeLockModal()" class="btn-cancel">取消</button>
                     <button onclick="submitUnlock()" class="btn-save">解鎖</button>
                 </div>
@@ -514,17 +781,17 @@
         </div>
         <!-- 變更 / 移除密碼視圖 -->
         <div id="lockViewChange" style="display:none;">
-            <p style="font-size:12px;color:var(--text-secondary);margin-bottom:12px;line-height:1.5;">變更或移除密碼鎖需先通過現有密碼驗證。新密碼須為 4 位數字。</p>
+            <p class="lock-copy">變更或移除密碼鎖需先通過現有密碼驗證。新密碼須為 4 位數字。</p>
             <label class="modal-label">目前密碼</label>
-            <input id="pinCurrent" class="pin-input" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="••••" autocomplete="off" style="margin-bottom:12px;">
+            <div class="lock-pin-shell"><input id="pinCurrent" class="pin-input" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="••••" autocomplete="off" style="margin-bottom:12px;"></div>
             <label class="modal-label">新密碼</label>
-            <input id="pinNew" class="pin-input" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="••••" autocomplete="off" style="margin-bottom:12px;">
+            <div class="lock-pin-shell"><input id="pinNew" class="pin-input" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="••••" autocomplete="off" style="margin-bottom:12px;"></div>
             <label class="modal-label">確認新密碼</label>
-            <input id="pinConfirm" class="pin-input" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="••••" autocomplete="off" onkeydown="if(event.key==='Enter')submitChangePwd()">
+            <div class="lock-pin-shell"><input id="pinConfirm" class="pin-input" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="••••" autocomplete="off" onkeydown="if(event.key==='Enter')submitChangePwd()"></div>
             <div id="lockMsgChange" class="lock-msg" style="margin-top:10px;color:var(--accent-red);"></div>
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:14px;">
+            <div class="lock-form-actions">
                 <button class="lock-link" onclick="lockSwitchView('unlock')">← 返回</button>
-                <div style="display:flex;gap:10px;">
+                <div class="lock-form-actions-main">
                     <button onclick="submitRemoveLock()" class="btn-cancel" style="color:var(--accent-red);border-color:rgba(239,68,68,.4);">移除密碼鎖</button>
                     <button onclick="submitChangePwd()" class="btn-save">儲存密碼</button>
                 </div>
@@ -711,6 +978,15 @@
 const firebaseConfig={apiKey:"AIzaSyB0JZSBEgE11JQvPINRIHkztapNazgCrPU",authDomain:"investment-competition.firebaseapp.com",databaseURL:"https://investment-competition-default-rtdb.firebaseio.com",projectId:"investment-competition",storageBucket:"investment-competition.firebasestorage.app",messagingSenderId:"1086646313342",appId:"1:1086646313342:web:8a4607827ade76528a532f"};
 if(!firebase.apps.length)firebase.initializeApp(firebaseConfig);
 const db=firebase.database();
+// ── 應用版本: 每次部署新版時更新此字串, Service Worker 快取會自動換代 ──
+const APP_VERSION = '2026.06.12-1';
+// ── Firebase 匿名驗證 ─────────────────────────
+// 規則鎖定 (".write": "auth != null") 後, 僅完成匿名登入的 session 可寫入資料庫,
+// 可擋下所有未經頁面的純 REST 掃描寫入。使用者完全無感, 不需帳號密碼。
+// 規則尚未鎖定前, 登入失敗也不影響既有功能。
+firebase.auth().signInAnonymously()
+    .then(()=>console.log('🔑 Firebase 匿名驗證完成'))
+    .catch(e=>console.warn('匿名登入失敗 (規則未鎖定前不影響使用):', e.code, e.message));
 // ── API 代理 (所有第三方金鑰均存於 Cloudflare Worker Secrets, 前端不再持有任何 key) ──
 const CF_PROXY='https://yf-proxy.steven961205.workers.dev';
 
@@ -832,6 +1108,51 @@ let performanceChart=null;
 let chartRenderTimer=null;
 let holdingPieCharts={}; // {playerName: Chart instance}
 const HOLDING_PIE_COLORS = ['#3b82f6','#06b6d4','#f59e0b','#10b981','#a855f7','#ec4899','#fbbf24','#ef4444','#84cc16','#8b5cf6','#22d3ee','#f97316','#14b8a6','#e11d48','#0ea5e9','#facc15','#d946ef','#65a30d','#06b6d4','#fb7185'];
+function shortPieTickerLabel(label){
+    const raw = String(label || '').replace('💵 現金','CASH').trim();
+    return raw.replace(/\.(TW|TWO)$/i,'').replace(/\s+/g,'').slice(0,7) || '--';
+}
+function formatPieTooltipValue(value, currency){
+    const digits = currency === 'TWD' ? 0 : 2;
+    return `${Number(value || 0).toLocaleString('en-US',{minimumFractionDigits:digits,maximumFractionDigits:digits})} ${currency || 'USD'}`;
+}
+const holdingPieLabelPlugin = {
+    id: 'holdingPieLabelPlugin',
+    afterDatasetsDraw(chart){
+        const meta = chart.getDatasetMeta(0);
+        const dataset = chart.data.datasets[0];
+        if(!meta || !dataset) return;
+        const total = dataset.data.reduce((sum,v)=>sum + Number(v || 0), 0);
+        if(total <= 0) return;
+        const ctx = chart.ctx;
+        ctx.save();
+        meta.data.forEach((arc, i)=>{
+            const value = Number(dataset.data[i] || 0);
+            const pct = value / total * 100;
+            if(pct < 5) return;
+            const props = arc.getProps(['x','y','startAngle','endAngle','innerRadius','outerRadius'], true);
+            const angle = (props.startAngle + props.endAngle) / 2;
+            const cos = Math.cos(angle);
+            const sin = Math.sin(angle);
+            const midR = (props.innerRadius + props.outerRadius) / 2;
+            const pctX = props.x + cos * midR;
+            const pctY = props.y + sin * midR;
+            ctx.font = '800 13px JetBrains Mono, IBM Plex Mono, monospace';
+            ctx.fillStyle = '#fff';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(`${Math.round(pct)}%`, pctX, pctY);
+
+            const labelX = props.x + cos * (props.outerRadius + 22);
+            const labelY = props.y + sin * (props.outerRadius + 22);
+            ctx.font = '700 10px Inter, Noto Sans TC, sans-serif';
+            ctx.fillStyle = 'rgba(230,234,242,.86)';
+            ctx.textAlign = cos > .22 ? 'left' : (cos < -.22 ? 'right' : 'center');
+            ctx.fillText(shortPieTickerLabel(chart.data.labels[i]), labelX, labelY);
+        });
+        ctx.restore();
+    }
+};
 
 // ── 50 色色盤 (玩家曲線 / 指數虛線通用) ─────
 const COLOR_PALETTE = [
@@ -1303,7 +1624,7 @@ function renderBenchmarks(){
         const pct = it.data.changePct;
         const pos = pct >= 0;
         const cls = pos ? 'text-emerald-400' : 'text-red-400';
-        const arrow = pos ? '▲' : '▼';
+        const arrowHTML = `<span class="trend-arrow small ${pos?'up':'down'}"></span>`;
         const sign = pos ? '+' : '';
         const latestStr = it.data.latest >= 10000
             ? it.data.latest.toLocaleString('en-US',{maximumFractionDigits:0})
@@ -1318,7 +1639,7 @@ function renderBenchmarks(){
             </div>
             <div class="text-right">
                 <div class="mono font-bold text-white text-sm">${latestStr}</div>
-                <div class="text-xs mono font-semibold ${cls}">${arrow} ${sign}${pct.toFixed(2)}%</div>
+                <div class="trend-badge text-xs mono font-semibold ${cls}">${arrowHTML}${sign}${pct.toFixed(2)}%</div>
             </div>
         </div>`;
     }).join('');
@@ -1901,6 +2222,8 @@ function renderPerformanceChart(){
         const color = getPlayerColor(p.name, playerColors[idx % playerColors.length]);
         datasets.push({
             label: p.name,
+            displayLabel: shortName(p.name, 5),
+            originalLabel: p.name,
             data,
             borderColor: color,
             backgroundColor: ctx2 => playerFillGradient(ctx2, color),
@@ -1978,7 +2301,15 @@ function renderPerformanceChart(){
                             color:'#e8f4fd',
                             usePointStyle: true,
                             padding: 14,
-                            font: { size:12, family:'Inter' }
+                            font: { size:12, family:'Inter' },
+                            generateLabels(chart){
+                                const labels = Chart.defaults.plugins.legend.labels.generateLabels(chart);
+                                labels.forEach(item=>{
+                                    const ds = chart.data.datasets[item.datasetIndex];
+                                    if(ds && ds.displayLabel) item.text = ds.displayLabel;
+                                });
+                                return labels;
+                            }
                         },
                         onHover: function(e, legendItem, legend){
                             // 大盤線: 圖例 hover → 恢復全亮聚焦
@@ -1999,13 +2330,15 @@ function renderPerformanceChart(){
                             // 維持 Chart.js 預設的顯示/隱藏切換
                             const ci = legend.chart;
                             const i = legendItem.datasetIndex;
+                            const ds = ci.data.datasets[i];
+                            const key = (ds && (ds.originalLabel || ds.label)) || legendItem.text;
                             const isVisible = ci.isDatasetVisible(i);
                             if(isVisible){
                                 ci.hide(i);
-                                hiddenChartLabels.add(legendItem.text);
+                                hiddenChartLabels.add(key);
                             } else {
                                 ci.show(i);
-                                hiddenChartLabels.delete(legendItem.text);
+                                hiddenChartLabels.delete(key);
                             }
                             saveHiddenLabels();
                         }
@@ -2075,7 +2408,6 @@ function renderPerformanceChart(){
     }
 
     // 6. 績效統計面板 (與曲線共用同一輪 debounce, 同源定錨)
-    renderStatsPanel(allDates, lastTradingDayStr);
 
     // 7. 進階戰情室 (王座/撞股/水下回撤/風險/回放) — 同源定錨
     renderAdvancedPanel(allDates, lastTradingDayStr);
@@ -2084,15 +2416,15 @@ function renderPerformanceChart(){
 // ── 績效統計面板 ─────────────────────────────
 // 每位玩家: MDD+回撤天數 / 勝率 / 盈虧比 / 平均持有天數 / 最佳最差單筆 / 月度報酬熱力圖
 // 每日淨值與績效曲線共用 calcNetValueOnDate(), 確保所有數字同源一致
-function renderStatsPanel(allDates, lastTradingDayStr){
-    const wrap = document.getElementById('stats-panel');
-    if(!wrap) return;
-    if(!participants.length || !allDates || allDates.length === 0){ wrap.innerHTML=''; return; }
+function renderAdvStats(body){
+    if(!advData || !participants.length){ body.innerHTML = advSkeletonHTML(); return; }
+    const { allDates } = advData;
+    if(!allDates || allDates.length === 0){ body.innerHTML = advSkeletonHTML(); return; }
 
-    wrap.innerHTML = participants.map(p=>{
+    body.innerHTML = '<div class="stats-panel-grid">' + participants.map((p, pIdx)=>{
         const initCap = getFixedInitialCapital(p.currency);
-        // ── 每日淨值序列 ──
-        const navs = allDates.map(date => calcNetValueOnDate(p, date, date === lastTradingDayStr));
+        // ── 每日淨值序列: 直接重用 advData (renderAdvancedPanel 已算好, 免重複計算) ──
+        const navs = (advData.players[pIdx] && advData.players[pIdx].nav) || [];
 
         // ── 最大回撤 (MDD): 沿淨值曲線追蹤峰值 ──
         let peak = -Infinity, peakIdx = 0, mdd = 0, mddPeakIdx = 0, mddTroughIdx = 0;
@@ -2136,10 +2468,10 @@ function renderStatsPanel(allDates, lastTradingDayStr){
             if(!best || t.pnl > best.pnl) best = t;
             if(!worst || t.pnl < worst.pnl) worst = t;
         });
-        const fmtTradePnl = t => {
+        const fmtTradePnl = (t, showTicker=true) => {
             const neg = t.pnl < 0;
             const cls = neg ? 'text-red-400' : 'text-emerald-400';
-            return `<div class="stats-val mono ${cls}">${neg?'-':'+'}${fmtRaw(Math.abs(t.pnl), p.currency)}</div><div class="stats-sub">${esc(t.ticker)}</div>`;
+            return `<div class="stats-val mono ${cls}">${neg?'-':'+'}${fmtRaw(Math.abs(t.pnl), p.currency)}</div>${showTicker?`<div class="stats-sub">${esc(t.ticker)}</div>`:''}`;
         };
 
         // ── 月度報酬 (月末淨值 / 前月末淨值 - 1) ──
@@ -2168,7 +2500,7 @@ function renderStatsPanel(allDates, lastTradingDayStr){
         return `<div class="stats-card">
             <div class="stats-card-head">
                 <span class="stats-dot" style="background:${color};box-shadow:0 0 8px ${color}66;"></span>
-                <span class="font-bold text-white">${esc(p.name)}</span>
+                <span class="font-bold text-white" title="${esc(p.name)}">${esc(shortName(p.name,5))}</span>
             </div>
             <div class="stats-grid">
                 <div class="stats-item">
@@ -2193,17 +2525,88 @@ function renderStatsPanel(allDates, lastTradingDayStr){
                 </div>
                 <div class="stats-item">
                     <div class="stats-label">最佳單筆</div>
-                    ${best?fmtTradePnl(best):'<div class="stats-val mono text-slate-400">--</div><div class="stats-sub">尚無交易</div>'}
+                    ${best?fmtTradePnl(best,false):'<div class="stats-val mono text-slate-400">--</div><div class="stats-sub">尚無交易</div>'}
                 </div>
                 <div class="stats-item">
                     <div class="stats-label">最差單筆</div>
-                    ${worst?fmtTradePnl(worst):'<div class="stats-val mono text-slate-400">--</div><div class="stats-sub">尚無交易</div>'}
+                    ${worst?fmtTradePnl(worst,false):'<div class="stats-val mono text-slate-400">--</div><div class="stats-sub">尚無交易</div>'}
                 </div>
             </div>
             <div class="stats-heatmap-title">📆 月度報酬</div>
             <div class="stats-heatmap">${monthCells||'<span style="color:var(--text-muted);font-size:11px;">資料不足</span>'}</div>
         </div>`;
+    }).join('') + '</div>';
+}
+
+// ── 🧩 個股貢獻度 (Attribution) — 玩家卡片內分頁 ─────────────
+// 每檔股票對該玩家總報酬的貢獻 = (已實現 + 未實現損益) / 初始本金, 以百分點(pp)表示
+// 內容位於 lock-content 之內 → 與持倉/交易紀錄受同一把密碼鎖保護
+function buildPlayerAttrHTML(p){
+    const initCap = getFixedInitialCapital(p.currency);
+    const agg = {};   // ticker -> {realized, unrealized, name}
+    const bump = (ticker, key, val, sName)=>{
+        const t = ticker || '--';
+        if(!agg[t]) agg[t] = { realized:0, unrealized:0, name:sName||'' };
+        agg[t][key] += val;
+        if(sName && !agg[t].name) agg[t].name = sName;
+    };
+    (Array.isArray(p.trades)?p.trades:[]).forEach(t=>{
+        const tCur = getStockCurrency(t.ticker);
+        bump(t.ticker, 'realized', convertCurrency(parseFloat(t.pnl)||0, tCur, p.currency), t.stockName);
+    });
+    (Array.isArray(p.stocks)?p.stocks:[]).forEach(s=>{
+        const sess = s.session || '';
+        const lp = (sess==='🌙 夜盤'&&s.prePrice) ? s.prePrice :
+                   (sess==='🌆 盤後'&&s.postPrice) ? s.postPrice :
+                   s.currentPrice || 0;
+        const sCur = getStockCurrency(s.ticker) || s.currency || p.currency;
+        const unPnl = convertCurrency((s.shares||0)*(lp-(s.buyPrice||0)), sCur, p.currency);
+        bump(s.ticker, 'unrealized', unPnl, s.stockName);
+    });
+    const rows = Object.entries(agg).map(([ticker, v])=>{
+        const total = v.realized + v.unrealized;
+        return { ticker, name:v.name, total, pp: initCap>0 ? total/initCap*100 : 0,
+                 hasBoth: Math.abs(v.realized)>0.005 && Math.abs(v.unrealized)>0.005,
+                 realized:v.realized, unrealized:v.unrealized };
+    }).sort((a,b)=>b.pp-a.pp);
+    if(rows.length === 0){
+        return '<div style="color:var(--text-muted);font-size:11px;padding:14px 0;text-align:center;">尚無交易與持股</div>';
+    }
+    const maxAbs = Math.max(0.01, ...rows.map(r=>Math.abs(r.pp)));
+    const sumPP = rows.reduce((s,r)=>s+r.pp,0);
+    const barRows = rows.map(r=>{
+        const pos = r.pp >= 0;
+        const w = Math.max(2, Math.abs(r.pp)/maxAbs*100);
+        const color = pos ? 'var(--accent-green)' : 'var(--accent-red)';
+        const detail = r.hasBoth
+            ? `已實現 ${r.realized>=0?'+':'-'}${fmtRaw(Math.abs(r.realized),p.currency)} · 未實現 ${r.unrealized>=0?'+':'-'}${fmtRaw(Math.abs(r.unrealized),p.currency)}`
+            : (Math.abs(r.realized)>0.005 ? '已實現' : '未實現(持有中)');
+        return `<div class="attr-row" title="${esc(r.ticker)}${r.name?' '+esc(r.name):''}：${pos?'+':''}${r.pp.toFixed(2)} pp（${detail}）">
+            <div class="attr-label">
+                <span class="mono" style="color:var(--accent-cyan);font-weight:700;">${esc(r.ticker)}</span>
+            </div>
+            <div class="attr-track"><div class="attr-bar" style="width:${w.toFixed(1)}%;background:${color};"></div></div>
+            <span class="mono attr-pp" style="color:${color};">${pos?'+':''}${r.pp.toFixed(2)} pp</span>
+        </div>`;
     }).join('');
+    return `<div class="attr-sum">合計貢獻
+        <span class="mono" style="color:${sumPP>=0?'var(--accent-green)':'var(--accent-red)'};font-weight:700;">${sumPP>=0?'+':''}${sumPP.toFixed(2)} pp</span>
+        <span class="attr-sum-note">＝ (已實現＋未實現) ÷ 初始本金</span>
+    </div>
+    <div class="attr-list">${barRows}</div>`;
+}
+
+// 卡片內「歷史交易 / 個股貢獻」分頁切換 (純 class 切換, 不重繪)
+const cardTabMap = {};   // name -> 'history' | 'attr'
+function switchCardTab(name, tab){
+    cardTabMap[name] = tab;
+    const zone = document.querySelector(`.lock-zone[data-player="${CSS.escape(name)}"]`);
+    if(!zone) return;
+    zone.querySelectorAll('.card-tab').forEach(b=>b.classList.toggle('active', b.dataset.tab === tab));
+    const hist = zone.querySelector('.card-pane-history');
+    const attr = zone.querySelector('.card-pane-attr');
+    if(hist) hist.style.display = tab==='history' ? '' : 'none';
+    if(attr) attr.style.display = tab==='attr' ? '' : 'none';
 }
 
 // ── 監聽 dailySnapshots ───────────────────
@@ -2232,6 +2635,8 @@ function renderHoldingPie(playerName, sliceData, totalHoldings){
     const canvas = document.getElementById(canvasId);
     if(!canvas || typeof Chart === 'undefined') return;
     const ctx = canvas.getContext('2d');
+    const player = participants.find(p=>p.name === playerName);
+    const currency = player?.currency || 'USD';
 
     // 銷毀舊 instance(每次 dashboard 重繪)
     if(holdingPieCharts[playerName]){
@@ -2250,35 +2655,49 @@ function renderHoldingPie(playerName, sliceData, totalHoldings){
             datasets: [{
                 data: dataArr,
                 backgroundColor: colors,
-                borderColor: 'rgba(13,23,38,1)',
+                borderColor: 'rgba(3,3,6,.98)',
                 borderWidth: 2,
-                hoverOffset: 6
+                borderRadius: 4,
+                spacing: 1,
+                hoverOffset: 10
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            cutout: '68%',
-            animation: { duration: 500 },
+            cutout: '66%',
+            animation: { duration: 650, easing:'easeOutQuart' },
+            layout: { padding: { top: 28, right: 34, bottom: 26, left: 34 } },
+            interaction: { mode:'nearest', intersect:true },
             plugins: {
                 legend: { display: false },
                 tooltip: {
-                    backgroundColor: 'rgba(13,23,38,.96)',
-                    borderColor: '#34343c',
+                    backgroundColor: 'rgba(62,62,66,.96)',
+                    borderColor: 'rgba(255,255,255,.12)',
                     borderWidth: 1,
-                    titleColor: '#e8f4fd',
-                    bodyColor: '#e8f4fd',
+                    titleColor: '#f4f7fb',
+                    bodyColor: '#f4f7fb',
                     padding: 10,
+                    cornerRadius: 4,
+                    caretSize: 6,
+                    displayColors: true,
+                    boxWidth: 8,
+                    boxHeight: 8,
+                    usePointStyle: true,
                     callbacks: {
+                        title: function(items){
+                            return shortPieTickerLabel(items?.[0]?.label);
+                        },
                         label: function(c){
                             const total = c.dataset.data.reduce((a,b)=>a+b,0);
-                            const pct = total>0 ? (c.parsed/total*100).toFixed(1) : '0.0';
-                            return `${c.label}: ${pct}%`;
+                            const pct = total>0 ? (c.parsed/total*100).toFixed(2) : '0.00';
+                            return `${formatPieTooltipValue(c.parsed, currency)} (${pct}%)`;
                         }
                     }
                 }
             }
-        }
+        },
+        plugins: [holdingPieLabelPlugin]
     });
 }
 
@@ -2302,6 +2721,8 @@ document.addEventListener('click',e=>{if(!e.target.closest('.ac-wrap'))document.
 
 // ── Firebase 監聽 ─────────────────────────
 db.ref('competitionData').on('value',async snapshot=>{
+    setTimeout(autoMigrateLegacyPins, 2500);   // PIN 明碼→雜湊自動遷移 (僅執行一次)
+    setTimeout(runAutoLocalBackup, 6000);      // 本機自動備份 (每日一次, 滾動 3 份)
     const data=snapshot.val();
     setStatus('loading','🔄 同步資料與股價中...');
     if(!data){db.ref('competitionData').set(defaultData);return;}
@@ -2409,6 +2830,11 @@ async function importBackup(input){
         `\n\n現有同名節點的資料將被完全取代（建議先按「💾 備份」保存目前狀態）。\n確定要還原嗎？`
     );
     if(!ok) return;
+    await applyBackupData(data);
+}
+// 將備份物件逐節點寫回資料庫 (importBackup / 本機自動備份還原共用)
+async function applyBackupData(data){
+    const keys = Object.keys(data).filter(k=>k!=='_backupMeta');
     try{
         setStatus('loading','📂 正在還原資料...');
         for(const k of keys){
@@ -2420,6 +2846,56 @@ async function importBackup(input){
         alert('❌ 還原過程發生錯誤：'+e.message+'\n部分節點可能已寫入，請檢查資料或重新還原。');
     }
 }
+
+// ── 本機自動備份 (localStorage, 每日一份, 滾動保留 3 份) ─────────
+// 開頁後自動執行, 零操作成本; 資料庫被誤刪/竄改時可從「⚙️ 工具」選單還原
+const AUTO_BAK_PREFIX = 'autoBak:';
+const AUTO_BAK_KEEP = 3;
+let autoBakDone = false;
+async function runAutoLocalBackup(){
+    if(autoBakDone) return;
+    autoBakDone = true;
+    try{
+        const today = new Date().toISOString().slice(0,10);
+        if(localStorage.getItem(AUTO_BAK_PREFIX + today)) return;   // 今日已備份
+        // 逐節點讀取 (與 exportBackup 的 per-node 模式相同)
+        const data = {};
+        for(const node of BACKUP_NODES){
+            try{
+                const snap = await db.ref(node).once('value');
+                const v = snap.val();
+                if(v !== null && v !== undefined) data[node] = v;
+            }catch(e){}
+        }
+        if(Object.keys(data).length === 0) return;
+        const json = JSON.stringify(data);
+        if(json.length > 2.5 * 1024 * 1024){ console.warn('自動備份略過: 資料超過 2.5MB'); return; }
+        localStorage.setItem(AUTO_BAK_PREFIX + today, json);
+        // 滾動清理: 只留最新 AUTO_BAK_KEEP 份
+        const bakKeys = Object.keys(localStorage).filter(k=>k.startsWith(AUTO_BAK_PREFIX)).sort();
+        while(bakKeys.length > AUTO_BAK_KEEP){
+            localStorage.removeItem(bakKeys.shift());
+        }
+        const kept = Object.keys(localStorage).filter(k=>k.startsWith(AUTO_BAK_PREFIX)).length;
+        console.log(`💾 本機自動備份完成 (${today}), 現存 ${kept} 份`);
+    }catch(e){ console.warn('本機自動備份失敗:', e.message); }
+}
+// 列出本機自動備份並供還原
+function openAutoBakRestore(){
+    const baks = Object.keys(localStorage).filter(k=>k.startsWith(AUTO_BAK_PREFIX)).sort().reverse();
+    if(baks.length === 0){ alert('目前沒有本機自動備份。\n自動備份會在每天首次開啟頁面時建立。'); return; }
+    const list = baks.map((k,i)=>`${i+1}. ${k.slice(AUTO_BAK_PREFIX.length)}`).join('\n');
+    const pick = prompt(`🕘 本機自動備份 (最新在前):\n${list}\n\n輸入編號還原該份備份, 或取消:`, '1');
+    if(pick === null) return;
+    const idx = parseInt(pick, 10) - 1;
+    if(isNaN(idx) || idx < 0 || idx >= baks.length){ alert('編號無效'); return; }
+    let data;
+    try{ data = JSON.parse(localStorage.getItem(baks[idx])); }
+    catch(e){ alert('備份資料毀損: '+e.message); return; }
+    const keys = Object.keys(data);
+    if(!confirm(`⚠️ 即將用 ${baks[idx].slice(AUTO_BAK_PREFIX.length)} 的本機備份覆寫 ${keys.length} 個節點:\n${keys.map(k=>'• '+k).join('\n')}\n\n確定還原?`)) return;
+    applyBackupData(data);
+}
 function fmtRaw(amount,currency,decimals=0){const abs=Math.abs(amount);if(currency==='TWD')return`NT$ ${abs.toLocaleString('zh-TW',{minimumFractionDigits:decimals,maximumFractionDigits:decimals})}`;return`$${abs.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}`;}
 function fmtC(amount,currency,white=false){const raw=fmtRaw(amount,currency);const neg=amount<0;const sign=neg?'-':'';if(white)return`<span class="mono font-bold text-white">${sign}${raw}</span>`;const cls=neg?'text-red-400 font-bold mono':(amount===0?'text-slate-400 mono':'text-emerald-400 font-bold mono');return`<span class="${cls}">${sign}${raw}</span>`;}
 
@@ -2428,7 +2904,7 @@ function renderPlayerNames(){
     const el = document.getElementById('player-names');
     if(!el) return;
     if(!participants.length){ el.textContent='載入中...'; return; }
-    el.textContent = participants.map(p=>p.name).join('  ⚔️  ');
+    el.textContent = participants.map(p=>shortName(p.name,5)).join('  /  ');
 }
 
 // ── 價格新鮮度 ───────────────────────────
@@ -2471,7 +2947,7 @@ function buildGapBarHTML(lb){
         const profitColor = r.profitTWD >= 0 ? 'var(--accent-green)' : '#ef4444';
         return `<span class="gap-bar-legend-item" title="淨值 - 本金">
             <span class="gap-bar-dot" style="background:${r.color};box-shadow:0 0 8px ${r.color}88;"></span>
-            <b style="color:${r.color};">${esc(r.name)}</b>
+            <b style="color:${r.color};" title="${esc(r.name)}">${esc(shortName(r.name,5))}</b>
             <span class="mono" style="color:var(--text-primary);font-weight:700;">${share.toFixed(1)}%</span>
             <span class="mono" style="color:${profitColor};">${profitSign}${fmtRaw(Math.abs(r.profitTWD),'TWD')}</span>
         </span>`;
@@ -2485,7 +2961,56 @@ function buildGapBarHTML(lb){
             ${segHTML || '<div class="gap-bar-seg" style="width:100%;background:var(--bg-base);"></div>'}
         </div>
         <div class="gap-bar-legend">${legendHTML}</div>
+        ${buildSettlementForecastHTML()}
     </div>`;
+}
+
+// ── 結算日落點外推 (娛樂性質) ─────────────────────────
+// 取前兩名近 30 個交易日的報酬率序列做線性回歸, 以日斜率外推至結算日
+const COMPETITION_END_STR = '2026-11-04';
+function buildSettlementForecastHTML(){
+    try{
+        if(!advData || !advData.players || !advData.allDates || advData.allDates.length < 8) return '';
+        const { allDates, players } = advData;
+        // 剩餘交易日數 (平日計, 與曲線同基準)
+        const last = new Date(allDates[allDates.length-1] + 'T00:00:00');
+        const end = new Date(COMPETITION_END_STR + 'T00:00:00');
+        if(end <= last) return '';
+        let remDays = 0;
+        for(let d = new Date(last); d < end; ){
+            d.setDate(d.getDate() + 1);
+            const w = d.getDay();
+            if(w !== 0 && w !== 6) remDays++;
+        }
+        if(remDays <= 0) return '';
+        // 每位玩家: 近 30 個有效點線性回歸 → 外推
+        const fc = players.map(pl=>{
+            const pts = [];
+            for(let i = Math.max(0, pl.ret.length - 30); i < pl.ret.length; i++){
+                if(pl.ret[i] != null && isFinite(pl.ret[i])) pts.push([pts.length, pl.ret[i]]);
+            }
+            if(pts.length < 5) return null;
+            const n = pts.length;
+            const sx = pts.reduce((s,p)=>s+p[0],0), sy = pts.reduce((s,p)=>s+p[1],0);
+            const sxy = pts.reduce((s,p)=>s+p[0]*p[1],0), sxx = pts.reduce((s,p)=>s+p[0]*p[0],0);
+            const denom = n*sxx - sx*sx;
+            const slope = Math.abs(denom) < 1e-9 ? 0 : (n*sxy - sx*sy)/denom;
+            const cur = pts[n-1][1];
+            return { name:pl.name, color:pl.color, cur, proj: cur + slope * remDays };
+        }).filter(Boolean);
+        if(fc.length < 2) return '';
+        // 目前領先者 vs 第二名
+        const byNow = [...fc].sort((x,y)=>y.cur-x.cur);
+        const a = byNow[0], b = byNow[1];
+        const fGap = a.proj - b.proj;
+        const flip = fGap < 0;   // 外推結果被反超
+        const md = COMPETITION_END_STR.slice(5).replace('-','/');
+        return `<div class="forecast-row">
+            <span>📅 結算日 (${md}) 外推</span>
+            <span class="mono"><b style="color:${a.color};">${esc(shortName(a.name))}</b> ${a.proj>=0?'+':''}${a.proj.toFixed(1)}% vs <b style="color:${b.color};">${esc(shortName(b.name))}</b> ${b.proj>=0?'+':''}${b.proj.toFixed(1)}%${flip?` <span style="color:var(--accent-amber);font-weight:700;">⚡ 預測反超!</span>`:` · 預測差距 ${fGap.toFixed(1)} pp`}</span>
+            <span class="forecast-note">依近 30 交易日線性外推 · 僅供娛樂參考</span>
+        </div>`;
+    }catch(e){ return ''; }
 }
 
 // ── 淨值滾動動畫 + 卡片漲跌閃光 (交易所終端風) ──────────
@@ -2711,22 +3236,22 @@ function renderDashboard(){
                         const lotPs   = lotPnl>=0?'+':'-';
                         const lotPctSign = lotPnl>=0?'+':'';
                         const lotCls  = lotPnl<0?'text-red-400':'text-emerald-400';
-                        return `<div style="padding:4px 6px;background:rgba(10,10,12,.5);border-radius:4px;font-size:11px;">
-                            <div style="display:grid;grid-template-columns:48px 1fr 1fr 1fr;gap:6px;">
-                                <span style="color:var(--accent-amber);font-weight:700;">第${i+1}筆</span>
+                        return `<div class="lot-card">
+                            <div class="lot-card-main">
+                                <span class="lot-tag">第${i+1}筆</span>
                                 <span style="color:var(--text-muted);" class="mono">${ld}</span>
                                 <span style="color:var(--text-secondary);">${ls.toLocaleString()} 股 @ <span class="mono text-white">${lp.toFixed(2)}</span></span>
                                 <span style="color:var(--text-muted);text-align:right;" class="mono">${fmtRaw(lotCost,sCurrency)}</span>
                             </div>
-                            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:3px;padding-top:3px;border-top:1px dashed rgba(31,31,36,.5);font-size:10px;">
+                            <div class="lot-card-sub">
                                 <span style="color:var(--text-muted);">市值 <span class="mono" style="color:var(--accent-cyan);" data-live="lotmv-${pIdx}-${si}-${i}">${fmtRaw(lotMV,sCurrency)}</span></span>
                                 <span style="color:var(--text-muted);">該筆績效 <span data-live="lotp-${pIdx}-${si}-${i}"><span class="font-bold mono ${lotCls}">${lotPs}${fmtRaw(lotPnl,sCurrency)} <span style="opacity:.8">(${lotPctSign}${lotPnlPct}%)</span></span></span></span>
                             </div>
                         </div>`;
                     }).join('');
-                    lotsHTML = `<div style="margin-top:6px;padding-top:6px;border-top:1px dashed rgba(168,85,247,.3);">
-                        <div style="font-size:10px;color:#c084fc;font-weight:700;margin-bottom:4px;">📊 加倉明細 (${lots.length} 筆 → 均價 ${(s.buyPrice||0).toFixed(4)})</div>
-                        <div style="display:flex;flex-direction:column;gap:3px;">${lotRows}</div>
+                    lotsHTML = `<div class="lot-breakdown">
+                        <div class="lot-breakdown-title">📊 加倉明細 (${lots.length} 筆 → 均價 ${(s.buyPrice||0).toFixed(4)})</div>
+                        <div class="lot-list">${lotRows}</div>
                     </div>`;
                 }
 
@@ -2795,22 +3320,20 @@ function renderDashboard(){
 
             const totalPieMV = pieSlices.reduce((sum,s)=>sum+s.mv,0);
             const totalAssetVal = totalPieMV; // 顯示在中心
-            const legendHTML = buildPieLegendHTML(pieSlices, totalPieMV);   // 與免刷新 patch 共用
 
             pieHTML = `<div class="holding-pie-wrap">
                 <div class="holding-pie-header">
-                    <span class="holding-pie-title">📊 資產配置</span>
+                    <span class="holding-pie-title">資產配置</span>
                     <span class="holding-pie-cash">總資產 <span data-live="pietotal-${pIdx}">${fmtRaw(totalAssetVal, p.currency)}</span></span>
                 </div>
                 <div class="holding-pie-body">
                     <div class="holding-pie-canvas-wrap">
                         <canvas id="pie-${esc(p.name)}"></canvas>
                         <div class="holding-pie-center">
-                            <div class="holding-pie-center-num">${stocks.length}</div>
-                            <div class="holding-pie-center-lbl">檔持股</div>
+                            <div class="holding-pie-center-num">${pieSlices.length}</div>
+                            <div class="holding-pie-center-lbl">總資產</div>
                         </div>
                     </div>
-                    <div class="holding-pie-legend" data-live="pielegend-${pIdx}">${legendHTML}</div>
                 </div>
             </div>`;
             // 把 sliceData 暫存到玩家物件,渲染完 DOM 後再實際畫圖
@@ -2936,22 +3459,22 @@ function renderDashboard(){
         const prevDisabled = currentPage <= 1;
         const nextDisabled = currentPage >= totalPages;
         const pagerHTML = sortedTrades.length > TRADES_PER_PAGE ? `
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding-top:8px;border-top:1px dashed rgba(31,31,36,.6);font-size:11px;">
+            <div class="trade-pager">
                 <button onclick="changeTradePage('${escJs(p.name)}',-1)" ${prevDisabled?'disabled':''}
-                    style="background:${prevDisabled?'rgba(31,31,36,.4)':'rgba(59,130,246,.15)'};border:1px solid ${prevDisabled?'var(--border)':'rgba(59,130,246,.3)'};color:${prevDisabled?'var(--text-muted)':'var(--accent-blue)'};padding:4px 12px;border-radius:8px;font-weight:600;cursor:${prevDisabled?'not-allowed':'pointer'};transition:all .15s;">
-                    « Back
+                    class="pager-btn prev">
+                    <span class="ui-icon i-chevron-left"></span> Back
                 </button>
-                <span style="color:var(--text-secondary);font-weight:600;">
-                    第 <span class="mono text-white">${currentPage}</span> / <span class="mono">${totalPages}</span> 頁
-                    <span style="color:var(--text-muted);margin-left:6px;">（共 ${sortedTrades.length} 筆）</span>
-                </span>
+                <div class="pager-status">
+                    <div class="pager-page">第 ${currentPage} / ${totalPages} 頁</div>
+                    <div class="pager-total">共 ${sortedTrades.length} 筆</div>
+                </div>
                 <button onclick="changeTradePage('${escJs(p.name)}',1)" ${nextDisabled?'disabled':''}
-                    style="background:${nextDisabled?'rgba(31,31,36,.4)':'rgba(59,130,246,.15)'};border:1px solid ${nextDisabled?'var(--border)':'rgba(59,130,246,.3)'};color:${nextDisabled?'var(--text-muted)':'var(--accent-blue)'};padding:4px 12px;border-radius:8px;font-weight:600;cursor:${nextDisabled?'not-allowed':'pointer'};transition:all .15s;">
-                    Next »
+                    class="pager-btn next">
+                    Next <span class="ui-icon i-chevron-right"></span>
                 </button>
             </div>` : '';
 
-        pdiv.innerHTML+=`<div class="portfolio-card" id="pcard-${esc(p.name)}">
+        pdiv.innerHTML+=`<div class="portfolio-card" id="pcard-${esc(p.name)}" style="--player-color:${getPlayerColor(p.name,'#3b82f6')};">
             <div class="pcard-accent" style="background:linear-gradient(90deg,${getPlayerColor(p.name,'#3b82f6')},transparent 70%);"></div>
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
                 <div style="display:flex;align-items:center;gap:6px;">
@@ -2959,7 +3482,7 @@ function renderDashboard(){
                         title="變更曲線顏色"
                         style="width:18px;height:18px;border-radius:50%;background:${getPlayerColor(p.name,'#a855f7')};border:2px solid rgba(255,255,255,.5);cursor:pointer;padding:0;flex-shrink:0;box-shadow:0 0 8px ${getPlayerColor(p.name,'#a855f7')}66;"></button>
                     <h3 class="text-lg font-bold text-white" id="name-${esc(p.name)}">${esc(p.name)}</h3>
-                    <button onclick="editName('${escJs(p.name)}')" title="修改名稱" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:13px;padding:2px 4px;transition:color .15s;" onmouseover="this.style.color='var(--accent-blue)'" onmouseout="this.style.color='var(--text-muted)'">✏️</button>
+                    <button onclick="editName('${escJs(p.name)}')" title="修改名稱" class="icon-edit-btn"><span class="ui-icon i-edit"></span></button>
                 </div>
                 <div style="display:flex;align-items:center;gap:8px;"><span class="currency-badge">${p.currency}</span></div>
             </div>
@@ -2968,50 +3491,85 @@ function renderDashboard(){
                 <div class="text-3xl" id="netval-${esc(p.name)}" data-netval="${netVal}" data-cur="${p.currency}">${fmtC(netVal,p.currency,true)}</div>
                 <div style="margin-top:6px;" data-live="retpct-${pIdx}">${buildRetpctHTML(retPct)}</div>
             </div>
-            <div class="space-y-1" style="margin-bottom:16px;">
+            <div class="portfolio-stats">
                 <div class="stat-row"><span class="stat-label">初始本金</span><span class="mono text-white text-xs">${fmtRaw(initCap,p.currency)}</span></div>
                 <div class="stat-row"><span class="stat-label">持有現金</span><span data-live="cash-${pIdx}">${fmtC(autoCash,p.currency,true)}</span></div>
                 <div class="stat-row"><span class="stat-label">持股總市值</span><span data-live="mv-${pIdx}">${fmtC(totalMV,p.currency,true)}</span></div>
-                <div class="stat-row"><span class="stat-label">當前淨值（現金+持股）</span><span class="mono font-bold text-cyan-400 text-sm" data-live="cur-${pIdx}">${fmtRaw(currentVal,p.currency)}</span></div>
+                <div class="stat-row"><span class="stat-label" title="現金 + 持股市值">當前淨值</span><span class="mono font-bold text-cyan-400 text-sm" data-live="cur-${pIdx}">${fmtRaw(currentVal,p.currency)}</span></div>
                 <div class="stat-row" style="margin-top:4px;padding-top:4px;border-top:1px dashed rgba(31,31,36,.6);">
-                    <span class="stat-label">可使用最高槓桿金額 <span style="color:var(--text-muted);font-size:10px;">(淨值×60%)</span></span>
+                    <span class="stat-label" title="淨值 × 60%">可使用最高槓桿金額</span>
                     <span class="mono font-bold text-amber-300 text-sm" data-live="maxlev-${pIdx}">${fmtRaw(maxLeverage,p.currency)}</span>
                 </div>
                 <div class="stat-row">
-                    <span class="stat-label">槓桿使用率 <span style="color:var(--text-muted);font-size:10px;">(現金水位/淨值)</span></span>
+                    <span class="stat-label" title="現金水位 ÷ 淨值">槓桿使用率</span>
                     <span data-live="levrate-${pIdx}">${buildLevRateHTML(hasLev, levRate, usagePct)}</span>
                 </div>
                 ${hasLev?`<div class="leverage-bar-wrap"><div class="leverage-bar" data-live="levbar-${pIdx}" style="width:${Math.min(usagePct,100).toFixed(0)}%"></div></div>`:''}
                 <div class="stat-row" style="margin-top:4px;"><span class="stat-label">已實現損益</span><span class="${realCls}">${realSign}${fmtRaw(Math.abs(realPnl),p.currency)}</span></div>
-                <div class="stat-row"><span class="stat-label">未實現損益（所有持股）</span><span data-live="unreal-${pIdx}">${buildUnrealHTML(totalUnPnl, p.currency)}</span></div>
-                ${prevCloseSnap ? `<div class="stat-row" style="margin-top:4px;"><span class="stat-label">今日變動 (vs ${prevCloseSnap.date} 收盤)</span><span data-live="daily-${pIdx}">${buildDailyCellHTML(dailyChange, dailyChangePct, p.currency)}</span></div>` : ''}
+                <div class="stat-row"><span class="stat-label" title="所有持股合計">未實現損益</span><span data-live="unreal-${pIdx}">${buildUnrealHTML(totalUnPnl, p.currency)}</span></div>
+                ${prevCloseSnap ? `<div class="stat-row" style="margin-top:4px;"><span class="stat-label" title="相對 ${prevCloseSnap.date} 收盤快照">今日變動</span><span data-live="daily-${pIdx}">${buildDailyCellHTML(dailyChange, dailyChangePct, p.currency)}</span></div>` : ''}
                 
-                <div class="stat-row" style="margin-top:4px; padding-top:4px; border-top:1px solid rgba(31,31,36,.6);"><span class="stat-label">交易成本 <span style="color:var(--text-muted);font-size:10px;">(手續費+證交稅+利息)</span></span><span class="mono text-slate-400">${totalFeeTax > 0 ? '-' : ''}${fmtRaw(totalFeeTax, p.currency)}</span></div>
+                <div class="stat-row" style="margin-top:4px; padding-top:4px; border-top:1px solid rgba(31,31,36,.6);"><span class="stat-label" title="手續費 + 證交稅 + 利息">交易成本</span><span class="mono text-slate-400">${totalFeeTax > 0 ? '-' : ''}${fmtRaw(totalFeeTax, p.currency)}</span></div>
             </div>
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:8px;">
-                <h4 style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;">當前持倉（${stocks.length}/${MAX_STOCKS}）</h4>
-                <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
+            <div class="hold-lock-toolbar">
+                <div class="hold-lock-title">
+                    <span class="hold-lock-label">當前持倉</span>
+                    <span class="hold-lock-count">${stocks.length}/${MAX_STOCKS}</span>
+                </div>
+                <div class="hold-lock-actions">
                     ${renderLockBtn(p.name)}
                     <button onclick="requestEdit('${escJs(p.name)}')" class="btn-update">更改部位</button>
                 </div>
             </div>
             <div class="lock-zone ${isCardLocked(p.name)?'locked':''}" data-player="${esc(p.name)}">
-                <div class="lock-content">
+                ${isCardLocked(p.name)
+                  ? `<div class="lock-content lock-content-empty">
+                        <div class="lock-grid-lines"></div>
+                        <div class="lock-sweep"></div>
+                        <div class="lock-corner tl"></div>
+                        <div class="lock-corner br"></div>
+                        <div class="lock-vault-header">
+                            <span>Private Ledger</span>
+                            <span class="lock-vault-status">Locked</span>
+                        </div>
+                        <div class="lock-preview">
+                            <div class="lock-preview-row"><span>STK 01</span><span></span><span>+8.4%</span></div>
+                            <div class="lock-preview-row"><span>STK 02</span><span></span><span>+3.1%</span></div>
+                            <div class="lock-preview-row"><span>STK 03</span><span></span><span>-1.6%</span></div>
+                            <div class="lock-preview-row"><span>CASH</span><span></span><span>SAFE</span></div>
+                        </div>
+                    </div>`
+                  : `<div class="lock-content">
                     ${pieHTML}
                     ${holdHTML}
                     <div class="history-section">
-                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-                            <h4 style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;">歷史交易紀錄</h4>
-                            <button class="btn-add-trade" onclick="requestAddTrade('${escJs(p.name)}')">＋ 新增</button>
+                        <div class="history-toolbar">
+                            <div class="card-tabs">
+                                <button class="card-tab ${(cardTabMap[p.name]||'history')==='history'?'active':''}" data-tab="history" onclick="switchCardTab('${escJs(p.name)}','history')"><span class="ui-icon i-history"></span>歷史交易</button>
+                                <button class="card-tab ${cardTabMap[p.name]==='attr'?'active':''}" data-tab="attr" onclick="switchCardTab('${escJs(p.name)}','attr')"><span class="ui-icon i-activity"></span>個股貢獻</button>
+                            </div>
+                            <button class="btn-add-trade" onclick="requestAddTrade('${escJs(p.name)}')"><span class="ui-icon i-plus"></span>新增</button>
                         </div>
-                        <div>${tradeRows}</div>
-                        ${pagerHTML}
+                        <div class="card-pane-history" style="${cardTabMap[p.name]==='attr'?'display:none;':''}">
+                            <div>${tradeRows}</div>
+                            ${pagerHTML}
+                        </div>
+                        <div class="card-pane-attr" data-attr-player="${esc(p.name)}" style="${cardTabMap[p.name]==='attr'?'':'display:none;'}">
+                            ${buildPlayerAttrHTML(p)}
+                        </div>
                     </div>
-                </div>
+                </div>`}
                 <div class="lock-overlay" onclick="openLockModal('${escJs(p.name)}','unlock')">
-                    <div class="lock-overlay-icon">🔒</div>
-                    <div class="lock-overlay-text">已鎖定</div>
-                    <div class="lock-overlay-sub">點擊輸入密碼解鎖</div>
+                    <div class="lock-overlay-panel">
+                        <div class="lock-badge">${LOCK_ICON_CLOSED}</div>
+                        <div class="lock-kicker">Protected Holdings</div>
+                        <div class="lock-overlay-text">持倉明細已保護</div>
+                        <div class="lock-overlay-sub">解鎖後顯示個股、成本與損益</div>
+                        <div class="lock-chip-row">
+                            <span class="lock-chip">Encrypted</span>
+                            <span class="lock-chip">PIN Required</span>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>`;
@@ -3039,8 +3597,8 @@ function renderDashboard(){
                     const pi = prevOrder.indexOf(d.name);
                     if(pi<0) return '';
                     const diff = pi - idx;
-                    if(diff>0) return `<span class="rank-move up" title="昨日第 ${pi+1} 名">▲${diff}</span>`;
-                    if(diff<0) return `<span class="rank-move down" title="昨日第 ${pi+1} 名">▼${-diff}</span>`;
+                    if(diff>0) return `<span class="rank-move up" title="昨日第 ${pi+1} 名"><span class="trend-arrow small up"></span>${diff}</span>`;
+                    if(diff<0) return `<span class="rank-move down" title="昨日第 ${pi+1} 名"><span class="trend-arrow small down"></span>${-diff}</span>`;
                     return `<span class="rank-move flat" title="名次與昨日相同">—</span>`;
                 })()}
             </div>
@@ -3113,20 +3671,61 @@ function closeModal(){document.getElementById('editModal').classList.remove('ope
 // 鎖定為「選擇性」: 玩家可不設密碼(完全公開), 或自設 4 位數密碼啟用鎖定。
 // 解鎖狀態僅存在於本機瀏覽器(記憶體), 重新整理後若有密碼則回到「鎖定」。
 const unlockedCards = {};
+// ── PIN 雜湊 (SHA-256) ──────────────────────────
+// 新制: lockHash = SHA-256(`${name}:${pin}`) 的 64 位 hex, 資料庫不再保存明碼
+// 相容: 舊資料的 lockPwd 明碼仍可解鎖, 並於頁面載入時自動遷移為雜湊後刪除明碼
+async function sha256hex(str){
+    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+    return [...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+function pinHashInput(name, pin){ return `${name}:${pin}`; }
+// 驗證 PIN: 優先比對雜湊; 無雜湊則回退舊明碼 (並順手遷移)
+async function verifyPin(name, pin){
+    const p = participants.find(x=>x.name===name);
+    if(!p) return false;
+    if(p.lockHash){
+        return (await sha256hex(pinHashInput(name, pin))) === p.lockHash;
+    }
+    if(/^\d{4}$/.test(String(p.lockPwd??''))){
+        const ok = String(p.lockPwd) === pin;
+        if(ok) migratePinToHash(name, pin);   // 驗證成功 → 立即遷移
+        return ok;
+    }
+    return false;
+}
+// 明碼 → 雜湊遷移 (寫入 lockHash, 刪除 lockPwd)
+async function migratePinToHash(name, pin){
+    const pi = participants.findIndex(x=>x.name===name);
+    if(pi === -1) return;
+    try{
+        const h = await sha256hex(pinHashInput(name, pin));
+        participants[pi].lockHash = h;
+        delete participants[pi].lockPwd;
+        await db.ref('competitionData/'+pi+'/lockHash').set(h);
+        await db.ref('competitionData/'+pi+'/lockPwd').remove();
+        console.log(`🔐 ${name} 的 PIN 已遷移為 SHA-256 雜湊`);
+    }catch(e){ console.warn('PIN 遷移失敗:', e.message); }
+}
+// 載入時主動遷移: 資料庫中仍有明碼者 (明碼本身就在 DB 裡, 可直接算雜湊)
+let pinMigrationDone = false;
+function autoMigrateLegacyPins(){
+    if(pinMigrationDone) return;
+    participants.forEach(p=>{
+        if(!p.lockHash && /^\d{4}$/.test(String(p.lockPwd??''))){
+            migratePinToHash(p.name, String(p.lockPwd));
+        }
+    });
+    pinMigrationDone = true;
+}
 // 鎖頭圖示(SVG)
 const LOCK_ICON_CLOSED = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>`;
 const LOCK_ICON_OPEN   = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 7.7-1.6"/></svg>`;
 // 此玩家是否已設定 4 位數密碼(= 啟用鎖定)
 function hasCardPwd(name){
     const p = participants.find(x=>x.name===name);
-    const v = p && p.lockPwd != null ? String(p.lockPwd) : '';
-    return /^\d{4}$/.test(v);
-}
-// 取得密碼(未設定回傳空字串)
-function getCardPwd(name){
-    const p = participants.find(x=>x.name===name);
-    const v = p && p.lockPwd != null ? String(p.lockPwd) : '';
-    return /^\d{4}$/.test(v) ? v : '';
+    if(!p) return false;
+    if(typeof p.lockHash === 'string' && /^[0-9a-f]{64}$/.test(p.lockHash)) return true;
+    return /^\d{4}$/.test(String(p.lockPwd??''));   // 舊明碼相容 (載入時會自動遷移)
 }
 // 該卡片目前是否「鎖定中」(= 有密碼且尚未在本機解鎖)
 function isCardLocked(name){
@@ -3168,6 +3767,7 @@ function toggleLock(name){
     } else if(unlockedCards[name]){
         unlockedCards[name] = false;
         applyLockUI(name);
+        renderDashboard();   // 鎖定 → 內容自 DOM 移除 (非僅模糊遮罩)
         setStatus('ok','🔒 已鎖定 '+name+' 的持倉與交易紀錄');
     } else {
         openLockModal(name, 'unlock');
@@ -3200,7 +3800,7 @@ function lockSwitchView(view){
     document.getElementById('lockViewSet').style.display    = isSet?'block':'none';
     document.getElementById('lockViewUnlock').style.display = isUnlock?'block':'none';
     document.getElementById('lockViewChange').style.display = isChange?'block':'none';
-    document.getElementById('lockModalTitle').textContent = isSet?'🔒 設定密碼鎖' : (isChange?'🔑 變更 / 移除密碼':'🔒 解鎖');
+    document.getElementById('lockModalTitle').textContent = isSet?'設定密碼鎖' : (isChange?'變更 / 移除密碼':'解鎖');
     ['lockMsgSet','lockMsgUnlock','lockMsgChange'].forEach(id=>{const e=document.getElementById(id); if(e){e.textContent=''; e.style.color='var(--accent-red)';}});
     const focusId = isSet?'pinSetNew':(isChange?'pinCurrent':'pinUnlock');
     setTimeout(()=>{const f=document.getElementById(focusId); if(f) f.focus();},50);
@@ -3216,25 +3816,31 @@ function submitSetPwd(){
     if(neo !== conf){ shake('pinSetConfirm'); msg.textContent='兩次密碼不一致'; return; }
     const pi = participants.findIndex(x=>x.name===name);
     if(pi === -1){ msg.textContent='找不到玩家'; return; }
-    participants[pi].lockPwd = neo;
-    db.ref('competitionData/'+pi+'/lockPwd').set(neo);
-    unlockedCards[name] = false;   // 設定完成 → 立即鎖定
-    applyLockUI(name);
+    sha256hex(pinHashInput(name, neo)).then(h=>{
+        participants[pi].lockHash = h;
+        delete participants[pi].lockPwd;
+        db.ref('competitionData/'+pi+'/lockHash').set(h);
+        db.ref('competitionData/'+pi+'/lockPwd').remove();
+        unlockedCards[name] = false;   // 設定完成 → 立即鎖定
+        applyLockUI(name);
+        renderDashboard();   // 內容自 DOM 移除
+    });
     msg.style.color='var(--accent-green)'; msg.textContent='✓ 已設定密碼並鎖定';
     setStatus('ok','🔒 已啟用 '+name+' 的密碼鎖');
     setTimeout(()=>{ msg.style.color='var(--accent-red)'; closeLockModal(); },700);
 }
 // 解鎖
-function submitUnlock(){
+async function submitUnlock(){
     const name = document.getElementById('lockTargetName').value;
     const input = document.getElementById('pinUnlock');
     const msg = document.getElementById('lockMsgUnlock');
     const val = (input.value||'').trim();
     if(!/^\d{4}$/.test(val)){ input.classList.add('err'); msg.textContent='請輸入 4 位數字密碼'; setTimeout(()=>input.classList.remove('err'),400); return; }
-    if(val === getCardPwd(name)){
+    if(await verifyPin(name, val)){
         unlockedCards[name] = true;
         applyLockUI(name);
         closeLockModal();
+        renderDashboard();   // 鎖定時內容未渲染進 DOM → 解鎖後重繪以填入
         setStatus('ok','🔓 已解鎖 '+name+' 的持倉與交易紀錄');
     } else {
         input.classList.add('err'); input.value=''; msg.textContent='密碼錯誤，請重試';
@@ -3242,20 +3848,23 @@ function submitUnlock(){
     }
 }
 // 變更密碼(需通過現有密碼驗證)
-function submitChangePwd(){
+async function submitChangePwd(){
     const name = document.getElementById('lockTargetName').value;
     const cur = (document.getElementById('pinCurrent').value||'').trim();
     const neo = (document.getElementById('pinNew').value||'').trim();
     const conf = (document.getElementById('pinConfirm').value||'').trim();
     const msg = document.getElementById('lockMsgChange');
     const shake = id=>{const e=document.getElementById(id); e.classList.add('err'); setTimeout(()=>e.classList.remove('err'),400);};
-    if(cur !== getCardPwd(name)){ shake('pinCurrent'); msg.textContent='目前密碼錯誤'; return; }
+    if(!(await verifyPin(name, cur))){ shake('pinCurrent'); msg.textContent='目前密碼錯誤'; return; }
     if(!/^\d{4}$/.test(neo)){ shake('pinNew'); msg.textContent='新密碼須為 4 位數字'; return; }
     if(neo !== conf){ shake('pinConfirm'); msg.textContent='兩次新密碼不一致'; return; }
     const pi = participants.findIndex(x=>x.name===name);
     if(pi === -1){ msg.textContent='找不到玩家'; return; }
-    participants[pi].lockPwd = neo;
-    db.ref('competitionData/'+pi+'/lockPwd').set(neo);
+    const h = await sha256hex(pinHashInput(name, neo));
+    participants[pi].lockHash = h;
+    delete participants[pi].lockPwd;
+    db.ref('competitionData/'+pi+'/lockHash').set(h);
+    db.ref('competitionData/'+pi+'/lockPwd').remove();
     applyLockUI(name);
     msg.style.color = 'var(--accent-green)';
     msg.textContent = '✓ 密碼已更新';
@@ -3263,18 +3872,21 @@ function submitChangePwd(){
     setTimeout(()=>{ msg.style.color='var(--accent-red)'; closeLockModal(); },800);
 }
 // 移除密碼鎖(需通過現有密碼驗證) → 回到「公開、不鎖定」
-function submitRemoveLock(){
+async function submitRemoveLock(){
     const name = document.getElementById('lockTargetName').value;
     const cur = (document.getElementById('pinCurrent').value||'').trim();
     const msg = document.getElementById('lockMsgChange');
     const shake = id=>{const e=document.getElementById(id); e.classList.add('err'); setTimeout(()=>e.classList.remove('err'),400);};
-    if(cur !== getCardPwd(name)){ shake('pinCurrent'); msg.textContent='請先輸入目前密碼以移除密碼鎖'; return; }
+    if(!(await verifyPin(name, cur))){ shake('pinCurrent'); msg.textContent='請先輸入目前密碼以移除密碼鎖'; return; }
     const pi = participants.findIndex(x=>x.name===name);
     if(pi === -1){ msg.textContent='找不到玩家'; return; }
     participants[pi].lockPwd = null;
+    delete participants[pi].lockHash;
     db.ref('competitionData/'+pi+'/lockPwd').remove();
+    db.ref('competitionData/'+pi+'/lockHash').remove();
     unlockedCards[name] = true;   // 無密碼 → 視為公開
     applyLockUI(name);
+    renderDashboard();   // 內容重新渲染進 DOM
     msg.style.color = 'var(--accent-green)';
     msg.textContent = '✓ 已移除密碼鎖（公開顯示）';
     setStatus('ok','🔓 已移除 '+name+' 的密碼鎖');
@@ -4522,13 +5134,15 @@ function runSilentSnapshotAudit(){
 // ── 風險指標 / 比賽回放（前後翻頁整合區塊）   ──
 // ══════════════════════════════════════════════
 const ADV_PAGES = [
-    { id:'throne',     icon:'👑', title:'王座爭奪戰', sub:'' },
-    { id:'clash',      icon:'🥊', title:'撞股對決',   sub:'' },
-    { id:'underwater', icon:'🌊', title:'水下回撤',   sub:'' },
-    { id:'risk',       icon:'📊', title:'風險指標',   sub:'' },
-    { id:'replay',     icon:'⏪', title:'比賽回放',   sub:'' }
+    { id:'stats',       icon:'📐', title:'績效統計',   sub:'含已實現＋未實現 · 與曲線同源' },
+    { id:'throne',      icon:'👑', title:'王座爭奪戰', sub:'' },
+    { id:'clash',       icon:'🥊', title:'撞股對決',   sub:'' },
+    { id:'underwater',  icon:'🌊', title:'水下回撤',   sub:'' },
+    { id:'risk',        icon:'📊', title:'風險指標',   sub:'' },
+    { id:'replay',      icon:'⏪', title:'比賽回放',   sub:'' }
 ];
-let advPage = (()=>{ const v = parseInt(localStorage.getItem('advPage')||'0',10); return (v>=0 && v<ADV_PAGES.length)?v:0; })();
+// key 換代 (v2): 頁面順序變更, 舊存檔索引會錯位; 預設停在第一頁「績效統計」
+let advPage = (()=>{ const v = parseInt(localStorage.getItem('advPage_v3')||'0',10); return (v>=0 && v<ADV_PAGES.length)?v:0; })();
 let advData = null;                 // {allDates, lastTradingDayStr, players:[{name,color,initCap,nav[],ret[]}]}
 let advUnderwaterChart = null;
 let advReplayChart = null;
@@ -4557,7 +5171,7 @@ function advGoto(delta){
     stopAdvReplay();
     advReplayUserActive = false;
     advPage = (advPage + delta + ADV_PAGES.length) % ADV_PAGES.length;
-    try{ localStorage.setItem('advPage', String(advPage)); }catch(e){}
+    try{ localStorage.setItem('advPage_v3', String(advPage)); }catch(e){}
     renderAdvPage(true);
 }
 function advGotoIdx(i){
@@ -4565,7 +5179,7 @@ function advGotoIdx(i){
     stopAdvReplay();
     advReplayUserActive = false;
     advPage = i;
-    try{ localStorage.setItem('advPage', String(advPage)); }catch(e){}
+    try{ localStorage.setItem('advPage_v3', String(advPage)); }catch(e){}
     renderAdvPage(true);
 }
 
@@ -4611,6 +5225,7 @@ function renderAdvPage(switched){
     if(!switched && pg.id === 'replay' && advReplayUserActive) return;
 
     switch(pg.id){
+        case 'stats':       renderAdvStats(body); break;
         case 'throne':     renderAdvThrone(body); break;
         case 'clash':      renderAdvClash(body); break;
         case 'underwater': renderAdvUnderwater(body); break;
@@ -4659,7 +5274,7 @@ function renderAdvThrone(body){
         ? `<div class="throne-hero">
             <div class="throne-crown">👑</div>
             <div class="font-bold text-white" style="font-size:20px;">
-                <span class="stats-dot" style="display:inline-block;background:${kingColor};box-shadow:0 0 8px ${kingColor}66;margin-right:6px;vertical-align:middle;"></span>${esc(t.incumbent)}
+                <span class="stats-dot" style="display:inline-block;background:${kingColor};box-shadow:0 0 8px ${kingColor}66;margin-right:6px;vertical-align:middle;"></span><span title="${esc(t.incumbent)}">${esc(shortName(t.incumbent,5))}</span>
             </div>
             <div class="text-xs" style="color:var(--accent-amber);">現任王者 · 已連霸 <span class="mono font-bold">${t.curStreak}</span> 個交易日</div>
         </div>`
@@ -4683,7 +5298,7 @@ function renderAdvThrone(body){
         const toColor = advData.players.find(p=>p.name===tr.to)?.color || '#fbbf24';
         return `<div class="throne-tl-item">
             <span class="mono" style="color:var(--accent-amber);min-width:3.6em;">${fmtMD(tr.date)}</span>
-            <span><span style="color:${toColor};font-weight:700;">${esc(tr.to)}</span>${tr.from?` ⚔️ 從 <span style="color:var(--text-muted);">${esc(tr.from)}</span> 手中奪下王座`:' 👑 率先登上王座'}</span>
+            <span><span style="color:${toColor};font-weight:700;" title="${esc(tr.to)}">${esc(shortName(tr.to,5))}</span>${tr.from?` 從 <span style="color:var(--text-muted);" title="${esc(tr.from)}">${esc(shortName(tr.from,5))}</span> 手中奪下王座`:' 率先登上王座'}</span>
         </div>`;
     }).join('');
 
@@ -4731,7 +5346,7 @@ function renderAdvClash(body){
             const pos = r.retPct>=0;
             return `<div class="duel-row ${isWin?'winner':''}">
                 <span class="stats-dot" style="background:${color};box-shadow:0 0 8px ${color}66;"></span>
-                <span class="font-bold text-white" style="font-size:12px;min-width:5em;">${esc(r.player)}${isWin?' 👑':''}</span>
+                <span class="font-bold text-white" title="${esc(r.player)}" style="font-size:12px;min-width:5em;">${esc(shortName(r.player,5))}${isWin?' 👑':''}</span>
                 <span class="mono" style="font-size:11px;color:var(--text-secondary);min-width:7.5em;">成本 ${fmtRaw(r.cost, d.cur, 2)}${Math.abs(r.cost-minCost)<1e-9?' 💎':''}</span>
                 <div class="duel-bar-wrap"><div class="duel-bar" style="width:${Math.min(100, Math.abs(r.retPct)/maxAbs*100).toFixed(1)}%;background:${pos?'var(--accent-green)':'var(--accent-red)'};"></div></div>
                 <span class="mono font-bold ${pos?'text-emerald-400':'text-red-400'}" style="font-size:12px;min-width:4.6em;text-align:right;">${pos?'+':''}${r.retPct.toFixed(2)}%</span>
@@ -4742,7 +5357,7 @@ function renderAdvClash(body){
                 <div style="display:flex;align-items:center;gap:8px;">
                     <span class="duel-vs">⚔️ 對決中</span>
                     <span class="font-bold text-white mono" style="font-size:14px;">${esc(ticker)}</span>
-                    ${d.name?`<span style="font-size:11px;color:var(--text-muted);">${esc(d.name)}</span>`:''}
+                    ${d.name?`<span style="font-size:11px;color:var(--text-muted);" title="${esc(d.name)}">${esc(shortName(d.name,5))}</span>`:''}
                 </div>
                 <span class="mono" style="font-size:11px;color:var(--text-secondary);">現價 ${fmtRaw(rows[0].price, d.cur, 2)}</span>
             </div>
@@ -5257,7 +5872,7 @@ function buildRankDailyHTML(d){
     const dailyColor = dailyPos ? 'var(--accent-green)' : '#ef4444';
     const dailySign = dailyPos ? '+' : '-';
     return d.dailyChange !== 0
-        ? `<span class="mono font-semibold" style="color:${dailyColor};">${dailySign}${fmtRaw(Math.abs(d.dailyChange), d.currency)} (${dailySign}${Math.abs(d.dailyChangePct).toFixed(2)}%)</span>`
+        ? `<span class="trend-badge mono font-semibold" style="color:${dailyColor};"><span class="trend-arrow small ${dailyPos?'up':'down'}"></span>${dailySign}${fmtRaw(Math.abs(d.dailyChange), d.currency)} (${dailySign}${Math.abs(d.dailyChangePct).toFixed(2)}%)</span>`
         : `<span class="mono" style="color:var(--text-muted);">--</span>`;
 }
 function buildRankDualHTML(d){
@@ -5268,7 +5883,7 @@ function buildRankDualHTML(d){
 }
 function buildRetpctHTML(retPct){
     const pos = parseFloat(retPct) >= 0;
-    return `<span class="text-xs mono font-semibold ${pos?'text-emerald-400':'text-red-400'}">${pos?'▲':'▼'} ${retPct}%（相對初始本金）</span>`;
+    return `<span class="trend-badge text-xs mono font-semibold ${pos?'text-emerald-400':'text-red-400'}"><span class="trend-arrow small ${pos?'up':'down'}"></span>${retPct}%</span>`;
 }
 function buildLevRateHTML(hasLev, levRate, usagePct){
     return `<span class="mono font-bold text-sm ${hasLev?'text-amber-400':'text-slate-400'}">${hasLev?`${levRate>=0?'+':''}${levRate.toFixed(2)}%（已用 ${usagePct.toFixed(1)}%）`:'未使用槓桿'}</span>`;
@@ -5280,7 +5895,7 @@ function buildUnrealHTML(totalUnPnl, cur){
 }
 function buildDailyCellHTML(dailyChange, dailyChangePct, cur){
     const up = dailyChange >= 0;
-    return `<span class="font-bold mono ${up?'text-emerald-400':'text-red-400'}">${up?'▲':'▼'} ${fmtRaw(Math.abs(dailyChange), cur)} (${up?'▲':'▼'} ${Math.abs(dailyChangePct).toFixed(2)}%)</span>`;
+    return `<span class="trend-badge daily-change-value font-bold mono ${up?'text-emerald-400':'text-red-400'}"><span class="trend-arrow ${up?'up':'down'}"></span><span>${fmtRaw(Math.abs(dailyChange), cur)}</span> <span style="opacity:.9">(${Math.abs(dailyChangePct).toFixed(2)}%)</span></span>`;
 }
 function buildHoldPnlHTML(pnl, pnlPct, cur){
     const ps = pnl >= 0 ? '+' : '-';
@@ -5310,9 +5925,10 @@ function buildPieLegendHTML(pieSlices, totalPieMV){
     return legendItems.map(s=>{
         const pct = totalPieMV>0 ? (s.mv/totalPieMV*100).toFixed(1) : '0.0';
         return `<div class="holding-pie-legend-row">
-                    <span class="holding-pie-dot" style="background:${s.color};"></span>
+                    <span class="holding-pie-dot" style="background:${s.color};color:${s.color};"></span>
                     <span class="holding-pie-ticker" title="${s.ticker}">${s.ticker}</span>
                     <span class="holding-pie-pct">${pct}%</span>
+                    <div class="holding-pie-value" style="color:${s.color};"><span style="width:${Math.max(3, Math.min(100, parseFloat(pct))).toFixed(1)}%;"></span></div>
                 </div>`;
     }).join('') + (otherCount>0?`<div class="holding-pie-legend-row" style="color:var(--text-muted);font-size:11px;">＋ 其他 ${otherCount} 項</div>`:'');
 }
@@ -5474,6 +6090,15 @@ function setLive(key, html, noTick){
 }
 
 function patchLiveNumbers(liveArr){
+    // 個股貢獻分頁開啟中 → 同步刷新 (未實現損益隨價格變動)
+    document.querySelectorAll('.card-pane-attr[data-attr-player]').forEach(el=>{
+        if(el.style.display === 'none') return;
+        const p = participants.find(x=>x.name === el.dataset.attrPlayer);
+        if(p){
+            const html = buildPlayerAttrHTML(p);
+            if(el.innerHTML !== html) el.innerHTML = html;
+        }
+    });
     // 1) 排行榜 (依台幣總值排序, 順序與簽章一致故與 DOM 對齊)
     const lb = liveArr.map(d=>({
         name:d.name, totalValueTWD:d.valTWD, totalValueUSD:d.valUSD,
@@ -5779,7 +6404,7 @@ setInterval(()=>{
 // ── PWA: 註冊 Service Worker (Network-First, 離線時 fallback 快取) ──
 if('serviceWorker' in navigator){
     window.addEventListener('load', ()=>{
-        navigator.serviceWorker.register('sw.js').catch(e=>console.warn('SW 註冊失敗:', e.message));
+        navigator.serviceWorker.register('sw.js?v='+encodeURIComponent(APP_VERSION)).catch(e=>console.warn('SW 註冊失敗:', e.message));
     });
 }
 </script>
