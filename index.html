@@ -64,6 +64,15 @@
             box-shadow:0 0 24px rgba(201,164,194,.10);}
         .rank-card.rank-2{border-color:rgba(192,175,177,.35);background:linear-gradient(135deg,rgba(192,175,177,.05),var(--bg-elevated));}
         .rank-card.rank-3{border-color:rgba(118,98,105,.42);background:linear-gradient(135deg,rgba(118,98,105,.06),var(--bg-elevated));}
+        .rank-main{display:flex;align-items:center;gap:12px;flex:0 0 auto;min-width:0;}
+        .rank-medal{font-size:1.6rem;}
+        .rank-name{font-size:1.125rem;white-space:nowrap;color:#BFB8AF;}
+        .rank-metrics{display:flex;align-items:center;gap:14px;flex-wrap:wrap;justify-content:flex-end;min-width:0;}
+        .rank-metric{display:flex;flex-direction:column;align-items:flex-end;min-width:0;}
+        .rank-metric-label{font-size:10px;color:var(--text-muted);letter-spacing:.05em;}
+        .rank-metric-value{font-size:14px;}
+        .rank-daily-value{font-size:11px;}
+        .rank-money-value{display:flex;flex-direction:column;align-items:flex-end;}
         .benchmark-card{display:flex;justify-content:space-between;align-items:center;padding:12px 20px;border-radius:12px;border:1px dashed var(--border);background:rgba(10,10,12,.6);transition:border-color .2s,background .2s;}
         .benchmark-card:hover{border-color:var(--border-bright);background:rgba(15,15,18,.7);}
         .portfolio-card{--player-color:#3b82f6;background:linear-gradient(180deg,rgba(16,16,19,.96),rgba(8,8,10,.98));border:1px solid color-mix(in srgb,var(--player-color) 22%,var(--border));border-radius:12px;padding:20px;transition:border-color .2s,box-shadow .2s;
@@ -361,6 +370,8 @@
         .tools-menu.open{display:flex;}
         .tools-menu button{background:none;border:none;color:var(--text-secondary);font-size:12px;font-weight:600;padding:9px 12px;border-radius:8px;cursor:pointer;text-align:left;transition:background .15s,color .15s;white-space:nowrap;}
         .tools-menu button:hover{background:var(--bg-elevated);color:#fff;}
+        .performance-mobile-legend{display:none;}
+        .performance-mobile-legend button{font:inherit;}
         /* ══════ 進階戰情室 / 視覺進化 ══════ */
         /* 冠軍卡片：動態金色流光邊框 */
         @property --gold-ang{syntax:'<angle>';initial-value:0deg;inherits:false;}
@@ -487,8 +498,20 @@
             .lock-form-actions{align-items:stretch;flex-direction:column;}
             .lock-form-actions-main{justify-content:flex-end;}
             .pin-input{font-size:24px;padding:14px 12px;letter-spacing:.42em;}
-            .rank-card{padding:11px 13px;}
-            .rank-card span[style*="1.6rem"]{font-size:1.25rem !important;}
+            .rank-card{display:grid!important;grid-template-columns:1fr;align-items:stretch!important;gap:13px!important;padding:15px 16px 14px 19px;}
+            .rank-main{width:100%;gap:10px;}
+            .rank-medal{font-size:1.18rem!important;line-height:1;}
+            .rank-name{font-size:1.04rem!important;line-height:1.2;white-space:normal;overflow-wrap:anywhere;}
+            .rank-move{font-size:10px;padding:1px 6px;margin-left:auto;}
+            .rank-metrics{display:grid!important;grid-template-columns:.82fr .74fr minmax(120px,1.28fr);gap:8px;align-items:end;width:100%;justify-content:stretch;}
+            .rank-metric{align-items:start;}
+            .rank-metric-label{font-size:9px;line-height:1.1;margin-bottom:3px;}
+            .rank-metric-value{font-size:13px;line-height:1.15;}
+            .rank-daily-value{font-size:10px;line-height:1.15;}
+            .rank-daily-value .trend-badge{gap:3px;}
+            .rank-money-value{align-items:end;text-align:right;min-width:0;}
+            .rank-money-value .mono:first-child{font-size:13px!important;line-height:1.15;}
+            .rank-money-value .mono:last-child{font-size:10px!important;line-height:1.2;}
             .benchmark-card{padding:10px 13px;}
             .portfolio-card{padding:14px;}
             .countdown-badge{padding:6px 16px;font-size:13px;}
@@ -507,7 +530,24 @@
             .hold-lock-actions{gap:10px;}
             .btn-lock-icon{width:34px;height:34px;}
             header h1{font-size:1.6rem !important;}
-            #market-session-indicator{line-height:1.7;}
+            .top-meta-row{display:grid!important;grid-template-columns:minmax(0,1fr) auto;align-items:center;justify-content:stretch!important;gap:8px!important;max-width:360px;margin-left:auto;margin-right:auto;}
+            #system-status{width:100%;min-width:0;justify-content:center;padding:8px 12px;line-height:1.45;text-align:left;white-space:normal;}
+            #system-status span:not(.live-dot){min-width:0;overflow-wrap:anywhere;}
+            .top-meta-row .btn-update{min-height:38px;padding:7px 12px!important;}
+            .top-meta-row .tools-menu{left:auto;right:0;transform:none;}
+            #market-session-indicator{line-height:1.7;max-width:calc(100vw - 48px);margin-left:auto;margin-right:auto;font-size:11px!important;}
+            #chart-market-panel{padding:20px 14px;}
+            #chart-market-panel .adv-head{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:start;gap:12px;margin-bottom:10px;}
+            #chart-market-panel .adv-head h2{font-size:1rem;line-height:1.35;min-width:0;}
+            #chart-market-panel .adv-nav{gap:8px;padding-top:1px;}
+            #chart-market-panel .adv-arrow{width:34px;height:34px;border-radius:10px;font-size:18px;}
+            #chart-market-panel .adv-dots{gap:6px;}
+            .performance-chart-wrap{height:430px!important;margin:0 -2px;}
+            .performance-mobile-legend{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 14px;margin:5px 4px 12px;}
+            .performance-mobile-legend button{display:flex;align-items:center;gap:7px;min-width:0;background:transparent;border:0;color:#e8f4fd;padding:0;font-size:11px;font-weight:750;line-height:1.15;text-align:left;white-space:nowrap;}
+            .performance-mobile-legend button.is-hidden{opacity:.42;}
+            .performance-mobile-legend-dot{width:15px;height:15px;border-radius:50%;border:2px solid currentColor;box-shadow:0 0 8px color-mix(in srgb,currentColor 35%,transparent);flex:0 0 auto;}
+            .performance-mobile-legend-text{overflow:hidden;text-overflow:ellipsis;}
             .stats-val{font-size:15px;}
             .month-cell{min-width:50px;padding:5px 9px;}
         }
@@ -650,7 +690,7 @@
         <h1 class="text-4xl md:text-5xl font-bold mb-1 header-glow"><span style="color:#BFB8AF;">投資績效大賽</span></h1>
         <p class="text-slate-400 mt-2 tracking-wide" id="player-names" style="color:#BFB8AF;">載入中...</p>
         <div class="mt-5"><div class="countdown-badge"><span class="text-blue-300 font-semibold text-sm" style="color:#BFB8AF;">賽程倒數</span><span class="text-white font-bold ml-2 mono" id="countdown" style="color:#BFB8AF;">計算中...</span></div></div>
-        <div class="mt-4" style="display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;">
+        <div class="mt-4 top-meta-row" style="display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;">
             <span id="system-status" class="status-pill status-loading">系統連線中...</span>
             <div class="tools-menu-wrap">
                 <button onclick="toggleToolsMenu(event)" class="btn-update" style="font-size:11px;padding:5px 12px;">工具</button>
@@ -684,7 +724,8 @@
         </div>
         <div id="cm-page-chart">
             <div class="text-xs text-slate-500" id="snapshot-window-hint" style="display:none;font-style:italic;margin-bottom:10px;"></div>
-            <div style="height:380px;position:relative;">
+            <div id="performance-mobile-legend" class="performance-mobile-legend"></div>
+            <div class="performance-chart-wrap" style="height:380px;position:relative;">
                 <canvas id="performance-chart"></canvas>
             </div>
             <div id="chart-status" class="text-xs text-slate-500 text-center mt-3" style="font-style:italic;">資料載入中...</div>
@@ -2270,6 +2311,38 @@ function scheduleChartRender(){
     chartRenderTimer = setTimeout(renderPerformanceChart, 400);
 }
 
+function renderPerformanceMobileLegend(datasets, compactChart){
+    const box = document.getElementById('performance-mobile-legend');
+    if(!box) return;
+    if(!compactChart){
+        box.innerHTML = '';
+        return;
+    }
+    box.innerHTML = datasets.map((ds, i)=>{
+        const color = ds.fullColor || ds.borderColor || '#ffffff';
+        const label = ds.displayLabel || ds.label || '';
+        const key = ds.originalLabel || ds.label || label;
+        const visible = performanceChart ? performanceChart.isDatasetVisible(i) : !ds.hidden;
+        return `<button type="button" class="${visible?'':'is-hidden'}" style="color:${color};" onclick="togglePerformanceLegendItem(${i},'${escJs(key)}')" title="${esc(label)}">
+            <span class="performance-mobile-legend-dot"></span>
+            <span class="performance-mobile-legend-text">${esc(label)}</span>
+        </button>`;
+    }).join('');
+}
+
+function togglePerformanceLegendItem(index, key){
+    if(!performanceChart) return;
+    if(performanceChart.isDatasetVisible(index)){
+        performanceChart.hide(index);
+        hiddenChartLabels.add(key);
+    } else {
+        performanceChart.show(index);
+        hiddenChartLabels.delete(key);
+    }
+    saveHiddenLabels();
+    renderPerformanceMobileLegend(performanceChart.data.datasets, true);
+}
+
 // ── 繪製績效曲線 ──────────────────────────
 function renderPerformanceChart(){
     if(typeof Chart==='undefined') return;
@@ -2376,9 +2449,78 @@ function renderPerformanceChart(){
 
     // 4. 繪製/更新
     const ctx = canvas.getContext('2d');
+    const compactChart = window.matchMedia && window.matchMedia('(max-width: 640px)').matches;
+    const legendOptions = {
+        display: !compactChart,
+        position: compactChart ? 'bottom' : 'top',
+        align: compactChart ? 'start' : 'center',
+        labels: {
+            color:'#e8f4fd',
+            usePointStyle: true,
+            boxWidth: compactChart ? 9 : 12,
+            boxHeight: compactChart ? 9 : 12,
+            padding: compactChart ? 8 : 14,
+            font: { size:compactChart ? 10 : 12, family:'Inter' },
+            generateLabels(chart){
+                const labels = Chart.defaults.plugins.legend.labels.generateLabels(chart);
+                labels.forEach(item=>{
+                    const ds = chart.data.datasets[item.datasetIndex];
+                    if(ds && ds.displayLabel) item.text = ds.displayLabel;
+                });
+                return labels;
+            }
+        },
+        onHover: function(e, legendItem, legend){
+            // 大盤線: 圖例 hover → 恢復全亮聚焦
+            const ds = legend.chart.data.datasets[legendItem.datasetIndex];
+            if(ds && ds.fullColor && ds.borderColor !== ds.fullColor){
+                ds.borderColor = ds.fullColor;
+                legend.chart.update('none');
+            }
+        },
+        onLeave: function(e, legendItem, legend){
+            const ds = legend.chart.data.datasets[legendItem.datasetIndex];
+            if(ds && ds.dimColor && ds.borderColor !== ds.dimColor){
+                ds.borderColor = ds.dimColor;
+                legend.chart.update('none');
+            }
+        },
+        onClick: function(e, legendItem, legend){
+            // 維持 Chart.js 預設的顯示/隱藏切換
+            const ci = legend.chart;
+            const i = legendItem.datasetIndex;
+            const ds = ci.data.datasets[i];
+            const key = (ds && (ds.originalLabel || ds.label)) || legendItem.text;
+            const isVisible = ci.isDatasetVisible(i);
+            if(isVisible){
+                ci.hide(i);
+                hiddenChartLabels.add(key);
+            } else {
+                ci.show(i);
+                hiddenChartLabels.delete(key);
+            }
+            saveHiddenLabels();
+        }
+    };
+    const xTickOptions = {
+        color:'#7ba5cc',
+        font:{ size:compactChart ? 10 : 11 },
+        maxRotation: 0,
+        autoSkipPadding: compactChart ? 12 : 20,
+        maxTicksLimit: compactChart ? 5 : 8
+    };
+    const yTickOptions = {
+        color:'#7ba5cc',
+        font:{ size:compactChart ? 10 : 11 },
+        callback: v => (v>=0?'+':'') + v.toFixed(1) + '%'
+    };
     if(performanceChart){
         performanceChart.data.labels = labels;
         performanceChart.data.datasets = datasets;
+        performanceChart.options.layout.padding = { right: compactChart ? 58 : 76, top: compactChart ? 2 : 0 };
+        performanceChart.options.plugins.legend = legendOptions;
+        performanceChart.options.scales.x.ticks = xTickOptions;
+        performanceChart.options.scales.y.ticks = yTickOptions;
         performanceChart.update('none');
     } else {
         performanceChart = new Chart(ctx, {
@@ -2388,57 +2530,11 @@ function renderPerformanceChart(){
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                layout: { padding: { right: 76 } },
+                layout: { padding: { right: compactChart ? 58 : 76, top: compactChart ? 2 : 0 } },
                 interaction: { mode:'index', intersect:false },
                 animation: { duration: 600 },
                 plugins: {
-                    legend: {
-                        labels: {
-                            color:'#e8f4fd',
-                            usePointStyle: true,
-                            padding: 14,
-                            font: { size:12, family:'Inter' },
-                            generateLabels(chart){
-                                const labels = Chart.defaults.plugins.legend.labels.generateLabels(chart);
-                                labels.forEach(item=>{
-                                    const ds = chart.data.datasets[item.datasetIndex];
-                                    if(ds && ds.displayLabel) item.text = ds.displayLabel;
-                                });
-                                return labels;
-                            }
-                        },
-                        onHover: function(e, legendItem, legend){
-                            // 大盤線: 圖例 hover → 恢復全亮聚焦
-                            const ds = legend.chart.data.datasets[legendItem.datasetIndex];
-                            if(ds && ds.fullColor && ds.borderColor !== ds.fullColor){
-                                ds.borderColor = ds.fullColor;
-                                legend.chart.update('none');
-                            }
-                        },
-                        onLeave: function(e, legendItem, legend){
-                            const ds = legend.chart.data.datasets[legendItem.datasetIndex];
-                            if(ds && ds.dimColor && ds.borderColor !== ds.dimColor){
-                                ds.borderColor = ds.dimColor;
-                                legend.chart.update('none');
-                            }
-                        },
-                        onClick: function(e, legendItem, legend){
-                            // 維持 Chart.js 預設的顯示/隱藏切換
-                            const ci = legend.chart;
-                            const i = legendItem.datasetIndex;
-                            const ds = ci.data.datasets[i];
-                            const key = (ds && (ds.originalLabel || ds.label)) || legendItem.text;
-                            const isVisible = ci.isDatasetVisible(i);
-                            if(isVisible){
-                                ci.hide(i);
-                                hiddenChartLabels.add(key);
-                            } else {
-                                ci.show(i);
-                                hiddenChartLabels.delete(key);
-                            }
-                            saveHiddenLabels();
-                        }
-                    },
+                    legend: legendOptions,
                     tooltip: {
                         backgroundColor: 'rgba(13, 23, 38, 0.96)',
                         borderColor: '#34343c',
@@ -2471,26 +2567,18 @@ function renderPerformanceChart(){
                 },
                 scales: {
                     x: {
-                        ticks: {
-                            color:'#7ba5cc',
-                            font:{ size:11 },
-                            maxRotation: 0,
-                            autoSkipPadding: 20
-                        },
+                        ticks: xTickOptions,
                         grid: { color:'rgba(31,31,36,.3)' }
                     },
                     y: {
-                        ticks: {
-                            color:'#7ba5cc',
-                            font:{ size:11 },
-                            callback: v => (v>=0?'+':'') + v.toFixed(1) + '%'
-                        },
+                        ticks: yTickOptions,
                         grid: { color:'rgba(31,31,36,.3)' }
                     }
                 }
             }
         });
     }
+    renderPerformanceMobileLegend(datasets, compactChart);
 
     // 5. 狀態文字 — 顯示資料來源與交易筆數
     const statusEl = document.getElementById('chart-status');
@@ -3677,9 +3765,9 @@ function renderDashboard(){
         const rankDisplayName = shortName(d.name, 5);
         lbDiv.innerHTML += `<div class="rank-card rank-${idx+1}" style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
             <span class="player-strip" style="background:${getPlayerColor(d.name,'#3b82f6')};box-shadow:0 0 8px ${getPlayerColor(d.name,'#3b82f6')}88;"></span>
-            <div style="display:flex;align-items:center;gap:12px;flex:0 0 auto;">
-                <span class="rank-medal" style="font-size:1.6rem;">${medals[idx]||(idx+1)+'.'}</span>
-                <span class="font-bold" title="${esc(d.name)}" style="font-size:1.125rem;white-space:nowrap;color:#BFB8AF;">${esc(rankDisplayName)}</span>
+            <div class="rank-main">
+                <span class="rank-medal">${medals[idx]||(idx+1)+'.'}</span>
+                <span class="rank-name font-bold" title="${esc(d.name)}">${esc(rankDisplayName)}</span>
                 ${(()=>{
                     if(prevOrder.length!==lb.length) return '';
                     const pi = prevOrder.indexOf(d.name);
@@ -3690,16 +3778,16 @@ function renderDashboard(){
                     return `<span class="rank-move flat" title="名次與昨日相同">—</span>`;
                 })()}
             </div>
-            <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;justify-content:flex-end;">
-                <div style="display:flex;flex-direction:column;align-items:flex-end;min-width:0;">
-                    <div style="font-size:10px;color:var(--text-muted);letter-spacing:.05em;">績效</div>
-                    <div style="font-size:14px;" data-live="rk-ret-${idx}">${buildRankRetHTML(d)}</div>
+            <div class="rank-metrics">
+                <div class="rank-metric">
+                    <div class="rank-metric-label">績效</div>
+                    <div class="rank-metric-value" data-live="rk-ret-${idx}">${buildRankRetHTML(d)}</div>
                 </div>
-                <div style="display:flex;flex-direction:column;align-items:flex-end;min-width:0;">
-                    <div style="font-size:10px;color:var(--text-muted);letter-spacing:.05em;">今日</div>
-                    <div style="font-size:11px;" data-live="rk-daily-${idx}">${dailyDisplay}</div>
+                <div class="rank-metric">
+                    <div class="rank-metric-label">今日</div>
+                    <div class="rank-daily-value" data-live="rk-daily-${idx}">${dailyDisplay}</div>
                 </div>
-                <div style="display:flex;flex-direction:column;align-items:flex-end;" data-live="rk-dual-${idx}">${dualValHTML}</div>
+                <div class="rank-money-value" data-live="rk-dual-${idx}">${dualValHTML}</div>
             </div>
         </div>`;
     });
@@ -6147,7 +6235,11 @@ const endpointLabelPlugin = {
         });
         if(!items.length) return;
         c.save();
-        c.font = '700 10px Inter, sans-serif';
+        const compact = chart.width < 520;
+        const labelFontSize = compact ? 9 : 10;
+        const labelHeight = compact ? 16 : 18;
+        const minGap = compact ? 22 : 19;
+        c.font = `700 ${labelFontSize}px Inter, sans-serif`;
         // 名稱統一截 5 個字, 標籤靠右對齊成一欄
         items.forEach(it=>{
             it.short = [...String(it.label)].slice(0,5).join('');
@@ -6159,11 +6251,11 @@ const endpointLabelPlugin = {
         items.sort((a,b)=>a.ly-b.ly);
         items.forEach(it=>{ it.ly = Math.min(Math.max(it.ly, area.top + 10), area.bottom - 10); });
         for(let i=1; i<items.length; i++){
-            if(items[i].ly - items[i-1].ly < 19) items[i].ly = items[i-1].ly + 19;
+            if(items[i].ly - items[i-1].ly < minGap) items[i].ly = items[i-1].ly + minGap;
         }
         for(let i=items.length-1; i>=0; i--){
             if(items[i].ly > area.bottom - 9) items[i].ly = area.bottom - 9;
-            if(i<items.length-1 && items[i+1].ly - items[i].ly < 19) items[i].ly = items[i+1].ly - 19;
+            if(i<items.length-1 && items[i+1].ly - items[i].ly < minGap) items[i].ly = items[i+1].ly - minGap;
         }
         items.forEach(it=>{
             // 端點光暈圓點 (停在曲線終點)
@@ -6171,11 +6263,11 @@ const endpointLabelPlugin = {
             c.shadowBlur = 9;
             c.fillStyle = it.color;
             c.beginPath();
-            c.arc(it.x, it.dotY, 3.5, 0, Math.PI*2);
+            c.arc(it.x, it.dotY, compact ? 3 : 3.5, 0, Math.PI*2);
             c.fill();
             c.shadowBlur = 0;
             // 名字 pill — 全部靠右對齊在畫布右緣
-            const lx = chart.width - it.w - 14;
+            const lx = chart.width - it.w - (compact ? 8 : 14);
             // 引導線: 端點 → pill 左緣
             c.strokeStyle = hexA(it.color, '4d');
             c.lineWidth = 1;
@@ -6185,13 +6277,13 @@ const endpointLabelPlugin = {
             c.lineTo(lx - 7, it.ly);
             c.stroke();
             c.setLineDash([]);
-            roundRectPath(c, lx - 5, it.ly - 9, it.w + 10, 18, 6);
+            roundRectPath(c, lx - 5, it.ly - (labelHeight / 2), it.w + 10, labelHeight, 6);
             c.fillStyle = 'rgba(8,8,10,.9)';
             c.fill();
             c.strokeStyle = hexA(it.color, '66');
             c.stroke();
             c.fillStyle = it.color;
-            c.fillText(it.short, lx, it.ly + 3.5);
+            c.fillText(it.short, lx, it.ly + (compact ? 3 : 3.5));
         });
         c.restore();
     }
