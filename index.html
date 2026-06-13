@@ -12,10 +12,10 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="投資大賽">
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800;900&family=JetBrains+Mono:wght@500;600;700;800&family=Noto+Sans+TC:wght@500;600;700;800;900&display=swap');
         :root {
@@ -1264,11 +1264,24 @@ const COLOR_PALETTE = [
 // 色彩偏好 (Firebase 同步, 所有人共用)
 let chartColors = { players:{}, indices:{} };
 
+// 顏色淨化: 僅允許合法色彩格式 (#hex / rgb / hsl / 具名色), 阻擋塞入 style 的 CSS 注入
+function safeColor(c, fallback){
+    const f = fallback || '#a855f7';
+    if(typeof c !== 'string') return f;
+    const v = c.trim();
+    // #RGB / #RGBA / #RRGGBB / #RRGGBBAA
+    if(/^#[0-9a-fA-F]{3,8}$/.test(v)) return v;
+    // rgb()/rgba()/hsl()/hsla() — 僅允許數字、逗號、百分比、點、空白
+    if(/^(rgb|rgba|hsl|hsla)\(\s*[\d.,%\s/]+\)$/i.test(v)) return v;
+    // 純英文具名色 (red, gold...) — 無括號、無特殊字元
+    if(/^[a-zA-Z]{1,20}$/.test(v)) return v;
+    return f;
+}
 function getPlayerColor(name, fallback){
-    return (chartColors.players && chartColors.players[name]) || fallback || '#a855f7';
+    return safeColor((chartColors.players && chartColors.players[name]) || fallback, fallback || '#a855f7');
 }
 function getIndexColor(key, fallback){
-    return (chartColors.indices && chartColors.indices[key]) || fallback || '#3b82f6';
+    return safeColor((chartColors.indices && chartColors.indices[key]) || fallback, fallback || '#3b82f6');
 }
 
 // ── 曲線可見性持久化 (localStorage, 防止 10 秒刷新重設) ─
@@ -3792,6 +3805,96 @@ function autoMigrateLegacyPins(){
     });
     pinMigrationDone = true;
 }
+// ── 密碼暴力嘗試防護: 連續錯誤 → 鎖定 + 告警 ──────────────
+// 失敗紀錄持久化於 Firebase (lockSecurity/<pi>), 跨裝置 / 重整皆有效。
+// 注意: 此為「UI 層嚇阻 + 即時告警」機制; 真正的資料防線仍是 Firebase 讀取規則。
+const PIN_MAX_FAILS  = 3;            // 連續錯誤幾次後鎖定
+const PIN_LOCKOUT_MS = 5 * 60 * 1000; // 鎖定時長 (5 分鐘)
+const lockoutState = {};             // 記憶體快取: name -> {fails, lockUntil}
+let lockoutTimer = null;
+
+function lockSecRef(name){
+    const pi = participants.findIndex(x=>x.name===name);
+    return pi === -1 ? null : db.ref('lockSecurity/'+pi);
+}
+function lockoutRemainMs(st){ return Math.max(0, ((st&&st.lockUntil)||0) - Date.now()); }
+
+// 讀取目前鎖定狀態 {fails, lockUntil}
+async function getLockout(name){
+    const ref = lockSecRef(name);
+    if(!ref) return {fails:0, lockUntil:0};
+    try{
+        const snap = await ref.once('value');
+        const v = snap.val() || {};
+        return {fails: v.fails||0, lockUntil: v.lockUntil||0};
+    }catch(e){ return lockoutState[name] || {fails:0, lockUntil:0}; }
+}
+// 記錄一次失敗; 達門檻則鎖定並告警
+async function registerPinFail(name){
+    const st = await getLockout(name);
+    let fails = (st.fails||0) + 1;
+    let lockUntil = st.lockUntil || 0;
+    let justLocked = false;
+    if(fails >= PIN_MAX_FAILS){
+        lockUntil = Date.now() + PIN_LOCKOUT_MS;
+        fails = 0;            // 重置計數, 鎖定期滿後重新累計
+        justLocked = true;
+    }
+    const ref = lockSecRef(name);
+    if(ref){ try{ await ref.set({fails, lockUntil, lastAttempt: Date.now()}); }catch(e){} }
+    lockoutState[name] = {fails, lockUntil};
+    if(justLocked) onPinLockout(name);   // 不 await: 告警在背景送, 不卡 UI
+    return {fails, lockUntil, justLocked};
+}
+// 成功解鎖 → 清除失敗紀錄
+async function clearPinFail(name){
+    const ref = lockSecRef(name);
+    if(ref){ try{ await ref.set({fails:0, lockUntil:0, lastAttempt: Date.now()}); }catch(e){} }
+    lockoutState[name] = {fails:0, lockUntil:0};
+}
+// 鎖定觸發: 寫入 Firebase 安全日誌 + 透過 Worker 寄送 email 告警
+async function onPinLockout(name){
+    const evt = {
+        player: name,
+        ts: Date.now(),
+        ua: (navigator.userAgent||'').slice(0,300),
+        page: location.href,
+        attempts: PIN_MAX_FAILS
+    };
+    try{ await db.ref('securityLog').push(evt); }catch(e){}   // 留底, 即使 email 失敗
+    try{
+        await fetch(CF_PROXY + '/alert', {
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            body: JSON.stringify(evt),
+            signal: AbortSignal.timeout(8000)
+        });
+    }catch(e){ console.warn('告警 email 略過 (Worker /alert 尚未設定):', e.message); }
+}
+// 解鎖視窗顯示鎖定倒數 (停用輸入, 每秒更新)
+function showLockoutCountdown(name, lockUntil){
+    const input = document.getElementById('pinUnlock');
+    const msg   = document.getElementById('lockMsgUnlock');
+    const btn   = document.querySelector('#lockViewUnlock .btn-save');
+    if(lockoutTimer){ clearInterval(lockoutTimer); lockoutTimer=null; }
+    const tick = ()=>{
+        const left = Math.max(0, lockUntil - Date.now());
+        if(left <= 0){
+            clearInterval(lockoutTimer); lockoutTimer=null;
+            if(input){ input.disabled=false; input.classList.remove('err'); input.focus(); }
+            if(btn) btn.disabled=false;
+            if(msg){ msg.style.color='var(--text-secondary)'; msg.textContent='可重新輸入密碼'; }
+            return;
+        }
+        const m = Math.floor(left/60000), s = Math.floor((left%60000)/1000);
+        if(input){ input.disabled=true; input.value=''; }
+        if(btn) btn.disabled=true;
+        if(msg){ msg.style.color='var(--accent-red)';
+            msg.innerHTML = `因連續輸入錯誤，已鎖定 <span class="mono font-bold">${m}:${String(s).padStart(2,'0')}</span>　·　已通知管理員`; }
+    };
+    tick();
+    lockoutTimer = setInterval(tick, 1000);
+}
 // 鎖頭圖示(SVG)
 const LOCK_ICON_CLOSED = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>`;
 const LOCK_ICON_OPEN   = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 7.7-1.6"/></svg>`;
@@ -3866,8 +3969,17 @@ function openLockModal(name, view){
     if(view!=='set' && !hasCardPwd(name)) view='set';
     lockSwitchView(view||'unlock');
     document.getElementById('lockModal').classList.add('open');
+    // 開啟解鎖視窗時, 若該卡片正處鎖定期 → 立即顯示倒數並停用輸入
+    if((view||'unlock')==='unlock' && hasCardPwd(name)){
+        getLockout(name).then(st=>{ if(lockoutRemainMs(st)>0) showLockoutCountdown(name, st.lockUntil); });
+    }
 }
-function closeLockModal(){document.getElementById('lockModal').classList.remove('open');}
+function closeLockModal(){
+    if(lockoutTimer){ clearInterval(lockoutTimer); lockoutTimer=null; }
+    const inp=document.getElementById('pinUnlock'); if(inp){ inp.disabled=false; }
+    const btn=document.querySelector('#lockViewUnlock .btn-save'); if(btn){ btn.disabled=false; }
+    document.getElementById('lockModal').classList.remove('open');
+}
 function lockSwitchView(view){
     const isSet = view==='set';
     const isChange = view==='change';
@@ -3910,16 +4022,29 @@ async function submitUnlock(){
     const input = document.getElementById('pinUnlock');
     const msg = document.getElementById('lockMsgUnlock');
     const val = (input.value||'').trim();
+    // 鎖定中? 先擋下, 連密碼都不檢查
+    const st0 = await getLockout(name);
+    if(lockoutRemainMs(st0) > 0){ showLockoutCountdown(name, st0.lockUntil); return; }
     if(!/^\d{4}$/.test(val)){ input.classList.add('err'); msg.textContent='請輸入 4 位數字密碼'; setTimeout(()=>input.classList.remove('err'),400); return; }
     if(await verifyPin(name, val)){
+        await clearPinFail(name);   // 成功 → 清除失敗計數
         unlockedCards[name] = true;
         applyLockUI(name);
         closeLockModal();
         renderDashboard();   // 鎖定時內容未渲染進 DOM → 解鎖後重繪以填入
         setStatus('ok','已解鎖 '+name+' 的持倉與交易紀錄');
     } else {
-        input.classList.add('err'); input.value=''; msg.textContent='密碼錯誤，請重試';
-        setTimeout(()=>input.classList.remove('err'),400); input.focus();
+        const r = await registerPinFail(name);   // 累計失敗 (達門檻自動鎖定 + 告警)
+        input.classList.add('err'); input.value='';
+        setTimeout(()=>input.classList.remove('err'),400);
+        if(lockoutRemainMs(r) > 0){
+            showLockoutCountdown(name, r.lockUntil);
+        } else {
+            const left = PIN_MAX_FAILS - r.fails;
+            msg.style.color='var(--accent-red)';
+            msg.textContent = `密碼錯誤，還可嘗試 ${left} 次`;
+            input.focus();
+        }
     }
 }
 // 變更密碼(需通過現有密碼驗證)
@@ -4462,7 +4587,7 @@ async function onSlotInput(id,val){
     slotAcTimers[id]=setTimeout(async()=>{
         const results=await searchTickers(val);slotAcItems[id]=results;slotAcIdx[id]=-1;
         if(!results.length){list.innerHTML='<div class="ac-spinner">找不到相關股票</div>';return;}
-        list.innerHTML=results.map((q,i)=>`<div class="ac-item" onclick="selectSlot(${id},${i})"><div style="display:flex;align-items:center;gap:8px;"><span class="ac-ticker">${q.symbol}</span><span class="ac-name">${q.shortname||''}</span></div><span class="ac-exch">${q.exchDisp||''}</span></div>`).join('');
+        list.innerHTML=results.map((q,i)=>`<div class="ac-item" onclick="selectSlot(${id},${i})"><div style="display:flex;align-items:center;gap:8px;"><span class="ac-ticker">${esc(q.symbol)}</span><span class="ac-name">${esc(q.shortname||'')}</span></div><span class="ac-exch">${esc(q.exchDisp||'')}</span></div>`).join('');
     },350);
 }
 function onSlotKey(e,id){
@@ -4601,7 +4726,7 @@ async function onTradeTickerInput(val){
     tradeAcTimer=setTimeout(async()=>{
         const results=await searchTickers(val);tradeAcItems=results;tradeAcIdx=-1;
         if(!results.length){list.innerHTML='<div class="ac-spinner">找不到相關股票</div>';return;}
-        list.innerHTML=results.map((q,i)=>`<div class="ac-item" onclick="selectTradeTicker(${i})"><div style="display:flex;align-items:center;gap:8px;"><span class="ac-ticker">${q.symbol}</span><span class="ac-name">${q.shortname||''}</span></div><span class="ac-exch">${q.exchDisp||''}</span></div>`).join('');
+        list.innerHTML=results.map((q,i)=>`<div class="ac-item" onclick="selectTradeTicker(${i})"><div style="display:flex;align-items:center;gap:8px;"><span class="ac-ticker">${esc(q.symbol)}</span><span class="ac-name">${esc(q.shortname||'')}</span></div><span class="ac-exch">${esc(q.exchDisp||'')}</span></div>`).join('');
     },350);
 }
 
