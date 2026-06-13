@@ -97,16 +97,16 @@
         .btn-add-trade{display:flex;align-items:center;gap:5px;background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.25);color:var(--accent-green);padding:4px 10px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;transition:all .2s;}
         .btn-add-trade:hover{background:rgba(34,197,94,.15);border-color:rgba(34,197,94,.5);}
         /* ── 密碼鎖 / 霧面玻璃 ── */
-        .btn-lock{display:inline-flex;align-items:center;gap:5px;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.28);color:var(--accent-amber);padding:6px 12px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;transition:all .2s;white-space:nowrap;}
-        .btn-lock:hover{background:rgba(245,158,11,.16);border-color:rgba(245,158,11,.55);box-shadow:0 0 12px rgba(245,158,11,.18);}
+        .btn-lock{display:inline-flex;align-items:center;gap:5px;background:rgba(190,150,170,.09);border:1px solid rgba(190,150,170,.30);color:var(--accent-cyan);padding:6px 12px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;transition:all .2s;white-space:nowrap;}
+        .btn-lock:hover{background:rgba(190,150,170,.16);border-color:rgba(190,150,170,.55);box-shadow:0 0 12px rgba(190,150,170,.18);}
         .btn-lock.unlocked{background:rgba(34,197,94,.08);border-color:rgba(34,197,94,.28);color:var(--accent-green);}
         .btn-lock.unlocked:hover{background:rgba(34,197,94,.16);border-color:rgba(34,197,94,.55);box-shadow:0 0 12px rgba(34,197,94,.18);}
         /* 圖示式鎖頭按鈕(僅鎖/解鎖圖示) */
         .btn-lock-icon{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:10px;cursor:pointer;transition:all .2s;flex-shrink:0;background:var(--bg-elevated);border:1px solid var(--border);color:var(--text-secondary);padding:0;}
         .btn-lock-icon svg{display:block;}
         .btn-lock-icon:hover{border-color:var(--border-bright);color:var(--text-primary);}
-        .btn-lock-icon.locked{background:rgba(245,158,11,.10);border-color:rgba(245,158,11,.32);color:var(--accent-amber);}
-        .btn-lock-icon.locked:hover{background:rgba(245,158,11,.18);border-color:rgba(245,158,11,.6);box-shadow:0 0 12px rgba(245,158,11,.18);}
+        .btn-lock-icon.locked{background:rgba(190,150,170,.11);border-color:rgba(190,150,170,.34);color:#d7bec8;}
+        .btn-lock-icon.locked:hover{background:rgba(190,150,170,.18);border-color:rgba(190,150,170,.62);box-shadow:0 0 12px rgba(190,150,170,.20);}
         .btn-lock-icon.unlocked{background:rgba(34,197,94,.10);border-color:rgba(34,197,94,.32);color:var(--accent-green);}
         .btn-lock-icon.unlocked:hover{background:rgba(34,197,94,.18);border-color:rgba(34,197,94,.6);box-shadow:0 0 12px rgba(34,197,94,.18);}
         .btn-lock-icon.nopwd{background:var(--bg-elevated);border-color:var(--border);color:var(--text-muted);}
@@ -174,9 +174,9 @@
         .lock-preview-row span:nth-child(2){height:5px;border-radius:999px;background:linear-gradient(90deg,rgba(148,163,184,.36),rgba(148,163,184,.08));}
         .lock-preview-row span:nth-child(3){color:#34d399;text-align:right;font-weight:800;}
         .lock-preview-row:nth-child(3) span:nth-child(3){color:#fb7185;}
-        .lock-corner{position:absolute;width:34px;height:34px;border-color:rgba(251,191,36,.34);pointer-events:none;}
-        .lock-corner.tl{top:14px;left:14px;border-top:1px solid;border-left:1px solid;border-color:rgba(251,191,36,.34);}
-        .lock-corner.br{right:14px;bottom:14px;border-right:1px solid;border-bottom:1px solid;border-color:rgba(251,191,36,.34);}
+        .lock-corner{position:absolute;width:34px;height:34px;border-color:rgba(190,150,170,.34);pointer-events:none;}
+        .lock-corner.tl{top:14px;left:14px;border-top:1px solid;border-left:1px solid;border-color:rgba(190,150,170,.34);}
+        .lock-corner.br{right:14px;bottom:14px;border-right:1px solid;border-bottom:1px solid;border-color:rgba(190,150,170,.34);}
         @media (prefers-reduced-motion:reduce){
             .lock-content-empty::before,.lock-content-empty::after,.lock-sweep,.lock-badge,.lock-badge::before{animation:none;}
             .lock-sweep{display:none;}
@@ -393,6 +393,7 @@
         .adv-arrow{width:30px;height:30px;border-radius:8px;background:var(--bg-elevated);border:1px solid var(--border);color:var(--text-secondary);
             font-size:17px;line-height:1;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;justify-content:center;padding:0 0 2px 0;}
         .adv-arrow:hover{border-color:var(--accent-cyan);color:var(--accent-cyan);box-shadow:0 0 10px rgba(190,150,170,.15);}
+        .adv-arrow:focus-visible{outline:2px solid rgba(190,150,170,.74);outline-offset:2px;box-shadow:0 0 0 4px rgba(190,150,170,.12);}
         .adv-dots{display:flex;align-items:center;gap:7px;}
         .adv-dot{width:7px;height:7px;border-radius:50%;background:var(--border-bright);border:none;padding:0;cursor:pointer;transition:all .2s;}
         .adv-dot:hover{background:var(--text-secondary);}
@@ -402,19 +403,19 @@
         @keyframes advfade{from{opacity:0;transform:translateX(10px);}to{opacity:1;transform:none;}}
         /* 王座爭奪戰 */
         .throne-hero{display:flex;flex-direction:column;align-items:center;gap:4px;padding:18px 14px;border-radius:12px;margin-bottom:14px;
-            background:linear-gradient(135deg,rgba(251,191,36,.08),rgba(10,10,12,.4));border:1px solid rgba(251,191,36,.3);
-            box-shadow:0 0 28px rgba(251,191,36,.07) inset;}
+            background:linear-gradient(135deg,rgba(190,150,170,.11),rgba(10,10,12,.42));border:1px solid rgba(190,150,170,.34);
+            box-shadow:0 0 28px rgba(190,150,170,.08) inset;}
         .throne-crown{font-size:30px;animation:crownfloat 2.6s ease-in-out infinite;}
         .throne-row{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;background:var(--bg-input);border:1px solid var(--border);margin-bottom:7px;}
         .throne-bar-wrap{flex:1;height:7px;border-radius:999px;background:rgba(31,31,36,.8);overflow:hidden;min-width:60px;}
         .throne-bar{height:100%;border-radius:999px;transition:width .5s ease;}
         .throne-timeline{max-height:170px;overflow-y:auto;padding-right:4px;}
-        .throne-tl-item{display:flex;align-items:center;gap:8px;font-size:12px;padding:6px 10px;border-left:2px solid rgba(251,191,36,.35);margin-left:4px;color:var(--text-secondary);}
+        .throne-tl-item{display:flex;align-items:center;gap:8px;font-size:12px;padding:6px 10px;border-left:2px solid rgba(190,150,170,.38);margin-left:4px;color:var(--text-secondary);}
         /* 撞股對決 */
         .duel-card{background:var(--bg-elevated);border:1px solid var(--border);border-radius:12px;padding:14px;transition:border-color .2s;}
         .duel-card:hover{border-color:rgba(239,68,68,.35);}
         .duel-row{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;background:var(--bg-input);border:1px solid var(--border);margin-top:7px;}
-        .duel-row.winner{border-color:rgba(251,191,36,.45);background:linear-gradient(135deg,rgba(251,191,36,.07),var(--bg-input));}
+        .duel-row.winner{border-color:rgba(190,150,170,.45);background:linear-gradient(135deg,rgba(190,150,170,.08),var(--bg-input));}
         .duel-bar-wrap{flex:1;height:6px;border-radius:999px;background:rgba(31,31,36,.8);overflow:hidden;min-width:40px;}
         .duel-bar{height:100%;border-radius:999px;}
         .duel-vs{font-size:10px;font-weight:800;letter-spacing:.1em;color:var(--accent-red);background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);padding:2px 8px;border-radius:999px;}
@@ -430,14 +431,49 @@
         /* 新高慶祝 */
         #confetti-canvas{position:fixed;inset:0;z-index:90;pointer-events:none;}
         .nav-toast{position:fixed;top:18px;left:50%;transform:translate(-50%,-30px);z-index:95;opacity:0;transition:all .35s ease;
-            background:linear-gradient(135deg,rgba(20,20,28,.96),rgba(8,8,12,.96));border:1px solid rgba(251,191,36,.5);color:#fde68a;
-            padding:10px 22px;border-radius:999px;font-size:14px;font-weight:700;box-shadow:0 8px 32px rgba(0,0,0,.6),0 0 20px rgba(251,191,36,.15);white-space:nowrap;}
+            background:linear-gradient(135deg,rgba(20,18,22,.96),rgba(8,8,12,.96));border:1px solid rgba(190,150,170,.48);color:#f2e9ec;
+            padding:10px 22px;border-radius:999px;font-size:14px;font-weight:700;box-shadow:0 8px 32px rgba(0,0,0,.6),0 0 20px rgba(190,150,170,.15);white-space:nowrap;}
         .nav-toast.show{opacity:1;transform:translate(-50%,0);}
+        /* ── 德州撲克專區 ───────────────────── */
+        #poker-section{position:relative;overflow:hidden;background:linear-gradient(180deg,rgba(16,13,15,.98),rgba(8,8,10,.98));}
+        #poker-section::before{content:'';position:absolute;inset:0;pointer-events:none;background:radial-gradient(75% 42% at 50% 0%,rgba(190,150,170,.11),transparent 64%),linear-gradient(180deg,rgba(255,255,255,.02),transparent 24%);}
+        #poker-section>*{position:relative;z-index:1;}
+        .poker-head{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:14px;margin-bottom:18px;}
+        .poker-title-wrap{min-width:0;}
+        .poker-player-line{display:flex;align-items:center;gap:8px;min-width:0;flex-wrap:wrap;}
+        .poker-player-name{font-size:21px;font-weight:900;color:#fff;line-height:1.15;text-shadow:0 0 18px rgba(190,150,170,.2);}
+        .poker-subtitle{font-size:11px;color:var(--text-muted);font-weight:800;letter-spacing:.08em;text-transform:uppercase;margin-top:4px;}
+        .poker-dashboard{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(280px,.9fr);gap:14px;margin-bottom:16px;}
+        .poker-chart-card,.poker-month-card{border:1px solid rgba(190,150,170,.16);background:linear-gradient(180deg,rgba(255,255,255,.035),rgba(255,255,255,.012));border-radius:12px;padding:14px;box-shadow:inset 0 1px 0 rgba(255,255,255,.035);}
+        .poker-card-title{font-size:11px;font-weight:900;color:var(--text-secondary);letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;gap:8px;}
+        .poker-chart-wrap{height:230px;position:relative;}
+        .poker-chart-wrap canvas{width:100%!important;height:100%!important;}
+        .poker-chart-status{font-size:11px;color:var(--text-muted);text-align:center;margin-top:8px;min-height:16px;}
+        .poker-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:12px;}
+        .poker-metric{border:1px solid rgba(255,255,255,.065);background:rgba(5,5,7,.42);border-radius:10px;padding:10px;min-width:0;}
+        .poker-metric-label{font-size:10px;color:var(--text-muted);font-weight:800;letter-spacing:.04em;margin-bottom:5px;}
+        .poker-metric-value{font-size:15px;font-weight:900;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+        .poker-months{display:flex;flex-wrap:wrap;gap:7px;max-height:150px;overflow:auto;padding-right:2px;}
+        .poker-month-cell{min-width:72px;border-radius:9px;padding:7px 9px;border:1px solid rgba(255,255,255,.075);background:rgba(255,255,255,.035);}
+        .poker-month-cell.win{background:rgba(34,197,94,.09);border-color:rgba(34,197,94,.22);}
+        .poker-month-cell.loss{background:rgba(239,68,68,.09);border-color:rgba(239,68,68,.22);}
+        .poker-month-cell.flat{background:rgba(190,150,170,.06);border-color:rgba(190,150,170,.14);}
+        .poker-month-label{font-size:10px;color:var(--text-muted);font-weight:800;margin-bottom:3px;}
+        .poker-month-value{font-size:12px;font-weight:900;}
+        .poker-record-title{font-size:11px;font-weight:900;color:var(--text-secondary);letter-spacing:.08em;text-transform:uppercase;margin:4px 0 8px;}
+        .poker-record-row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid rgba(190,150,170,.11);}
+        .poker-record-date{color:var(--text-secondary);font-size:13px;font-weight:700;}
+        .poker-total-row{margin-top:14px;padding-top:14px;border-top:1px solid rgba(190,150,170,.18);display:flex;justify-content:space-between;align-items:center;gap:12px;}
+        @media (max-width:900px){.poker-dashboard{grid-template-columns:1fr;}.poker-chart-wrap{height:220px;}}
         @media (max-width:640px){
             .adv-head h2{font-size:1rem;}
             .adv-body{min-height:200px;}
             .mini-rankbar-inner{gap:12px;font-size:11px;padding:7px 12px;}
             .throne-hero{padding:14px 10px;}
+            .poker-head{grid-template-columns:1fr;align-items:start;}
+            .poker-head .btn-add-trade{justify-self:start;}
+            .poker-metrics{grid-template-columns:1fr;}
+            .poker-player-name{font-size:18px;}
             .rank-move{font-size:10px;padding:1px 5px;margin-left:4px;}
             .nav-toast{font-size:12px;padding:8px 16px;max-width:92vw;white-space:normal;text-align:center;}
         }
@@ -675,14 +711,50 @@
     <section class="grid grid-cols-1 md:grid-cols-3 gap-5" id="portfolios"><div class="skeleton" style="height:430px;"></div><div class="skeleton" style="height:430px;"></div><div class="skeleton" style="height:430px;"></div></section>
 
     <section class="card p-6 mt-8" id="poker-section">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
-            <h2 class="text-lg font-bold section-title flex items-center gap-2">
-                <span></span> 璽子妹德撲極限生涯紀錄
-            </h2>
+        <div class="poker-head">
+            <div class="poker-title-wrap">
+                <h2 class="text-lg font-bold section-title flex items-center gap-2">
+                    <span></span> 德州撲克專區
+                </h2>
+                <div class="poker-player-line">
+                    <span id="poker-player-name" class="poker-player-name">璽子妹</span>
+                    <button onclick="editPokerPlayerName()" class="icon-edit-btn" title="更改玩家名稱" aria-label="更改玩家名稱"><span class="ui-icon i-edit"></span></button>
+                </div>
+                <div class="poker-subtitle">極限生涯紀錄</div>
+            </div>
             <button onclick="openPokerModal()" class="btn-add-trade" style="font-size:12px;padding:6px 14px;">＋ 新增紀錄</button>
         </div>
+        <div class="poker-dashboard">
+            <div class="poker-chart-card">
+                <div class="poker-card-title">
+                    <span>累積損益曲線</span>
+                    <span class="mono" id="poker-record-count">0 筆</span>
+                </div>
+                <div class="poker-chart-wrap"><canvas id="poker-chart"></canvas></div>
+                <div id="poker-chart-status" class="poker-chart-status">尚無紀錄</div>
+            </div>
+            <div class="poker-month-card">
+                <div class="poker-card-title"><span>月度損益</span><span class="mono" id="poker-month-count">0 月</span></div>
+                <div class="poker-metrics">
+                    <div class="poker-metric">
+                        <div class="poker-metric-label">本月</div>
+                        <div class="poker-metric-value mono" id="poker-this-month">NT$ 0</div>
+                    </div>
+                    <div class="poker-metric">
+                        <div class="poker-metric-label">最佳月</div>
+                        <div class="poker-metric-value mono" id="poker-best-month">--</div>
+                    </div>
+                    <div class="poker-metric">
+                        <div class="poker-metric-label">最差月</div>
+                        <div class="poker-metric-value mono" id="poker-worst-month">--</div>
+                    </div>
+                </div>
+                <div id="poker-months" class="poker-months"><div style="color:var(--text-muted);font-size:12px;">尚無月度資料</div></div>
+            </div>
+        </div>
+        <div class="poker-record-title">金額紀錄</div>
         <div id="poker-records"></div>
-        <div id="poker-total" style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
+        <div id="poker-total" class="poker-total-row">
             <span class="text-slate-400 font-semibold">生涯總計</span>
             <span id="poker-total-value" class="mono font-bold text-2xl">NT$ 0</span>
         </div>
@@ -1108,6 +1180,7 @@ let benchmarkHistory={ dji:[], sp500:[], ndx:[], twii:[], btc:[], gold:[] }; // 
 let performanceChart=null;
 let chartRenderTimer=null;
 let holdingPieCharts={}; // {playerName: Chart instance}
+let pokerChart=null;
 const HOLDING_PIE_COLORS = ['#C0AFB1','#77595E','#988083','#463639','#766269'];
 function shortPieTickerLabel(label){
     const raw = String(label || '').replace('現金','CASH').trim();
@@ -2769,11 +2842,11 @@ db.ref('competitionData').on('value',async snapshot=>{
 function setStatus(type,msg){const el=document.getElementById('system-status');el.className=`status-pill status-${type}`;el.textContent=msg;}
 
 // ── 資料庫 JSON 備份 / 還原 ─────────────────────────────
-// 備份節點清單: index.html 使用的 4 個節點 + mimi-stock 可能使用的 V2 節點
+// 備份節點清單: index.html 使用的主節點 + mimi-stock 可能使用的 V2 節點
 // (不存在或無權限的節點會自動略過)
 const BACKUP_NODES = [
-    'competitionData','dailySnapshots','chartColors','pokerRecords',
-    'competitionDataV2','dailySnapshotsV2','chartColorsV2','pokerRecordsV2'
+    'competitionData','dailySnapshots','chartColors','pokerRecords','pokerSettings',
+    'competitionDataV2','dailySnapshotsV2','chartColorsV2','pokerRecordsV2','pokerSettingsV2'
 ];
 // 匯出: 優先嘗試整個根節點; 若規則不允許, 改為逐節點讀取
 async function exportBackup(){
@@ -4881,7 +4954,48 @@ function changeTradePage(name, delta){
 
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal();closeTradeModal();closePokerModal();closeClosePositionModal();}});
 
-// ── 璽子打牌紀錄 ──────────────────────────
+// ── 德州撲克紀錄 ──────────────────────────
+const DEFAULT_POKER_PLAYER = '璽子妹';
+let pokerSettings = { playerName: DEFAULT_POKER_PLAYER };
+
+function fmtPokerMoney(amount, signed=true){
+    const n = Number(amount || 0);
+    const sign = signed ? (n > 0 ? '+' : (n < 0 ? '-' : '')) : '';
+    return `${sign}NT$ ${Math.abs(n).toLocaleString('zh-TW')}`;
+}
+function pokerAmountColor(amount){
+    const n = Number(amount || 0);
+    return n > 0 ? 'var(--accent-green)' : n < 0 ? 'var(--accent-red)' : 'var(--text-secondary)';
+}
+function pokerMonthKey(date){
+    const n = normalizeDate(date);
+    return n && n.length >= 7 ? n.slice(0,7) : '';
+}
+function pokerMonthLabel(monthKey){
+    if(!monthKey) return '--';
+    const [y,m] = monthKey.split('-');
+    return `${String(y).slice(-2)}/${parseInt(m,10)}月`;
+}
+function getTaipeiMonthKey(){
+    const parts = new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Taipei',year:'numeric',month:'2-digit'}).formatToParts(new Date());
+    const y = parts.find(p=>p.type==='year')?.value || String(new Date().getFullYear());
+    const m = parts.find(p=>p.type==='month')?.value || String(new Date().getMonth()+1).padStart(2,'0');
+    return `${y}-${m}`;
+}
+function setPokerPlayerName(name){
+    pokerSettings.playerName = (name || DEFAULT_POKER_PLAYER).trim() || DEFAULT_POKER_PLAYER;
+    const el = document.getElementById('poker-player-name');
+    if(el) el.textContent = pokerSettings.playerName;
+}
+function editPokerPlayerName(){
+    const current = pokerSettings.playerName || DEFAULT_POKER_PLAYER;
+    const next = prompt('輸入德撲玩家名稱', current);
+    if(next === null) return;
+    const clean = next.trim();
+    if(!clean){ alert('玩家名稱不能空白'); return; }
+    db.ref('pokerSettings/playerName').set(clean);
+}
+
 function openPokerModal(){
     document.getElementById('pokerDate').value = new Date().toISOString().slice(0,10);
     document.getElementById('pokerAmount').value = '';
@@ -4903,13 +5017,132 @@ function deletePokerRecord(key){
     db.ref('pokerRecords/' + key).remove();
 }
 
-db.ref('pokerRecords').on('value', snapshot=>{
-    const data = snapshot.val();
-    const records = data ? Object.entries(data).map(([k,v])=>({key:k,...v})) : [];
-    records.sort((a,b)=> b.date.localeCompare(a.date));
+function computePokerStats(records){
+    const byDate = {};
+    const byMonth = {};
+    records.forEach(r=>{
+        const date = normalizeDate(r.date) || r.date || '';
+        const amount = Number(r.amount || 0);
+        if(date){
+            byDate[date] = (byDate[date] || 0) + amount;
+            const mk = pokerMonthKey(date);
+            if(mk) byMonth[mk] = (byMonth[mk] || 0) + amount;
+        }
+    });
+    let running = 0;
+    const points = Object.keys(byDate).sort().map(date=>{
+        running += byDate[date];
+        return { date, amount: byDate[date], total: running };
+    });
+    const months = Object.keys(byMonth).sort().map(month=>({ month, amount: byMonth[month] }));
+    const total = records.reduce((sum,r)=>sum + Number(r.amount || 0), 0);
+    return { points, months, total };
+}
 
+function renderPokerChart(points){
+    const status = document.getElementById('poker-chart-status');
+    if(!window.Chart){
+        if(status) status.textContent = '圖表套件尚未載入';
+        return;
+    }
+    const canvas = document.getElementById('poker-chart');
+    if(!canvas) return;
+    if(points.length === 0){
+        if(pokerChart){ try{ pokerChart.destroy(); }catch(e){} pokerChart = null; }
+        if(status) status.textContent = '尚無紀錄';
+        return;
+    }
+    const labels = points.map(p=>fmtMD(p.date));
+    const data = points.map(p=>p.total);
+    const cfg = {
+        type:'line',
+        data:{ labels, datasets:[{
+            label:'累積損益',
+            data,
+            borderColor:'#d7bec8',
+            backgroundColor:'rgba(190,150,170,.16)',
+            pointBackgroundColor:'#f2e9ec',
+            pointBorderColor:'#be96aa',
+            pointRadius:3,
+            pointHoverRadius:5,
+            tension:.35,
+            fill:true,
+            borderWidth:2
+        }]},
+        options:{
+            responsive:true,
+            maintainAspectRatio:false,
+            interaction:{ mode:'index', intersect:false },
+            plugins:{
+                legend:{ display:false },
+                tooltip:{
+                    backgroundColor:'rgba(10,7,10,.94)',
+                    borderColor:'rgba(190,150,170,.28)',
+                    borderWidth:1,
+                    titleColor:'#f2e9ec',
+                    bodyColor:'#d7bec8',
+                    callbacks:{ label:(ctx)=>`累積 ${fmtPokerMoney(ctx.parsed.y, true)}` }
+                }
+            },
+            scales:{
+                x:{ grid:{ color:'rgba(190,150,170,.07)' }, ticks:{ color:'#766269', maxRotation:0, autoSkip:true, maxTicksLimit:7 } },
+                y:{ grid:{ color:'rgba(190,150,170,.09)' }, ticks:{ color:'#766269', callback:v=>fmtPokerMoney(v, true).replace('NT$ ','') } }
+            }
+        }
+    };
+    if(pokerChart){
+        pokerChart.data.labels = labels;
+        pokerChart.data.datasets[0].data = data;
+        pokerChart.update('none');
+    }else{
+        pokerChart = new Chart(canvas.getContext('2d'), cfg);
+    }
+    if(status){
+        const last = points[points.length - 1];
+        status.textContent = `${fmtMD(last.date)} 收盤累積 ${fmtPokerMoney(last.total, true)}`;
+    }
+}
+
+function renderPokerMonthly(months){
+    const wrap = document.getElementById('poker-months');
+    const countEl = document.getElementById('poker-month-count');
+    const thisEl = document.getElementById('poker-this-month');
+    const bestEl = document.getElementById('poker-best-month');
+    const worstEl = document.getElementById('poker-worst-month');
+    if(countEl) countEl.textContent = `${months.length} 月`;
+    const thisMonth = getTaipeiMonthKey();
+    const current = months.find(m=>m.month === thisMonth)?.amount || 0;
+    if(thisEl){ thisEl.textContent = fmtPokerMoney(current, true); thisEl.style.color = pokerAmountColor(current); }
+    if(months.length === 0){
+        if(bestEl){ bestEl.textContent = '--'; bestEl.style.color = 'var(--text-secondary)'; }
+        if(worstEl){ worstEl.textContent = '--'; worstEl.style.color = 'var(--text-secondary)'; }
+        if(wrap) wrap.innerHTML = '<div style="color:var(--text-muted);font-size:12px;">尚無月度資料</div>';
+        return;
+    }
+    const best = months.reduce((a,b)=>b.amount > a.amount ? b : a, months[0]);
+    const worst = months.reduce((a,b)=>b.amount < a.amount ? b : a, months[0]);
+    if(bestEl){ bestEl.textContent = `${pokerMonthLabel(best.month)} ${fmtPokerMoney(best.amount, true)}`; bestEl.style.color = pokerAmountColor(best.amount); }
+    if(worstEl){ worstEl.textContent = `${pokerMonthLabel(worst.month)} ${fmtPokerMoney(worst.amount, true)}`; worstEl.style.color = pokerAmountColor(worst.amount); }
+    if(wrap){
+        wrap.innerHTML = months.map(m=>{
+            const cls = m.amount > 0 ? 'win' : m.amount < 0 ? 'loss' : 'flat';
+            return `<div class="poker-month-cell ${cls}">
+                <div class="poker-month-label">${esc(pokerMonthLabel(m.month))}</div>
+                <div class="poker-month-value mono" style="color:${pokerAmountColor(m.amount)}">${fmtPokerMoney(m.amount, true)}</div>
+            </div>`;
+        }).join('');
+    }
+}
+
+function renderPokerRecords(records){
+    const sortedDesc = records.slice().sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')));
     const container = document.getElementById('poker-records');
     const totalEl   = document.getElementById('poker-total-value');
+    const countEl   = document.getElementById('poker-record-count');
+    const stats = computePokerStats(records);
+    if(countEl) countEl.textContent = `${records.length} 筆`;
+    renderPokerChart(stats.points);
+    renderPokerMonthly(stats.months);
 
     if(records.length === 0){
         container.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:16px;font-size:13px;">尚無紀錄</div>';
@@ -4918,25 +5151,30 @@ db.ref('pokerRecords').on('value', snapshot=>{
         return;
     }
 
-    container.innerHTML = records.map(r=>{
-        const pos = r.amount >= 0;
-        const sign = pos ? '+' : '';
-        const color = pos ? 'var(--accent-green)' : 'var(--accent-red)';
-        const abs = Math.abs(r.amount).toLocaleString('zh-TW');
-        return `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid rgba(31,31,36,.6);">
-            <span style="color:var(--text-secondary);font-size:13px;">${r.date}</span>
+    container.innerHTML = sortedDesc.map(r=>{
+        const amount = Number(r.amount || 0);
+        return `<div class="poker-record-row">
+            <span class="poker-record-date">${esc(r.date)}</span>
             <div style="display:flex;align-items:center;gap:12px;">
-                <span class="mono font-bold" style="color:${color};font-size:15px;">${sign}NT$ ${abs}</span>
-                <button class="btn-del" onclick="deletePokerRecord('${r.key}')" title="刪除">✕</button>
+                <span class="mono font-bold" style="color:${pokerAmountColor(amount)};font-size:15px;">${fmtPokerMoney(amount, true)}</span>
+                <button class="btn-del" onclick="deletePokerRecord('${escJs(r.key)}')" title="刪除">✕</button>
             </div>
         </div>`;
     }).join('');
 
-    const total = records.reduce((sum,r)=>sum+(r.amount||0), 0);
-    const totalSign = total >= 0 ? '+' : '';
-    const totalAbs  = Math.abs(total).toLocaleString('zh-TW');
-    totalEl.textContent = `${totalSign}NT$ ${totalAbs}`;
-    totalEl.style.color = total > 0 ? 'var(--accent-green)' : total < 0 ? 'var(--accent-red)' : 'var(--text-secondary)';
+    totalEl.textContent = fmtPokerMoney(stats.total, true);
+    totalEl.style.color = pokerAmountColor(stats.total);
+}
+
+db.ref('pokerSettings').on('value', snapshot=>{
+    const data = snapshot.val() || {};
+    setPokerPlayerName(data.playerName || DEFAULT_POKER_PLAYER);
+});
+
+db.ref('pokerRecords').on('value', snapshot=>{
+    const data = snapshot.val();
+    const records = data ? Object.entries(data).map(([k,v])=>({key:k,...v})) : [];
+    renderPokerRecords(records);
 });
 
 // ══════════════════════════════════════════════
@@ -5271,14 +5509,14 @@ function computeThrone(){
 function renderAdvThrone(body){
     if(!advData || !advData.players.length){ body.innerHTML = advSkeletonHTML(); return; }
     const t = computeThrone();
-    const kingColor = t.incumbent ? (advData.players.find(p=>p.name===t.incumbent)?.color || '#fbbf24') : '#fbbf24';
+    const kingColor = t.incumbent ? (advData.players.find(p=>p.name===t.incumbent)?.color || '#be96aa') : '#be96aa';
     const heroHTML = t.incumbent
         ? `<div class="throne-hero">
             <div class="throne-crown"></div>
             <div class="font-bold text-white" style="font-size:20px;">
                 <span class="stats-dot" style="display:inline-block;background:${kingColor};box-shadow:0 0 8px ${kingColor}66;margin-right:6px;vertical-align:middle;"></span><span title="${esc(t.incumbent)}">${esc(shortName(t.incumbent,5))}</span>
             </div>
-            <div class="text-xs" style="color:var(--accent-amber);">現任王者 · 已連霸 <span class="mono font-bold">${t.curStreak}</span> 個交易日</div>
+            <div class="text-xs" style="color:var(--accent-cyan);">現任王者 · 已連霸 <span class="mono font-bold">${t.curStreak}</span> 個交易日</div>
         </div>`
         : `<div class="throne-hero"><div class="throne-crown"></div><div class="text-slate-400 text-sm">王座虛位以待</div></div>`;
 
@@ -5297,9 +5535,9 @@ function renderAdvThrone(body){
         }).join('');
 
     const tlItems = t.transitions.slice().reverse().slice(0, 12).map(tr=>{
-        const toColor = advData.players.find(p=>p.name===tr.to)?.color || '#fbbf24';
+        const toColor = advData.players.find(p=>p.name===tr.to)?.color || '#be96aa';
         return `<div class="throne-tl-item">
-            <span class="mono" style="color:var(--accent-amber);min-width:3.6em;">${fmtMD(tr.date)}</span>
+            <span class="mono" style="color:var(--accent-cyan);min-width:3.6em;">${fmtMD(tr.date)}</span>
             <span><span style="color:${toColor};font-weight:700;" title="${esc(tr.to)}">${esc(shortName(tr.to,5))}</span>${tr.from?` 從 <span style="color:var(--text-muted);" title="${esc(tr.from)}">${esc(shortName(tr.from,5))}</span> 手中奪下王座`:' 率先登上王座'}</span>
         </div>`;
     }).join('');
