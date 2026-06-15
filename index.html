@@ -722,14 +722,7 @@
                 <button class="adv-arrow" onclick="cmGoto(1)" title="下一頁">›</button>
             </div>
         </div>
-        <div id="cm-page-intraday">
-            <div id="intraday-mobile-legend" class="performance-mobile-legend"></div>
-            <div class="performance-chart-wrap" style="height:380px;position:relative;">
-                <canvas id="intraday-chart"></canvas>
-            </div>
-            <div id="intraday-status" class="text-xs text-slate-500 text-center mt-3" style="font-style:italic;">分時資料載入中...</div>
-        </div>
-        <div id="cm-page-chart" style="display:none;">
+        <div id="cm-page-chart">
             <div class="text-xs text-slate-500" id="snapshot-window-hint" style="display:none;font-style:italic;margin-bottom:10px;"></div>
             <div id="performance-mobile-legend" class="performance-mobile-legend"></div>
             <div class="performance-chart-wrap" style="height:380px;position:relative;">
@@ -1100,7 +1093,7 @@ const firebaseConfig={apiKey:"AIzaSyB0JZSBEgE11JQvPINRIHkztapNazgCrPU",authDomai
 if(!firebase.apps.length)firebase.initializeApp(firebaseConfig);
 const db=firebase.database();
 // ── 應用版本: 每次部署新版時更新此字串, Service Worker 快取會自動換代 ──
-const APP_VERSION = '2026.06.14-1';
+const APP_VERSION = '2026.06.12-1';
 // ── Firebase 匿名驗證 ─────────────────────────
 // 規則鎖定 (".write": "auth != null") 後, 僅完成匿名登入的 session 可寫入資料庫,
 // 可擋下所有未經頁面的純 REST 掃描寫入。使用者完全無感, 不需帳號密碼。
@@ -2938,8 +2931,6 @@ db.ref('competitionData').on('value',async snapshot=>{
     });
     renderDashboard();
     setStatus('ok','');updateRefreshCountdown();
-    recordIntradayNet();      // 首次載入即補記一筆分時淨值 (若在記錄窗內)
-    scheduleIntradayRender(); // participants 就緒 → 重繪分時走勢 (避免資料早於玩家到達時空線)
     // 交易紀錄/持股已更新 → 重繪曲線; 同時重抓持股日 K
     // 首次載入時歷史收盤快取為空, 會導致「今日變動」算錯, 故等歷史載入完成後再 render 一次
     scheduleChartRender();
@@ -6631,311 +6622,13 @@ function patchLiveNumbers(liveArr){
 }
 
 // ══════════════════════════════════════════════
-// ──   玩家帳戶淨值「日內分時走勢」(09:00–13:30 / 16:00–05:00) ──
-// ══════════════════════════════════════════════
-// 設計:
-//   交易日 (sessionDay) 以台北 09:00 為界 → 一個分時時段 = 當日 09:00 ~ 隔日 05:00
-//     09:00–13:30 台股盤 ; 16:00–翌日05:00 美股(盤前/盤中/盤後)
-//     凌晨 00:00–05:59 的資料歸屬「前一日」時段 (隔夜美股盤延續)
-//   每分鐘最多寫 1 筆 (refreshPrices 內節流), 存玩家「記帳幣別淨值」原始值,
-//     渲染時換算為報酬率 % (與主績效曲線同一座標, 跨幣別可同軸比較)
-//   Firebase: intradayNet/{sessionDay}/{minuteEpoch} = { ts, v:{playerIdx: 淨值} }
-//   僅保留最近 2 個交易日, 超過自動清除 (避免資料庫膨脹)
-let intradayNetAll = {};          // 全部時段資料 (Firebase 監聽快取)
-let intradayChart = null;
-let intradayRenderTimer = null;
-let lastIntradayWriteMin = null;  // 本分鐘是否已寫入 (節流)
-
-const INTRADAY_SESSION_MINUTES = 1200;   // 09:00→翌日05:00 = 20 小時 = 1200 分
-const INTRADAY_PLAYER_COLORS = ['#a855f7', '#ffffff', '#fbbf24', '#06b6d4', '#ec4899'];
-
-// 台北時間「分時時段日」(YYYY-MM-DD): 06:00 前算前一日時段
-function getIntradaySessionDay(d){
-    const tw = new Date((d||new Date()).toLocaleString('en-US',{timeZone:'Asia/Taipei'}));
-    if(tw.getHours() < 6) tw.setDate(tw.getDate() - 1);
-    const y=tw.getFullYear(), m=String(tw.getMonth()+1).padStart(2,'0'), dd=String(tw.getDate()).padStart(2,'0');
-    return `${y}-${m}-${dd}`;
-}
-// 是否落在分時記錄窗 (純時間判斷: 09:00–13:30 台股 或 16:00–翌日05:00 美股)
-function isIntradayWindow(d){
-    const tw = new Date((d||new Date()).toLocaleString('en-US',{timeZone:'Asia/Taipei'}));
-    const mins = tw.getHours()*60 + tw.getMinutes();
-    const twSession = (mins >= 9*60) && (mins <= 13*60+30);   // 09:00–13:30
-    const usSession = (mins >= 16*60) || (mins <= 5*60);       // 16:00–翌日05:00
-    return twSession || usSession;
-}
-// 是否「應記錄」: 在時間窗內 且 對應市場當日開市 (自動跳過週末 + 國定假日)
-//   台股窗 09:00–13:30 → 看台股當日 (台北日期) 是否休市
-//   美股窗 16:00–翌日05:00 → 看美股當日 (ET 日期) 是否休市; ET 日期會自然處理跨夜/週末邊界
-function isIntradayRecordable(d){
-    const now = d || new Date();
-    const tw = new Date(now.toLocaleString('en-US',{timeZone:'Asia/Taipei'}));
-    const mins = tw.getHours()*60 + tw.getMinutes();
-    if(mins >= 9*60 && mins <= 13*60+30){          // 台股窗
-        const tpDateStr = `${tw.getFullYear()}-${String(tw.getMonth()+1).padStart(2,'0')}-${String(tw.getDate()).padStart(2,'0')}`;
-        return !isMarketClosed('tw', tpDateStr);
-    }
-    if(mins >= 16*60 || mins <= 5*60){             // 美股窗 (含跨夜)
-        return !isMarketClosed('us', getETDate());
-    }
-    return false;                                   // 午休 / 空窗
-}
-// 時間戳 → 時段內 X 座標(自 09:00 起算的分鐘數, 0~1200)
-function intradayTsToX(ts){
-    const tw = new Date(new Date(ts).toLocaleString('en-US',{timeZone:'Asia/Taipei'}));
-    let mins = tw.getHours()*60 + tw.getMinutes() + tw.getSeconds()/60;
-    if(mins < 6*60) mins += 1440;     // 凌晨 → 接續前一日 (09:00 = 0 起點之後)
-    return mins - 540;                // 09:00 → 0
-}
-// X 座標 → HH:MM 標籤
-function intradayXToLabel(x){
-    let mins = ((x + 540) % 1440 + 1440) % 1440;
-    const h = Math.floor(mins/60), m = Math.round(mins%60);
-    return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
-}
-
-// ── 寫入本分鐘各玩家即時淨值 (refreshPrices 尾端呼叫) ──
-function recordIntradayNet(){
-    if(!participants.length) return;
-    if(!isIntradayRecordable()) return;   // 非交易時段 / 週末 / 假日 → 不記錄
-    const now = Date.now();
-    const minEpoch = Math.floor(now / 60000);
-    if(lastIntradayWriteMin === minEpoch) return;   // 本分鐘已寫
-    const sessionDay = getIntradaySessionDay();
-    const v = {};
-    participants.forEach((p,i)=>{
-        const net = calcCurrentNetValue(p);
-        if(net != null && !isNaN(net)) v[i] = Math.round(net*100)/100;
-    });
-    if(!Object.keys(v).length) return;
-    lastIntradayWriteMin = minEpoch;
-    const updates = {};
-    updates[`intradayNet/${sessionDay}/${minEpoch}`] = { ts: now, v };
-    db.ref().update(updates)
-        .then(()=>pruneOldIntraday(sessionDay))
-        .catch(e=>{ lastIntradayWriteMin = null; console.warn('分時淨值寫入失敗:', e.message); });
-}
-
-// ── 清除過舊時段 (僅保留最近 2 個交易日) ──
-function pruneOldIntraday(keepDay){
-    const cutoff = new Date(keepDay+'T00:00:00');
-    cutoff.setDate(cutoff.getDate() - 2);
-    const cutoffStr = `${cutoff.getFullYear()}-${String(cutoff.getMonth()+1).padStart(2,'0')}-${String(cutoff.getDate()).padStart(2,'0')}`;
-    Object.keys(intradayNetAll).forEach(day=>{
-        if(day < cutoffStr){
-            db.ref(`intradayNet/${day}`).remove().catch(()=>{});
-        }
-    });
-}
-
-function scheduleIntradayRender(){
-    clearTimeout(intradayRenderTimer);
-    intradayRenderTimer = setTimeout(renderIntradayChart, 300);
-}
-
-// ── 繪製分時走勢圖 ──
-function renderIntradayChart(){
-    if(typeof Chart === 'undefined') return;
-    const canvas = document.getElementById('intraday-chart');
-    if(!canvas) return;
-    const statusEl = document.getElementById('intraday-status');
-
-    const sessionDay = getIntradaySessionDay();
-    const dayData = intradayNetAll[sessionDay] || {};
-    // 整理成依時間排序的點陣列
-    const rows = Object.keys(dayData).map(k=>dayData[k])
-        .filter(r=>r && r.ts && r.v)
-        .sort((a,b)=>a.ts - b.ts);
-
-    const compactChart = window.matchMedia && window.matchMedia('(max-width: 640px)').matches;
-
-    if(rows.length === 0){
-        if(intradayChart){ try{ intradayChart.destroy(); }catch(e){} intradayChart = null; }
-        if(statusEl){
-            statusEl.textContent = isIntradayRecordable()
-                ? `${sessionDay} 時段尚無分時資料 — 開盤刷新後將自動累積`
-                : isIntradayWindow()
-                ? `${sessionDay} 今日休市 (週末/假日) — 不記錄分時資料`
-                : `${sessionDay} 時段尚無分時資料 (記錄窗: 09:00–13:30、16:00–翌日05:00)`;
-        }
-        renderIntradayMobileLegend([], compactChart);
-        return;
-    }
-
-    // 每位玩家一條線: y = 報酬率 % = (淨值 - 初始本金) / 初始本金 × 100
-    const datasets = [];
-    participants.forEach((p, idx)=>{
-        const initCap = getFixedInitialCapital(p.currency);
-        const color = getPlayerColor(p.name, INTRADAY_PLAYER_COLORS[idx % INTRADAY_PLAYER_COLORS.length]);
-        const pts = [];
-        let prevX = null;
-        rows.forEach(r=>{
-            const raw = r.v[idx];
-            const x = intradayTsToX(r.ts);
-            // 與前一點時間間隔過大(>12 分, 例如午休 13:30–16:00 或斷線) → 插入斷點, 線段不連
-            if(prevX !== null && (x - prevX) > 12){
-                pts.push({ x: prevX + 0.01, y: null });
-            }
-            if(raw != null && !isNaN(raw)){
-                pts.push({ x, y: ((raw - initCap) / initCap) * 100, raw, currency: p.currency });
-            } else {
-                pts.push({ x, y: null });
-            }
-            prevX = x;
-        });
-        datasets.push({
-            label: p.name,
-            displayLabel: shortName(p.name, 5),
-            originalLabel: p.name,
-            data: pts,
-            borderColor: color,
-            backgroundColor: ctx2 => playerFillGradient(ctx2, color),
-            borderWidth: 2.5,
-            tension: 0.25,
-            pointRadius: 0,
-            pointHoverRadius: 5,
-            spanGaps: false,
-            fill: 'origin',
-            hidden: hiddenChartLabels.has(p.name)
-        });
-    });
-
-    const legendOptions = {
-        display: !compactChart,
-        position: compactChart ? 'bottom' : 'top',
-        align: compactChart ? 'start' : 'center',
-        labels: {
-            color:'#e8f4fd', usePointStyle:true,
-            boxWidth: compactChart ? 9 : 12, boxHeight: compactChart ? 9 : 12,
-            padding: compactChart ? 8 : 14, font:{ size:compactChart ? 10 : 12, family:'Inter' },
-            generateLabels(chart){
-                const labels = Chart.defaults.plugins.legend.labels.generateLabels(chart);
-                labels.forEach(item=>{
-                    const ds = chart.data.datasets[item.datasetIndex];
-                    if(ds && ds.displayLabel) item.text = ds.displayLabel;
-                });
-                return labels;
-            }
-        },
-        onClick: function(e, legendItem, legend){
-            const ci = legend.chart, i = legendItem.datasetIndex;
-            const ds = ci.data.datasets[i];
-            const key = (ds && (ds.originalLabel || ds.label)) || legendItem.text;
-            if(ci.isDatasetVisible(i)){ ci.hide(i); hiddenChartLabels.add(key); }
-            else { ci.show(i); hiddenChartLabels.delete(key); }
-            saveHiddenLabels();
-            renderIntradayMobileLegend(ci.data.datasets, compactChart);
-        }
-    };
-    const xTickOptions = { color:'#7ba5cc', font:{ size:compactChart ? 10 : 11 }, maxRotation:0, callback:v=>intradayXToLabel(v) };
-    const yTickOptions = { color:'#7ba5cc', font:{ size:compactChart ? 10 : 11 }, callback:v=>(v>=0?'+':'')+v.toFixed(2)+'%' };
-    // 固定刻度: 09:00 / 11:15 / 13:30 / 16:00 / 20:00 / 00:00 / 04:00 / 05:00
-    const fixedTicks = [0, 135, 270, 420, 660, 900, 1140, 1200];
-    const buildTicksFn = axis => { axis.ticks = fixedTicks.map(value=>({ value })); };
-
-    if(intradayChart){
-        intradayChart.data.datasets = datasets;
-        intradayChart.options.plugins.legend = legendOptions;
-        intradayChart.options.scales.x.ticks = xTickOptions;
-        intradayChart.options.scales.x.afterBuildTicks = buildTicksFn;
-        intradayChart.options.scales.y.ticks = yTickOptions;
-        intradayChart.options.layout.padding = { right: compactChart ? 12 : 18, top: compactChart ? 2 : 0 };
-        intradayChart.update('none');
-    } else {
-        const ctx = canvas.getContext('2d');
-        intradayChart = new Chart(ctx, {
-            type: 'line',
-            data: { datasets },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                parsing: false,
-                layout: { padding: { right: compactChart ? 12 : 18, top: compactChart ? 2 : 0 } },
-                interaction: { mode:'index', intersect:false, axis:'x' },
-                animation: { duration: 500 },
-                plugins: {
-                    legend: legendOptions,
-                    tooltip: {
-                        backgroundColor:'rgba(13, 23, 38, 0.96)', borderColor:'#34343c', borderWidth:1,
-                        titleColor:'#e8f4fd', bodyColor:'#e8f4fd', padding:12,
-                        titleFont:{ size:12, weight:'600' }, bodyFont:{ size:12, family:'IBM Plex Mono' },
-                        callbacks: {
-                            title: items => items.length ? intradayXToLabel(items[0].parsed.x) : '',
-                            label: c => {
-                                const y = c.parsed.y;
-                                if(y === null || y === undefined) return `${c.dataset.label}: --`;
-                                const sign = y>=0?'+':'';
-                                const raw = c.raw && c.raw.raw;
-                                const cur = c.raw && c.raw.currency;
-                                const valStr = (raw!=null && cur) ? `  (${fmtRaw(raw, cur, 0)})` : '';
-                                return `${c.dataset.label}: ${sign}${y.toFixed(2)}%${valStr}`;
-                            }
-                        }
-                    }
-                },
-                scales: {
-                    x: {
-                        type:'linear', min:0, max:INTRADAY_SESSION_MINUTES,
-                        afterBuildTicks: buildTicksFn,
-                        ticks: xTickOptions,
-                        grid:{ color:'rgba(31,31,36,.3)' }
-                    },
-                    y: {
-                        ticks: yTickOptions,
-                        grid:{ color:'rgba(31,31,36,.3)' }
-                    }
-                }
-            }
-        });
-    }
-    renderIntradayMobileLegend(datasets, compactChart);
-
-    if(statusEl){
-        const last = rows[rows.length-1];
-        const lastTime = intradayXToLabel(intradayTsToX(last.ts));
-        statusEl.textContent = `時段 ${sessionDay}　共 ${rows.length} 筆分時點　最新 ${lastTime}　(記錄窗 09:00–13:30、16:00–翌日05:00)`;
-    }
-}
-
-function renderIntradayMobileLegend(datasets, compactChart){
-    const box = document.getElementById('intraday-mobile-legend');
-    if(!box) return;
-    if(!compactChart){ box.innerHTML = ''; return; }
-    box.innerHTML = datasets.map((ds, i)=>{
-        const color = ds.borderColor || '#ffffff';
-        const label = ds.displayLabel || ds.label || '';
-        const key = ds.originalLabel || ds.label || label;
-        const visible = intradayChart ? intradayChart.isDatasetVisible(i) : !ds.hidden;
-        return `<button type="button" class="${visible?'':'is-hidden'}" style="color:${color};" onclick="toggleIntradayLegendItem(${i},'${escJs(key)}')" title="${esc(label)}">
-            <span class="performance-mobile-legend-dot"></span>
-            <span class="performance-mobile-legend-text">${esc(label)}</span>
-        </button>`;
-    }).join('');
-}
-function toggleIntradayLegendItem(index, key){
-    if(!intradayChart) return;
-    if(intradayChart.isDatasetVisible(index)){ intradayChart.hide(index); hiddenChartLabels.add(key); }
-    else { intradayChart.show(index); hiddenChartLabels.delete(key); }
-    saveHiddenLabels();
-    renderIntradayMobileLegend(intradayChart.data.datasets, true);
-}
-
-// ── Firebase 監聽: 分時淨值 ──
-db.ref('intradayNet').on('value', snap=>{
-    intradayNetAll = snap.val() || {};
-    scheduleIntradayRender();
-});
-
-// ══════════════════════════════════════════════
 // ──     績效曲線 / 市場 翻頁切換          ──
 // ══════════════════════════════════════════════
 const CM_PAGES = [
-    { id:'intraday', icon:'', title:'分時走勢', sub:'' },
     { id:'chart',  icon:'', title:'投資組合績效曲線', sub:'' },
     { id:'market', icon:'', title:'市場',             sub:'' }
 ];
-// 頁序變更換代 (v2): 舊存檔索引會錯位; 預設停在第一頁「分時走勢」
-let cmPage = (()=>{ const v = parseInt(localStorage.getItem('cmPage_v2')||'0',10); return (v>=0 && v<CM_PAGES.length)?v:0; })();
+let cmPage = (()=>{ const v = parseInt(localStorage.getItem('cmPage')||'0',10); return (v>=0 && v<CM_PAGES.length)?v:0; })();
 
 function renderCmPage(){
     const pg = CM_PAGES[cmPage];
@@ -6948,32 +6641,26 @@ function renderCmPage(){
     const dotsEl = document.getElementById('cm-dots');
     if(dotsEl) dotsEl.innerHTML = CM_PAGES.map((p,i)=>
         `<button class="adv-dot ${i===cmPage?'active':''}" onclick="cmGotoIdx(${i})" title="${p.icon} ${esc(p.title)}"></button>`).join('');
-    const intradayPg = document.getElementById('cm-page-intraday');
     const chartPg = document.getElementById('cm-page-chart');
     const marketPg = document.getElementById('cm-page-market');
-    if(intradayPg) intradayPg.style.display = (pg.id==='intraday') ? '' : 'none';
     if(chartPg)  chartPg.style.display  = (pg.id==='chart')  ? '' : 'none';
     if(marketPg) marketPg.style.display = (pg.id==='market') ? '' : 'none';
-    const shown = (pg.id==='intraday') ? intradayPg : (pg.id==='chart') ? chartPg : marketPg;
+    const shown = (pg.id==='chart') ? chartPg : marketPg;
     if(shown){ shown.classList.remove('adv-fade'); void shown.offsetWidth; shown.classList.add('adv-fade'); }
-    // 隱藏期間 canvas 尺寸為 0 → 切回時補 resize / 重繪
+    // 隱藏期間 canvas 尺寸為 0 → 切回時補 resize
     if(pg.id==='chart' && performanceChart){
         requestAnimationFrame(()=>{ try{ performanceChart.resize(); }catch(e){} });
-    }
-    if(pg.id==='intraday'){
-        renderIntradayChart();
-        if(intradayChart) requestAnimationFrame(()=>{ try{ intradayChart.resize(); }catch(e){} });
     }
 }
 function cmGoto(delta){
     cmPage = (cmPage + delta + CM_PAGES.length) % CM_PAGES.length;
-    try{ localStorage.setItem('cmPage_v2', String(cmPage)); }catch(e){}
+    try{ localStorage.setItem('cmPage', String(cmPage)); }catch(e){}
     renderCmPage();
 }
 function cmGotoIdx(i){
     if(i === cmPage) return;
     cmPage = i;
-    try{ localStorage.setItem('cmPage_v2', String(cmPage)); }catch(e){}
+    try{ localStorage.setItem('cmPage', String(cmPage)); }catch(e){}
     renderCmPage();
 }
 renderCmPage();   // 初始化 (套用上次選擇的頁面)
@@ -7074,7 +6761,6 @@ async function refreshPrices(){
     smartRenderDashboard();   // 結構未變 → 免刷新 patch; 結構改變 → 完整重繪
     // 股價已更新 → 重繪曲線(今日端點會根據最新未實現損益移動)
     scheduleChartRender();
-    recordIntradayNet();      // 記錄本分鐘各玩家即時淨值 (分時走勢, 窗內每分鐘 1 筆)
     const session = getMarketSession();
     setStatus('ok','');updateRefreshCountdown();
     } finally { pricesRefreshing = false; }
