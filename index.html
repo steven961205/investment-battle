@@ -335,6 +335,14 @@
         .stats-heatmap-title{font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-top:12px;}
         .stats-heatmap{display:flex;gap:6px;flex-wrap:wrap;margin-top:7px;}
         .month-cell{display:flex;flex-direction:column;align-items:center;gap:1px;padding:6px 11px;border-radius:8px;font-size:10px;font-weight:700;min-width:56px;color:#f5f5f7;text-shadow:0 1px 3px rgba(0,0,0,.6);border:1px solid rgba(255,255,255,.08);}
+        /* ── 鎖定區頂部分頁 (資產明細 / 績效·風險) + 區段標題 ── */
+        .lz-sum-tabs{display:flex;gap:5px;background:rgba(0,0,0,.28);border:1px solid rgba(255,255,255,.075);border-radius:11px;padding:4px;margin-bottom:14px;box-shadow:inset 0 1px 0 rgba(255,255,255,.025);}
+        .lz-sum-tabs .card-tab{flex:1;}
+        .lz-sec-title{font-size:11px;font-weight:800;color:#ededf2;letter-spacing:.06em;margin:16px 0 9px;padding-left:11px;position:relative;text-transform:uppercase;}
+        .lz-sec-title::before{content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);width:4px;height:13px;border-radius:2px;background:var(--player-color,#a855f7);box-shadow:0 0 8px color-mix(in srgb,var(--player-color,#a855f7) 60%,transparent);}
+        .stats-card .lz-sec-title:first-of-type,.lz-pane-perf .lz-sec-title:first-child{margin-top:2px;}
+        .lz-sec-cap{font-size:10px;color:var(--text-muted);margin:0 0 8px;letter-spacing:.02em;}
+        .lz-perf-skel{padding:30px 12px;text-align:center;color:var(--text-muted);font-size:12px;line-height:1.8;}
         /* 免刷新數字更新: 翻頁跳入效果 */
         @keyframes numtick{0%{opacity:0;transform:translateY(-7px);}55%{opacity:1;}100%{opacity:1;transform:none;}}
         .num-tick{animation:numtick .35s ease;}
@@ -738,7 +746,7 @@
     <section class="card p-6 mb-8" id="advanced-panel">
         <div class="adv-head">
             <h2 class="text-lg font-bold section-title flex items-center gap-2">
-                <span id="adv-page-icon"></span> <span id="adv-page-title">績效統計</span>
+                <span id="adv-page-icon"></span> <span id="adv-page-title">王座爭奪戰</span>
                 <span class="text-xs font-normal text-slate-400 ml-1" id="adv-page-sub"></span>
             </h2>
             <div class="adv-nav">
@@ -1010,6 +1018,10 @@
             <div><label class="modal-label">平倉日期</label><input type="date" id="closeDate" class="modal-input" onchange="calcClosePreview()"></div>
             <div><label class="modal-label">平倉價格</label><input type="number" step="0.01" id="closePrice" placeholder="0.00" class="modal-input" oninput="autoCalcCloseFee()"></div>
         </div>
+        <div style="margin-bottom:12px;">
+            <label class="modal-label">本次平倉股數</label>
+            <input type="number" step="any" min="0" id="closeSharesInput" placeholder="0" class="modal-input" oninput="autoCalcCloseFee()">
+        </div>
 
         <!-- 台股欄位 -->
         <div id="closeTWFieldsBlock">
@@ -1029,6 +1041,10 @@
         </div>
 
         <div style="background:rgba(34,197,94,.06);border:1px solid rgba(34,197,94,.2);border-radius:8px;padding:10px 14px;margin-bottom:16px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;margin-bottom:6px;">
+                <span style="color:var(--text-secondary);">FIFO 成本均價</span>
+                <span class="mono font-bold" id="closeFifoAvgPreview" style="color:var(--accent-amber);">--</span>
+            </div>
             <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;">
                 <span style="color:var(--text-secondary);">預計實現損益</span>
                 <span class="mono font-bold" id="closePnlPreview" style="font-size:16px;color:var(--text-muted);">--</span>
@@ -2600,127 +2616,163 @@ function renderPerformanceChart(){
 // ── 績效統計面板 ─────────────────────────────
 // 每位玩家: MDD+回撤天數 / 勝率 / 盈虧比 / 平均持有天數 / 最佳最差單筆 / 月度報酬熱力圖
 // 每日淨值與績效曲線共用 calcNetValueOnDate(), 確保所有數字同源一致
-function renderAdvStats(body){
-    if(!advData || !participants.length){ body.innerHTML = advSkeletonHTML(); return; }
-    const { allDates } = advData;
-    if(!allDates || allDates.length === 0){ body.innerHTML = advSkeletonHTML(); return; }
+// ── 績效統計 + 風險指標（同源建構，全域面板與玩家鎖定區共用）─────────
+// 每位玩家: MDD / 勝率 / 盈虧比 / 平均持有 / 最佳最差單筆 / 月度報酬 / 夏普 / Sortino / 年化
+// 每日淨值與績效曲線共用 advData(calcNetValueOnDate)，確保所有數字同源一致
+function buildPerfStatsInner(p, pIdx){
+    const initCap = getFixedInitialCapital(p.currency);
+    const navs = (advData && advData.players[pIdx] && advData.players[pIdx].nav) || [];
+    const allDates = (advData && advData.allDates) || [];
 
-    body.innerHTML = '<div class="stats-panel-grid">' + participants.map((p, pIdx)=>{
-        const initCap = getFixedInitialCapital(p.currency);
-        // ── 每日淨值序列: 直接重用 advData (renderAdvancedPanel 已算好, 免重複計算) ──
-        const navs = (advData.players[pIdx] && advData.players[pIdx].nav) || [];
-
-        // ── 最大回撤 (MDD): 沿淨值曲線追蹤峰值 ──
-        let peak = -Infinity, peakIdx = 0, mdd = 0, mddPeakIdx = 0, mddTroughIdx = 0;
-        navs.forEach((v,i)=>{
-            if(!isFinite(v)) return;
-            if(v > peak){ peak = v; peakIdx = i; }
-            const dd = peak > 0 ? (v - peak) / peak : 0;
-            if(dd < mdd){ mdd = dd; mddPeakIdx = peakIdx; mddTroughIdx = i; }
-        });
-        // 回撤持續: 峰值日 → 重新創高日 (未收復則計到最後一日, 標示進行中)
-        let recovered = false, ddEndIdx = navs.length - 1;
-        if(mdd < 0){
-            for(let i = mddTroughIdx; i < navs.length; i++){
-                if(navs[i] > navs[mddPeakIdx]){ recovered = true; ddEndIdx = i; break; }
-            }
+    // ── 最大回撤 (MDD) ──
+    let peak=-Infinity, peakIdx=0, mdd=0, mddPeakIdx=0, mddTroughIdx=0;
+    navs.forEach((v,i)=>{
+        if(!isFinite(v)) return;
+        if(v>peak){ peak=v; peakIdx=i; }
+        const dd = peak>0 ? (v-peak)/peak : 0;
+        if(dd<mdd){ mdd=dd; mddPeakIdx=peakIdx; mddTroughIdx=i; }
+    });
+    let recovered=false, ddEndIdx=navs.length-1;
+    if(mdd<0){
+        for(let i=mddTroughIdx;i<navs.length;i++){
+            if(navs[i]>navs[mddPeakIdx]){ recovered=true; ddEndIdx=i; break; }
         }
-        const ddDays = mdd < 0 ? (ddEndIdx - mddPeakIdx) : 0;
+    }
+    const ddDays = mdd<0 ? (ddEndIdx-mddPeakIdx) : 0;
 
-        // ── 已平倉交易統計 ──
-        const trades = Array.isArray(p.trades) ? p.trades : [];
-        const tStats = trades.map(t=>{
-            const tCur = getStockCurrency(t.ticker);
-            const pnl = convertCurrency(parseFloat(t.pnl)||0, tCur, p.currency);
-            let hold = null;
-            const bd = normalizeDate(t.firstBuyDate||''), sd = normalizeDate(t.date||'');
-            if(bd && sd){
-                hold = Math.max(0, Math.round((Date.parse(sd+'T00:00:00') - Date.parse(bd+'T00:00:00')) / 86400000));
-            }
-            return { ticker: t.ticker||'--', pnl, hold };
-        });
-        const wins = tStats.filter(t=>t.pnl > 0);
-        const losses = tStats.filter(t=>t.pnl < 0);
-        const winRate = tStats.length ? (wins.length / tStats.length * 100) : null;
-        const grossWin = wins.reduce((s,t)=>s+t.pnl, 0);
-        const grossLoss = Math.abs(losses.reduce((s,t)=>s+t.pnl, 0));
-        const pf = grossLoss > 0 ? (grossWin / grossLoss) : (grossWin > 0 ? Infinity : null);
-        const holds = tStats.filter(t=>t.hold !== null);
-        const avgHold = holds.length ? holds.reduce((s,t)=>s+t.hold, 0) / holds.length : null;
-        let best = null, worst = null;
-        tStats.forEach(t=>{
-            if(!best || t.pnl > best.pnl) best = t;
-            if(!worst || t.pnl < worst.pnl) worst = t;
-        });
-        const fmtTradePnl = (t, showTicker=true) => {
-            const neg = t.pnl < 0;
-            const cls = neg ? 'text-red-400' : 'text-emerald-400';
-            return `<div class="stats-val mono ${cls}">${neg?'-':'+'}${fmtRaw(Math.abs(t.pnl), p.currency)}</div>${showTicker?`<div class="stats-sub">${esc(t.ticker)}</div>`:''}`;
-        };
+    // ── 已平倉交易統計 ──
+    const trades = Array.isArray(p.trades)?p.trades:[];
+    const tStats = trades.map(t=>{
+        const tCur = getStockCurrency(t.ticker);
+        const pnl = convertCurrency(parseFloat(t.pnl)||0, tCur, p.currency);
+        let hold=null;
+        const bd=normalizeDate(t.firstBuyDate||''), sd=normalizeDate(t.date||'');
+        if(bd&&sd){ hold=Math.max(0,Math.round((Date.parse(sd+'T00:00:00')-Date.parse(bd+'T00:00:00'))/86400000)); }
+        return { ticker:t.ticker||'--', pnl, hold };
+    });
+    const wins=tStats.filter(t=>t.pnl>0);
+    const losses=tStats.filter(t=>t.pnl<0);
+    const winRate=tStats.length?(wins.length/tStats.length*100):null;
+    const grossWin=wins.reduce((s,t)=>s+t.pnl,0);
+    const grossLoss=Math.abs(losses.reduce((s,t)=>s+t.pnl,0));
+    const pf=grossLoss>0?(grossWin/grossLoss):(grossWin>0?Infinity:null);
+    const holds=tStats.filter(t=>t.hold!==null);
+    const avgHold=holds.length?holds.reduce((s,t)=>s+t.hold,0)/holds.length:null;
+    let best=null, worst=null;
+    tStats.forEach(t=>{ if(!best||t.pnl>best.pnl)best=t; if(!worst||t.pnl<worst.pnl)worst=t; });
+    const fmtTradePnl=(t)=>{ const neg=t.pnl<0; const cls=neg?'text-red-400':'text-emerald-400'; return `<div class="stats-val mono ${cls}">${neg?'-':'+'}${fmtRaw(Math.abs(t.pnl),p.currency)}</div>`; };
 
-        // ── 月度報酬 (月末淨值 / 前月末淨值 - 1) ──
-        const monthMap = {};
-        allDates.forEach((d,i)=>{
-            const m = d.slice(0,7);
-            if(!monthMap[m]) monthMap[m] = { firstIdx:i, lastIdx:i };
-            monthMap[m].lastIdx = i;
-        });
-        const months = Object.keys(monthMap).sort();
-        const monthCells = months.map(m=>{
-            const { firstIdx, lastIdx } = monthMap[m];
-            const base = firstIdx > 0 ? navs[firstIdx-1] : initCap;
-            const ret = (base > 0 && isFinite(navs[lastIdx])) ? (navs[lastIdx] / base - 1) * 100 : 0;
-            const pos = ret >= 0;
-            // 色彩強度: ±5% 封頂, 最低保留 .18 透明度讓格子可見
-            const alpha = Math.min(1, Math.abs(ret) / 5 * 0.82 + 0.18);
-            const bg = pos ? `rgba(34,197,94,${alpha.toFixed(2)})` : `rgba(239,68,68,${alpha.toFixed(2)})`;
-            const label = `${parseInt(m.slice(0,4),10)%100}'${parseInt(m.slice(5,7),10)}月`;
-            return `<div class="month-cell" title="${m}：${pos?'+':''}${ret.toFixed(2)}%" style="background:${bg};">
-                <span>${label}</span><span class="mono">${pos?'+':''}${ret.toFixed(1)}%</span>
-            </div>`;
-        }).join('');
+    // ── 月度報酬 (月末淨值 / 前月末淨值 - 1) ──
+    const monthMap={};
+    allDates.forEach((d,i)=>{ const m=d.slice(0,7); if(!monthMap[m])monthMap[m]={firstIdx:i,lastIdx:i}; monthMap[m].lastIdx=i; });
+    const months=Object.keys(monthMap).sort();
+    const monthCells=months.map(m=>{
+        const {firstIdx,lastIdx}=monthMap[m];
+        const base=firstIdx>0?navs[firstIdx-1]:initCap;
+        const ret=(base>0&&isFinite(navs[lastIdx]))?(navs[lastIdx]/base-1)*100:0;
+        const pos=ret>=0;
+        const alpha=Math.min(1,Math.abs(ret)/5*0.82+0.18);
+        const bg=pos?`rgba(34,197,94,${alpha.toFixed(2)})`:`rgba(239,68,68,${alpha.toFixed(2)})`;
+        const label=`${parseInt(m.slice(0,4),10)%100}'${parseInt(m.slice(5,7),10)}月`;
+        return `<div class="month-cell" title="${m}：${pos?'+':''}${ret.toFixed(2)}%" style="background:${bg};"><span>${label}</span><span class="mono">${pos?'+':''}${ret.toFixed(1)}%</span></div>`;
+    }).join('');
 
-        const color = getPlayerColor(p.name, '#a855f7');
-        return `<div class="stats-card">
-            <div class="stats-card-head">
-                <span class="stats-dot" style="background:${color};box-shadow:0 0 8px ${color}66;"></span>
-                <span class="font-bold text-white" title="${esc(p.name)}">${esc(shortName(p.name,5))}</span>
-            </div>
-            <div class="stats-grid">
-                <div class="stats-item">
-                    <div class="stats-label">最大回撤 (MDD)</div>
-                    <div class="stats-val mono ${mdd<0?'text-red-400':'text-slate-400'}">${mdd<0?(mdd*100).toFixed(2)+'%':'--'}</div>
-                    <div class="stats-sub">${mdd<0?`持續 ${ddDays} 個交易日${recovered?' · 已收復':' · 尚未收復'}`:'尚無回撤'}</div>
-                </div>
-                <div class="stats-item">
-                    <div class="stats-label">勝率（已平倉）</div>
-                    <div class="stats-val mono ${winRate===null?'text-slate-400':(winRate>=50?'text-emerald-400':'text-amber-400')}">${winRate===null?'--':winRate.toFixed(0)+'%'}</div>
-                    <div class="stats-sub">${tStats.length?`${wins.length} 勝 ${losses.length} 敗 · 共 ${tStats.length} 筆`:'尚無平倉交易'}</div>
-                </div>
-                <div class="stats-item">
-                    <div class="stats-label">盈虧比 (Profit Factor)</div>
-                    <div class="stats-val mono ${pf===null?'text-slate-400':(pf>=1?'text-emerald-400':'text-amber-400')}">${pf===null?'--':(pf===Infinity?'∞':pf.toFixed(2))}</div>
-                    <div class="stats-sub">總獲利 ÷ 總虧損</div>
-                </div>
-                <div class="stats-item">
-                    <div class="stats-label">平均持有天數</div>
-                    <div class="stats-val mono ${avgHold===null?'text-slate-400':'text-white'}">${avgHold===null?'--':avgHold.toFixed(1)+' 天'}</div>
-                    <div class="stats-sub">${holds.length?`計入 ${holds.length} 筆含建倉日的交易`:'交易需填建倉日期'}</div>
-                </div>
-                <div class="stats-item">
-                    <div class="stats-label">最佳單筆</div>
-                    ${best?fmtTradePnl(best,false):'<div class="stats-val mono text-slate-400">--</div><div class="stats-sub">尚無交易</div>'}
-                </div>
-                <div class="stats-item">
-                    <div class="stats-label">最差單筆</div>
-                    ${worst?fmtTradePnl(worst,false):'<div class="stats-val mono text-slate-400">--</div><div class="stats-sub">尚無交易</div>'}
-                </div>
-            </div>
-            <div class="stats-heatmap-title">月度報酬</div>
-            <div class="stats-heatmap">${monthCells||'<span style="color:var(--text-muted);font-size:11px;">資料不足</span>'}</div>
-        </div>`;
-    }).join('') + '</div>';
+    return `<div class="stats-grid">
+        <div class="stats-item">
+            <div class="stats-label">最大回撤 (MDD)</div>
+            <div class="stats-val mono ${mdd<0?'text-red-400':'text-slate-400'}">${mdd<0?(mdd*100).toFixed(2)+'%':'--'}</div>
+            <div class="stats-sub">${mdd<0?`持續 ${ddDays} 個交易日${recovered?' · 已收復':' · 尚未收復'}`:'尚無回撤'}</div>
+        </div>
+        <div class="stats-item">
+            <div class="stats-label">勝率（已平倉）</div>
+            <div class="stats-val mono ${winRate===null?'text-slate-400':(winRate>=50?'text-emerald-400':'text-amber-400')}">${winRate===null?'--':winRate.toFixed(0)+'%'}</div>
+            <div class="stats-sub">${tStats.length?`${wins.length} 勝 ${losses.length} 敗 · 共 ${tStats.length} 筆`:'尚無平倉交易'}</div>
+        </div>
+        <div class="stats-item">
+            <div class="stats-label">盈虧比 (Profit Factor)</div>
+            <div class="stats-val mono ${pf===null?'text-slate-400':(pf>=1?'text-emerald-400':'text-amber-400')}">${pf===null?'--':(pf===Infinity?'∞':pf.toFixed(2))}</div>
+            <div class="stats-sub">總獲利 ÷ 總虧損</div>
+        </div>
+        <div class="stats-item">
+            <div class="stats-label">平均持有天數</div>
+            <div class="stats-val mono ${avgHold===null?'text-slate-400':'text-white'}">${avgHold===null?'--':avgHold.toFixed(1)+' 天'}</div>
+            <div class="stats-sub">${holds.length?`計入 ${holds.length} 筆含建倉日的交易`:'交易需填建倉日期'}</div>
+        </div>
+        <div class="stats-item">
+            <div class="stats-label">最佳單筆</div>
+            ${best?fmtTradePnl(best):'<div class="stats-val mono text-slate-400">--</div><div class="stats-sub">尚無交易</div>'}
+        </div>
+        <div class="stats-item">
+            <div class="stats-label">最差單筆</div>
+            ${worst?fmtTradePnl(worst):'<div class="stats-val mono text-slate-400">--</div><div class="stats-sub">尚無交易</div>'}
+        </div>
+    </div>
+    <div class="stats-heatmap-title">月度報酬</div>
+    <div class="stats-heatmap">${monthCells||'<span style="color:var(--text-muted);font-size:11px;">資料不足</span>'}</div>`;
 }
+
+function buildRiskStatsInner(pIdx){
+    const pl = advData && advData.players[pIdx];
+    if(!pl) return '<div class="lz-sec-cap">資料不足</div><div class="stats-grid"></div>';
+    const r=[];
+    for(let i=1;i<pl.nav.length;i++){
+        const a=pl.nav[i-1], b=pl.nav[i];
+        if(a!=null&&b!=null&&a>0&&!isNaN(a)&&!isNaN(b)) r.push(b/a-1);
+    }
+    const n=r.length;
+    let annVol=null, sharpe=null, sortino=null, annRet=null;
+    if(n>=2){
+        const mean=r.reduce((s,v)=>s+v,0)/n;
+        const sd=Math.sqrt(r.reduce((s,v)=>s+(v-mean)*(v-mean),0)/(n-1));
+        const dnArr=r.map(v=>Math.min(0,v));
+        const dsd=Math.sqrt(dnArr.reduce((s,v)=>s+v*v,0)/(n-1));
+        annVol=sd*Math.sqrt(252)*100;
+        sharpe=sd>0?mean/sd*Math.sqrt(252):(mean>0?Infinity:null);
+        sortino=dsd>0?mean/dsd*Math.sqrt(252):(mean>0?Infinity:null);
+        const lastNav=pl.nav[pl.nav.length-1];
+        if(lastNav!=null&&pl.initCap>0){ const tot=lastNav/pl.initCap-1; annRet=(Math.pow(1+tot,252/n)-1)*100; }
+    }
+    const fmtRatio=v=>v==null?'--':(v===Infinity?'∞':v.toFixed(2));
+    const ratioCls=v=>v==null?'text-slate-400':(v===Infinity||v>=1?'text-emerald-400':(v>=0?'text-amber-400':'text-red-400'));
+    const annRetStr=annRet==null?'--':(Math.abs(annRet)>=999?(annRet>0?'>+999%':'<-99%'):`${annRet>=0?'+':''}${annRet.toFixed(1)}%`);
+    return `<div class="lz-sec-cap">樣本 ${n} 個交易日 · 無風險利率以 0 計</div>
+    <div class="stats-grid">
+        <div class="stats-item">
+            <div class="stats-label">夏普值 (Sharpe)</div>
+            <div class="stats-val mono ${ratioCls(sharpe)}">${fmtRatio(sharpe)}</div>
+            <div class="stats-sub">每承擔 1 單位波動換到的報酬</div>
+        </div>
+        <div class="stats-item">
+            <div class="stats-label">Sortino</div>
+            <div class="stats-val mono ${ratioCls(sortino)}">${fmtRatio(sortino)}</div>
+            <div class="stats-sub">只計下跌波動的夏普值</div>
+        </div>
+        <div class="stats-item">
+            <div class="stats-label">年化波動率</div>
+            <div class="stats-val mono ${annVol==null?'text-slate-400':'text-white'}">${annVol==null?'--':annVol.toFixed(1)+'%'}</div>
+            <div class="stats-sub">日報酬標準差 × √252</div>
+        </div>
+        <div class="stats-item">
+            <div class="stats-label">年化報酬</div>
+            <div class="stats-val mono ${annRet==null?'text-slate-400':(annRet>=0?'text-emerald-400':'text-red-400')}">${annRetStr}</div>
+            <div class="stats-sub">以目前累積報酬外推</div>
+        </div>
+    </div>`;
+}
+
+// 玩家鎖定區「績效 / 風險」分頁內容（受同一把密碼鎖保護）
+function buildPlayerPerfRiskHTML(p, pIdx){
+    if(!advData || !advData.players || !advData.players[pIdx]){
+        return '<div class="lz-perf-skel">績效資料載入中…<br><span style="font-size:10px;">(待績效曲線完成計算後自動顯示)</span></div>';
+    }
+    return `<div class="lz-sec-title">績效統計</div>
+        ${buildPerfStatsInner(p, pIdx)}
+        <div class="lz-sec-title">風險指標</div>
+        ${buildRiskStatsInner(pIdx)}`;
+}
+
+// 全域面板「績效 / 風險」頁已移除（改由各玩家鎖定區分頁顯示，避免重複）
+// 註：buildPerfStatsInner / buildRiskStatsInner / buildPlayerPerfRiskHTML 仍供鎖定區使用
 
 // ── 個股貢獻度 (Attribution) — 玩家卡片內分頁 ─────────────
 // 每檔股票對該玩家總報酬的貢獻 = (已實現 + 未實現損益) / 初始本金, 以百分點(pp)表示
@@ -2786,11 +2838,41 @@ function switchCardTab(name, tab){
     cardTabMap[name] = tab;
     const zone = document.querySelector(`.lock-zone[data-player="${CSS.escape(name)}"]`);
     if(!zone) return;
-    zone.querySelectorAll('.card-tab').forEach(b=>b.classList.toggle('active', b.dataset.tab === tab));
+    zone.querySelectorAll('.history-toolbar .card-tab').forEach(b=>b.classList.toggle('active', b.dataset.tab === tab));
     const hist = zone.querySelector('.card-pane-history');
     const attr = zone.querySelector('.card-pane-attr');
     if(hist) hist.style.display = tab==='history' ? '' : 'none';
     if(attr) attr.style.display = tab==='attr' ? '' : 'none';
+}
+
+// ── 鎖定區頂部分頁: 資產明細 / 績效·風險 ──
+const cardSumTab = {};   // name -> 'asset' | 'perf'
+function switchSumTab(name, tab){
+    cardSumTab[name] = tab;
+    const zone = document.querySelector(`.lock-zone[data-player="${CSS.escape(name)}"]`);
+    if(!zone) return;
+    zone.querySelectorAll('.lz-sum-tabs .card-tab').forEach(b=>b.classList.toggle('active', b.dataset.sumtab === tab));
+    const ap = zone.querySelector('.lz-pane-asset');
+    const pp = zone.querySelector('.lz-pane-perf');
+    if(ap) ap.style.display = tab==='asset' ? '' : 'none';
+    if(pp){
+        pp.style.display = tab==='perf' ? '' : 'none';
+        if(tab==='perf'){
+            const pIdx = participants.findIndex(x=>x.name===name);
+            if(pIdx>=0) pp.innerHTML = buildPlayerPerfRiskHTML(participants[pIdx], pIdx);
+        }
+    }
+}
+
+// advData 更新後 → 刷新所有開啟中的「績效·風險」分頁
+function refreshOpenPerfPanes(){
+    document.querySelectorAll('.lz-pane-perf[data-perf-player]').forEach(el=>{
+        if(el.style.display === 'none') return;
+        const pIdx = participants.findIndex(x=>x.name===el.dataset.perfPlayer);
+        if(pIdx<0) return;
+        const html = buildPlayerPerfRiskHTML(participants[pIdx], pIdx);
+        if(el.innerHTML !== html) el.innerHTML = html;
+    });
 }
 
 // ── 監聽 dailySnapshots ───────────────────
@@ -3714,6 +3796,11 @@ function renderDashboard(){
                         </div>
                     </div>`
                   : `<div class="lock-content">
+                    <div class="lz-sum-tabs">
+                        <button class="card-tab ${(cardSumTab[p.name]||'asset')==='asset'?'active':''}" data-sumtab="asset" onclick="switchSumTab('${escJs(p.name)}','asset')">資產明細</button>
+                        <button class="card-tab ${cardSumTab[p.name]==='perf'?'active':''}" data-sumtab="perf" onclick="switchSumTab('${escJs(p.name)}','perf')">績效 / 風險</button>
+                    </div>
+                    <div class="lz-sum-pane lz-pane-asset" style="${cardSumTab[p.name]==='perf'?'display:none;':''}">
                     <div class="portfolio-stats">
                         <div class="stat-row"><span class="stat-label">初始本金</span><span class="mono text-white text-xs">${fmtRaw(initCap,p.currency)}</span></div>
                         <div class="stat-row"><span class="stat-label">持有現金</span><span data-live="cash-${pIdx}">${fmtC(autoCash,p.currency,true)}</span></div>
@@ -3732,6 +3819,10 @@ function renderDashboard(){
                         <div class="stat-row"><span class="stat-label" title="所有持股合計">未實現損益</span><span data-live="unreal-${pIdx}">${buildUnrealHTML(totalUnPnl, p.currency)}</span></div>
                         ${prevCloseSnap ? `<div class="stat-row" style="margin-top:4px;"><span class="stat-label" title="相對 ${prevCloseSnap.date} 收盤快照">今日變動</span><span data-live="daily-${pIdx}">${buildDailyCellHTML(dailyChange, dailyChangePct, p.currency)}</span></div>` : ''}
                         <div class="stat-row" style="margin-top:4px; padding-top:4px; border-top:1px solid rgba(31,31,36,.6);"><span class="stat-label" title="手續費 + 證交稅 + 利息">交易成本</span><span class="mono text-slate-400">${totalFeeTax > 0 ? '-' : ''}${fmtRaw(totalFeeTax, p.currency)}</span></div>
+                    </div>
+                    </div>
+                    <div class="lz-sum-pane lz-pane-perf" data-perf-player="${esc(p.name)}" style="${cardSumTab[p.name]==='perf'?'':'display:none;'}">
+                        ${cardSumTab[p.name]==='perf' ? buildPlayerPerfRiskHTML(p, pIdx) : ''}
                     </div>
                     ${pieHTML}
                     ${holdHTML}
@@ -4195,6 +4286,63 @@ async function submitRemoveLock(){
 }
 
 // ── 平倉 Modal ────────────────────────────
+function roundShareQty(n){
+    return Math.round((parseFloat(n)||0) * 1e8) / 1e8;
+}
+
+function collectSlotLots(slot){
+    const lots = [];
+    slot.querySelectorAll('.lot-row').forEach(row=>{
+        const shares = parseFloat(row.querySelector('.lot-shares').value) || 0;
+        const buyPrice = parseFloat(row.querySelector('.lot-buyprice').value) || 0;
+        const buyDate = (row.querySelector('.lot-buydate').value || '').trim();
+        if(shares > 0 && buyPrice > 0) lots.push({ shares, buyPrice, buyDate });
+    });
+    return lots;
+}
+
+function calcFifoClose(lots, closeShares){
+    const target = roundShareQty(closeShares);
+    let remainingToClose = target;
+    const consumed = [];
+    const remaining = [];
+    lots.forEach(lot=>{
+        const lotShares = roundShareQty(lot.shares);
+        if(lotShares <= 0) return;
+        if(remainingToClose > 1e-8){
+            const used = Math.min(lotShares, remainingToClose);
+            if(used > 1e-8) consumed.push({ ...lot, shares: roundShareQty(used) });
+            const left = roundShareQty(lotShares - used);
+            if(left > 1e-8) remaining.push({ ...lot, shares: left });
+            remainingToClose = roundShareQty(remainingToClose - used);
+        } else {
+            remaining.push({ ...lot, shares: lotShares });
+        }
+    });
+    const totalCost = consumed.reduce((sum,lot)=>sum + lot.shares * lot.buyPrice, 0);
+    const consumedShares = consumed.reduce((sum,lot)=>sum + lot.shares, 0);
+    const firstBuyDate = consumed.find(lot=>lot.buyDate)?.buyDate || '';
+    return {
+        consumed,
+        remaining,
+        totalCost,
+        consumedShares,
+        avgCost: consumedShares > 0 ? totalCost / consumedShares : 0,
+        firstBuyDate,
+        isComplete: remainingToClose <= 1e-8
+    };
+}
+
+function getCloseInputShares(){
+    return parseFloat(document.getElementById('closeSharesInput')?.value) || 0;
+}
+
+function updateCloseFifoPreview(avgCost, sCur, isValid){
+    const el = document.getElementById('closeFifoAvgPreview');
+    if(!el) return;
+    el.textContent = isValid && avgCost > 0 ? fmtRaw(avgCost, sCur, sCur==='USD'?4:4) : '--';
+}
+
 function openClosePositionModal(slotId){
     const slot = document.querySelector(`.stock-slot[data-slot-id="${slotId}"]`);
     if(!slot) return;
@@ -4207,10 +4355,10 @@ function openClosePositionModal(slotId){
 
     // 從 lots 計算總股數、平均成本、最早建倉日期
     let totalShares = 0, totalCost = 0, earliestDate = null;
-    slot.querySelectorAll('.lot-row').forEach(row=>{
-        const s = parseFloat(row.querySelector('.lot-shares').value) || 0;
-        const p = parseFloat(row.querySelector('.lot-buyprice').value) || 0;
-        const d = (row.querySelector('.lot-buydate').value || '').trim();
+    collectSlotLots(slot).forEach(lot=>{
+        const s = lot.shares;
+        const p = lot.buyPrice;
+        const d = lot.buyDate;
         if(s > 0 && p > 0){
             totalShares += s;
             totalCost += s * p;
@@ -4232,6 +4380,9 @@ function openClosePositionModal(slotId){
     document.getElementById('closeCostDisplay').textContent = fmtRaw(totalCost, sCur, sCur==='USD'?2:0);
     document.getElementById('closeAvgCostDisplay').textContent = avgCost.toFixed(4);
     document.getElementById('closeBuyDateDisplay').textContent = earliestDate || '--';
+    const closeSharesInput = document.getElementById('closeSharesInput');
+    closeSharesInput.value = totalShares;
+    closeSharesInput.max = totalShares;
 
     // 預設平倉日期為今日
     document.getElementById('closeDate').value = getTaipeiToday();
@@ -4257,6 +4408,7 @@ function openClosePositionModal(slotId){
     const pv = document.getElementById('closePnlPreview');
     pv.textContent = '--';
     pv.style.color = 'var(--text-muted)';
+    updateCloseFifoPreview(0, sCur, false);
 
     document.getElementById('closePositionModal').classList.add('open');
 }
@@ -4272,7 +4424,7 @@ function autoCalcCloseFee(){
     const pi = participants.findIndex(p=>p.name===playerName);
     if(pi === -1){ calcClosePreview(); return; }
     const ticker = document.getElementById('closeTickerDisplay').textContent || '';
-    const shares = parseFloat(document.getElementById('closeSharesDisplay').textContent.replace(/,/g,'')) || 0;
+    const shares = getCloseInputShares();
     const sellPrice = parseFloat(document.getElementById('closePrice').value) || 0;
     const isTW = isTaiwanStock(ticker);
     const profile = getPlayerFeeProfile(pi);
@@ -4292,8 +4444,11 @@ function autoCalcCloseFee(){
             }
         } else {
             if(profile.usRate > 0){
-                // 美股平倉: 買入手續費(以平均成本計) + 賣出手續費, 各收一次
-                const avgCost = parseFloat(document.getElementById('closeAvgCostDisplay').textContent) || 0;
+                // 美股平倉: 買入手續費(以 FIFO 本次成本計) + 賣出手續費, 各收一次
+                const slotId = document.getElementById('closeSlotId').value;
+                const slot = document.querySelector(`.stock-slot[data-slot-id="${slotId}"]`);
+                const fifo = slot ? calcFifoClose(collectSlotLots(slot), shares) : null;
+                const avgCost = fifo?.avgCost || 0;
                 const buyFee  = avgCost   > 0 ? avgCost   * shares * profile.usRate : 0;
                 const sellFee = sellPrice > 0 ? sellPrice * shares * profile.usRate : 0;
                 document.getElementById('closeUSFee').value = (buyFee + sellFee).toFixed(2);
@@ -4308,22 +4463,30 @@ function autoCalcCloseFee(){
 // 平倉 modal: 純算預估損益, 不修改 fee 欄位
 function calcClosePreview(){
     const ticker = document.getElementById('closeTickerDisplay').textContent || '';
-    const shares = parseFloat(document.getElementById('closeSharesDisplay').textContent.replace(/,/g,'')) || 0;
-    const avgCost = parseFloat(document.getElementById('closeAvgCostDisplay').textContent) || 0;
+    const shares = getCloseInputShares();
     const sellPrice = parseFloat(document.getElementById('closePrice').value) || 0;
     const isTW = isTaiwanStock(ticker);
     const sCur = getStockCurrency(ticker);
+    const totalShares = parseFloat(document.getElementById('closeSharesDisplay').textContent.replace(/,/g,'')) || 0;
+    const slotId = document.getElementById('closeSlotId').value;
+    const slot = document.querySelector(`.stock-slot[data-slot-id="${slotId}"]`);
+    const fifo = slot ? calcFifoClose(collectSlotLots(slot), shares) : null;
+    const validShares = shares > 0 && shares <= totalShares && fifo?.isComplete && fifo.consumedShares > 0;
 
     const fee = parseFloat(document.getElementById('closeFee').value) || 0;
     const tax = parseFloat(document.getElementById('closeTax').value) || 0;
     const usFee = parseFloat(document.getElementById('closeUSFee').value) || 0;
-    const totalCost = avgCost * shares;
+    const totalCost = validShares ? fifo.totalCost : 0;
     const totalRevenue = sellPrice * shares;
     const totalFee = isTW ? (fee + tax) : usFee;
     const pnl = totalRevenue - totalCost - totalFee;
 
     const pv = document.getElementById('closePnlPreview');
-    if(sellPrice > 0 && shares > 0){
+    updateCloseFifoPreview(fifo?.avgCost || 0, sCur, validShares);
+    if(shares > totalShares){
+        pv.textContent = '股數超過持股';
+        pv.style.color = 'var(--accent-red)';
+    } else if(sellPrice > 0 && validShares){
         const sign = pnl >= 0 ? '+' : '-';
         pv.textContent = `${sign}${fmtRaw(Math.abs(pnl), sCur, sCur==='USD'?2:0)}`;
         pv.style.color = pnl >= 0 ? 'var(--accent-green)' : 'var(--accent-red)';
@@ -4335,7 +4498,7 @@ function calcClosePreview(){
 
 // (已移除 dataset.manual 機制, 改由各 oninput 直接決定計算流程)
 
-// 執行平倉: 從 stocks 移除該支 + 新增一筆 trade
+// 執行平倉: 依 FIFO 扣除指定股數 + 新增一筆 trade
 function executeClosePosition(){
     const playerName = document.getElementById('closePlayerName').value;
     const slotId = document.getElementById('closeSlotId').value;
@@ -4346,20 +4509,24 @@ function executeClosePosition(){
     if(!slot){ alert('找不到對應持股'); return; }
 
     const ticker = document.getElementById('closeTickerDisplay').textContent || '';
-    const shares = parseFloat(document.getElementById('closeSharesDisplay').textContent.replace(/,/g,'')) || 0;
-    const avgCost = parseFloat(document.getElementById('closeAvgCostDisplay').textContent) || 0;
-    const buyDate = document.getElementById('closeBuyDateDisplay').textContent || '';
+    const shares = getCloseInputShares();
+    const totalShares = parseFloat(document.getElementById('closeSharesDisplay').textContent.replace(/,/g,'')) || 0;
+    const fifo = calcFifoClose(collectSlotLots(slot), shares);
+    const avgCost = fifo.avgCost || 0;
+    const buyDate = fifo.firstBuyDate || '';
     const sellPrice = parseFloat(document.getElementById('closePrice').value) || 0;
     const closeDate = document.getElementById('closeDate').value;
     const isTW = isTaiwanStock(ticker);
 
+    if(!(shares > 0)){ alert('請輸入本次平倉股數'); return; }
+    if(shares > totalShares || !fifo.isComplete){ alert('平倉股數不可超過目前持股'); return; }
     if(!(sellPrice > 0)){ alert('請輸入平倉價格'); return; }
     if(!closeDate){ alert('請選擇平倉日期'); return; }
 
     const tax   = isTW ? (parseFloat(document.getElementById('closeTax').value)||0) : 0;
     const discount = isTW ? (parseFloat(document.getElementById('closeDiscount').value)||'') : '';
 
-    // 美股: 拆分買入手續費(以平均成本計) 與 賣出手續費, 各收一次
+    // 美股: 拆分買入手續費(以 FIFO 本次成本計) 與 賣出手續費, 各收一次
     const profile = getPlayerFeeProfile(pi);
     let buyFee = 0, sellFee = 0;
     if(!isTW && profile.usRate > 0){
@@ -4372,12 +4539,21 @@ function executeClosePosition(){
     // 從 participants 中查找股票名稱
     const matchedStock = (participants[pi].stocks||[]).find(s => (s.ticker||'').toUpperCase().trim() === ticker.toUpperCase().trim());
     const stockName = matchedStock?.stockName || '';
-    const pnl = (sellPrice - avgCost) * shares - fee - tax;
+    const pnl = sellPrice * shares - fifo.totalCost - fee - tax;
     const dateVal = closeDate.replace(/-/g,'/').replace(/\/0/g,'/'); // YYYY-MM-DD → YYYY/M/D
 
-    // 從 DOM 移除該 slot (使用者按下「同步至雲端」時 saveData 會自動排除已刪除的)
-    slot.remove();
-    renumberSlots();
+    // 從 DOM 更新該 slot: 全部平倉才移除, 部分平倉則保留 FIFO 後剩下的 lot
+    if(fifo.remaining.length === 0){
+        slot.remove();
+        renumberSlots();
+    } else {
+        const lotsContainer = slot.querySelector('.lots-container');
+        if(lotsContainer){
+            lotsContainer.innerHTML = '';
+            fifo.remaining.forEach(lot => addLotRow(slotId, lot));
+            updateLotSummary(slotId);
+        }
+    }
 
     // 構建 trade 紀錄
     const newTrade = {
@@ -4396,8 +4572,13 @@ function executeClosePosition(){
         pnl: parseFloat(pnl.toFixed(2)),
         date: dateVal,
         closedFromStock: true,
-        firstBuyDate: buyDate
+        closedLots: fifo.consumed.map(lot=>{
+            const out = { shares: lot.shares, buyPrice: lot.buyPrice };
+            if(lot.buyDate) out.buyDate = lot.buyDate;
+            return out;
+        })
     };
+    if(buyDate) newTrade.firstBuyDate = buyDate;
 
     // 立刻同步: 更新 stocks(來自當前 DOM) + trades(加上新平倉)
     const newStocks = [];
@@ -4566,7 +4747,7 @@ function addStockSlot(data={}){
               style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.35);color:#fca5a5;padding:4px 12px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;margin-right:6px;transition:all .2s;"
               onmouseover="this.style.background='rgba(239,68,68,.2)';this.style.borderColor='#ef4444';"
               onmouseout="this.style.background='rgba(239,68,68,.1)';this.style.borderColor='rgba(239,68,68,.35)';"
-              title="一鍵賣出全部持股">平倉</button>`
+              title="可選擇本次平倉股數">平倉</button>`
         : '';
     slot.innerHTML=`<div class="stock-slot-header">
             <span class="slot-num">持股 #${num}</span>
@@ -5600,15 +5781,13 @@ function runSilentSnapshotAudit(){
 // ── 風險指標 / 比賽回放（前後翻頁整合區塊）   ──
 // ══════════════════════════════════════════════
 const ADV_PAGES = [
-    { id:'stats',       icon:'', title:'績效統計',   sub:'' },
     { id:'throne',      icon:'', title:'王座爭奪戰', sub:'' },
     { id:'clash',       icon:'', title:'撞股對決',   sub:'' },
     { id:'underwater',  icon:'', title:'水下回撤',   sub:'' },
-    { id:'risk',        icon:'', title:'風險指標',   sub:'' },
     { id:'replay',      icon:'', title:'比賽回放',   sub:'' }
 ];
 // key 換代 (v2): 頁面順序變更, 舊存檔索引會錯位; 預設停在第一頁「績效統計」
-let advPage = (()=>{ const v = parseInt(localStorage.getItem('advPage_v3')||'0',10); return (v>=0 && v<ADV_PAGES.length)?v:0; })();
+let advPage = (()=>{ const v = parseInt(localStorage.getItem('advPage_v5')||'0',10); return (v>=0 && v<ADV_PAGES.length)?v:0; })();
 let advData = null;                 // {allDates, lastTradingDayStr, players:[{name,color,initCap,nav[],ret[]}]}
 let advUnderwaterChart = null;
 let advReplayChart = null;
@@ -5631,13 +5810,14 @@ function renderAdvancedPanel(allDates, lastTradingDayStr){
     checkNavHighs();
     ensureAdvSwipe();
     renderAdvPage(false);
+    refreshOpenPerfPanes();
 }
 
 function advGoto(delta){
     stopAdvReplay();
     advReplayUserActive = false;
     advPage = (advPage + delta + ADV_PAGES.length) % ADV_PAGES.length;
-    try{ localStorage.setItem('advPage_v3', String(advPage)); }catch(e){}
+    try{ localStorage.setItem('advPage_v5', String(advPage)); }catch(e){}
     renderAdvPage(true);
 }
 function advGotoIdx(i){
@@ -5645,7 +5825,7 @@ function advGotoIdx(i){
     stopAdvReplay();
     advReplayUserActive = false;
     advPage = i;
-    try{ localStorage.setItem('advPage_v3', String(advPage)); }catch(e){}
+    try{ localStorage.setItem('advPage_v5', String(advPage)); }catch(e){}
     renderAdvPage(true);
 }
 
@@ -5691,11 +5871,9 @@ function renderAdvPage(switched){
     if(!switched && pg.id === 'replay' && advReplayUserActive) return;
 
     switch(pg.id){
-        case 'stats':       renderAdvStats(body); break;
         case 'throne':     renderAdvThrone(body); break;
         case 'clash':      renderAdvClash(body); break;
         case 'underwater': renderAdvUnderwater(body); break;
-        case 'risk':       renderAdvRisk(body); break;
         case 'replay':     renderAdvReplay(body, switched); break;
     }
     if(switched){ body.classList.remove('adv-fade'); void body.offsetWidth; body.classList.add('adv-fade'); }
@@ -5893,67 +6071,7 @@ function renderAdvUnderwater(body){
 }
 
 // ── 風險指標（夏普 / Sortino / 年化波動率 / 年化報酬）──
-function renderAdvRisk(body){
-    if(!advData || !advData.players.length){ body.innerHTML = advSkeletonHTML(); return; }
-    const cards = advData.players.map(pl=>{
-        // 每日簡單報酬序列
-        const r = [];
-        for(let i=1;i<pl.nav.length;i++){
-            const a = pl.nav[i-1], b = pl.nav[i];
-            if(a!=null && b!=null && a>0 && !isNaN(a) && !isNaN(b)) r.push(b/a-1);
-        }
-        const n = r.length;
-        let annVol=null, sharpe=null, sortino=null, annRet=null;
-        if(n>=2){
-            const mean = r.reduce((s,v)=>s+v,0)/n;
-            const sd = Math.sqrt(r.reduce((s,v)=>s+(v-mean)*(v-mean),0)/(n-1));
-            const dnArr = r.map(v=>Math.min(0,v));
-            const dsd = Math.sqrt(dnArr.reduce((s,v)=>s+v*v,0)/(n-1));
-            annVol = sd*Math.sqrt(252)*100;
-            sharpe = sd>0 ? mean/sd*Math.sqrt(252) : (mean>0?Infinity:null);
-            sortino = dsd>0 ? mean/dsd*Math.sqrt(252) : (mean>0?Infinity:null);
-            const lastNav = pl.nav[pl.nav.length-1];
-            if(lastNav!=null && pl.initCap>0){
-                const tot = lastNav/pl.initCap-1;
-                annRet = (Math.pow(1+tot, 252/n)-1)*100;
-            }
-        }
-        const fmtRatio = v => v==null?'--':(v===Infinity?'∞':v.toFixed(2));
-        const ratioCls = v => v==null?'text-slate-400':(v===Infinity||v>=1?'text-emerald-400':(v>=0?'text-amber-400':'text-red-400'));
-        const annRetStr = annRet==null?'--':(Math.abs(annRet)>=999?(annRet>0?'>+999%':'<-99%'):`${annRet>=0?'+':''}${annRet.toFixed(1)}%`);
-        return `<div class="stats-card">
-            <div class="stats-card-head">
-                <span class="stats-dot" style="background:${pl.color};box-shadow:0 0 8px ${pl.color}66;"></span>
-                <span class="font-bold text-white">${esc(pl.name)}</span>
-                <span style="font-size:10px;color:var(--text-muted);margin-left:auto;">樣本 ${n} 個交易日</span>
-            </div>
-            <div class="stats-grid">
-                <div class="stats-item">
-                    <div class="stats-label">夏普值 (Sharpe)</div>
-                    <div class="stats-val mono ${ratioCls(sharpe)}">${fmtRatio(sharpe)}</div>
-                    <div class="stats-sub">每承擔 1 單位波動換到的報酬</div>
-                </div>
-                <div class="stats-item">
-                    <div class="stats-label">Sortino</div>
-                    <div class="stats-val mono ${ratioCls(sortino)}">${fmtRatio(sortino)}</div>
-                    <div class="stats-sub">只計下跌波動的夏普值</div>
-                </div>
-                <div class="stats-item">
-                    <div class="stats-label">年化波動率</div>
-                    <div class="stats-val mono ${annVol==null?'text-slate-400':'text-white'}">${annVol==null?'--':annVol.toFixed(1)+'%'}</div>
-                    <div class="stats-sub">日報酬標準差 × √252</div>
-                </div>
-                <div class="stats-item">
-                    <div class="stats-label">年化報酬</div>
-                    <div class="stats-val mono ${annRet==null?'text-slate-400':(annRet>=0?'text-emerald-400':'text-red-400')}">${annRetStr}</div>
-                    <div class="stats-sub">以目前累積報酬外推</div>
-                </div>
-            </div>
-        </div>`;
-    }).join('');
-    body.innerHTML = `<div class="grid grid-cols-1 md:grid-cols-3 gap-5">${cards}</div>
-        <div class="text-xs mt-3" style="color:var(--text-muted);">比賽初期樣本天數少，年化數字會被放大，僅供娛樂參考；無風險利率以 0 計。</div>`;
-}
+// 風險指標計算已抽成 buildRiskStatsInner（供玩家鎖定區「績效 / 風險」分頁使用）
 
 // ── 比賽回放 ───────────────────────────────
 function stopAdvReplay(){
@@ -6571,6 +6689,8 @@ function patchLiveNumbers(liveArr){
             if(el.innerHTML !== html) el.innerHTML = html;
         }
     });
+    // 績效·風險分頁開啟中 → 同步刷新
+    refreshOpenPerfPanes();
     // 1) 排行榜 (依台幣總值排序, 順序與簽章一致故與 DOM 對齊)
     const lb = liveArr.map(d=>({
         name:d.name, totalValueTWD:d.valTWD, totalValueUSD:d.valUSD,
