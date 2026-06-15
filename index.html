@@ -3685,29 +3685,9 @@ function renderDashboard(){
                 <div class="text-3xl" id="netval-${esc(p.name)}" data-netval="${netVal}" data-cur="${p.currency}">${fmtC(netVal,p.currency,true)}</div>
                 <div style="margin-top:6px;" data-live="retpct-${pIdx}">${buildRetpctHTML(retPct)}</div>
             </div>
-            <div class="portfolio-stats">
-                <div class="stat-row"><span class="stat-label">初始本金</span><span class="mono text-white text-xs">${fmtRaw(initCap,p.currency)}</span></div>
-                <div class="stat-row"><span class="stat-label">持有現金</span><span data-live="cash-${pIdx}">${fmtC(autoCash,p.currency,true)}</span></div>
-                <div class="stat-row"><span class="stat-label">持股總市值</span><span data-live="mv-${pIdx}">${fmtC(totalMV,p.currency,true)}</span></div>
-                <div class="stat-row"><span class="stat-label" title="現金 + 持股市值">當前淨值</span><span class="mono font-bold text-cyan-400 text-sm" data-live="cur-${pIdx}">${fmtRaw(currentVal,p.currency)}</span></div>
-                <div class="stat-row" style="margin-top:4px;padding-top:4px;border-top:1px dashed rgba(31,31,36,.6);">
-                    <span class="stat-label" title="淨值 × 60%">可使用最高槓桿金額</span>
-                    <span class="mono font-bold text-amber-300 text-sm" data-live="maxlev-${pIdx}">${fmtRaw(maxLeverage,p.currency)}</span>
-                </div>
-                <div class="stat-row">
-                    <span class="stat-label" title="現金水位 ÷ 淨值">槓桿使用率</span>
-                    <span data-live="levrate-${pIdx}">${buildLevRateHTML(hasLev, levRate, usagePct)}</span>
-                </div>
-                ${hasLev?`<div class="leverage-bar-wrap"><div class="leverage-bar" data-live="levbar-${pIdx}" style="width:${Math.min(usagePct,100).toFixed(0)}%"></div></div>`:''}
-                <div class="stat-row" style="margin-top:4px;"><span class="stat-label">已實現損益</span><span class="${realCls}">${realSign}${fmtRaw(Math.abs(realPnl),p.currency)}</span></div>
-                <div class="stat-row"><span class="stat-label" title="所有持股合計">未實現損益</span><span data-live="unreal-${pIdx}">${buildUnrealHTML(totalUnPnl, p.currency)}</span></div>
-                ${prevCloseSnap ? `<div class="stat-row" style="margin-top:4px;"><span class="stat-label" title="相對 ${prevCloseSnap.date} 收盤快照">今日變動</span><span data-live="daily-${pIdx}">${buildDailyCellHTML(dailyChange, dailyChangePct, p.currency)}</span></div>` : ''}
-                
-                <div class="stat-row" style="margin-top:4px; padding-top:4px; border-top:1px solid rgba(31,31,36,.6);"><span class="stat-label" title="手續費 + 證交稅 + 利息">交易成本</span><span class="mono text-slate-400">${totalFeeTax > 0 ? '-' : ''}${fmtRaw(totalFeeTax, p.currency)}</span></div>
-            </div>
             <div class="hold-lock-toolbar">
                 <div class="hold-lock-title">
-                    <span class="hold-lock-label">當前持倉</span>
+                    <span class="hold-lock-label">資產與持倉</span>
                     <span class="hold-lock-count">${stocks.length}/${MAX_STOCKS}</span>
                 </div>
                 <div class="hold-lock-actions">
@@ -3727,13 +3707,32 @@ function renderDashboard(){
                             <span class="lock-vault-status">Locked</span>
                         </div>
                         <div class="lock-preview">
-                            <div class="lock-preview-row"><span>STK 01</span><span></span><span>+8.4%</span></div>
-                            <div class="lock-preview-row"><span>STK 02</span><span></span><span>+3.1%</span></div>
-                            <div class="lock-preview-row"><span>STK 03</span><span></span><span>-1.6%</span></div>
+                            <div class="lock-preview-row"><span>初始本金</span><span></span><span>SAFE</span></div>
+                            <div class="lock-preview-row"><span>淨值損益</span><span></span><span>SAFE</span></div>
+                            <div class="lock-preview-row"><span>STK 持倉</span><span></span><span>SAFE</span></div>
                             <div class="lock-preview-row"><span>CASH</span><span></span><span>SAFE</span></div>
                         </div>
                     </div>`
                   : `<div class="lock-content">
+                    <div class="portfolio-stats">
+                        <div class="stat-row"><span class="stat-label">初始本金</span><span class="mono text-white text-xs">${fmtRaw(initCap,p.currency)}</span></div>
+                        <div class="stat-row"><span class="stat-label">持有現金</span><span data-live="cash-${pIdx}">${fmtC(autoCash,p.currency,true)}</span></div>
+                        <div class="stat-row"><span class="stat-label">持股總市值</span><span data-live="mv-${pIdx}">${fmtC(totalMV,p.currency,true)}</span></div>
+                        <div class="stat-row"><span class="stat-label" title="現金 + 持股市值">當前淨值</span><span class="mono font-bold text-cyan-400 text-sm" data-live="cur-${pIdx}">${fmtRaw(currentVal,p.currency)}</span></div>
+                        <div class="stat-row" style="margin-top:4px;padding-top:4px;border-top:1px dashed rgba(31,31,36,.6);">
+                            <span class="stat-label" title="淨值 × 60%">可使用最高槓桿金額</span>
+                            <span class="mono font-bold text-amber-300 text-sm" data-live="maxlev-${pIdx}">${fmtRaw(maxLeverage,p.currency)}</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label" title="現金水位 ÷ 淨值">槓桿使用率</span>
+                            <span data-live="levrate-${pIdx}">${buildLevRateHTML(hasLev, levRate, usagePct)}</span>
+                        </div>
+                        ${hasLev?`<div class="leverage-bar-wrap"><div class="leverage-bar" data-live="levbar-${pIdx}" style="width:${Math.min(usagePct,100).toFixed(0)}%"></div></div>`:''}
+                        <div class="stat-row" style="margin-top:4px;"><span class="stat-label">已實現損益</span><span class="${realCls}">${realSign}${fmtRaw(Math.abs(realPnl),p.currency)}</span></div>
+                        <div class="stat-row"><span class="stat-label" title="所有持股合計">未實現損益</span><span data-live="unreal-${pIdx}">${buildUnrealHTML(totalUnPnl, p.currency)}</span></div>
+                        ${prevCloseSnap ? `<div class="stat-row" style="margin-top:4px;"><span class="stat-label" title="相對 ${prevCloseSnap.date} 收盤快照">今日變動</span><span data-live="daily-${pIdx}">${buildDailyCellHTML(dailyChange, dailyChangePct, p.currency)}</span></div>` : ''}
+                        <div class="stat-row" style="margin-top:4px; padding-top:4px; border-top:1px solid rgba(31,31,36,.6);"><span class="stat-label" title="手續費 + 證交稅 + 利息">交易成本</span><span class="mono text-slate-400">${totalFeeTax > 0 ? '-' : ''}${fmtRaw(totalFeeTax, p.currency)}</span></div>
+                    </div>
                     ${pieHTML}
                     ${holdHTML}
                     <div class="history-section">
@@ -3756,9 +3755,9 @@ function renderDashboard(){
                 <div class="lock-overlay" onclick="openLockModal('${escJs(p.name)}','unlock')">
                     <div class="lock-overlay-panel">
                         <div class="lock-badge">${LOCK_ICON_CLOSED}</div>
-                        <div class="lock-kicker">Protected Holdings</div>
-                        <div class="lock-overlay-text">持倉明細已保護</div>
-                        <div class="lock-overlay-sub">解鎖後顯示個股、成本與損益</div>
+                        <div class="lock-kicker">Protected Ledger</div>
+                        <div class="lock-overlay-text">資產與持倉已保護</div>
+                        <div class="lock-overlay-sub">解鎖後顯示本金、損益與持股明細</div>
                     </div>
                 </div>
             </div>
