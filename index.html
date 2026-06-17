@@ -1,6 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-TW">
-<head>
+<html lang="zh-TW"><head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>投資績效大賽</title>
@@ -34,13 +33,17 @@
             --accent-green:#22c55e;
             --accent-red:#ef4444;
             --accent-amber:#f59e0b;
+            --ui-font:'Inter','Noto Sans TC','PingFang TC','Microsoft JhengHei',system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+            --serif-font:var(--ui-font);
+            --number-font:var(--ui-font);
         }
         *{box-sizing:border-box;}
-        body{font-family:'Inter','Noto Sans TC',system-ui,sans-serif;background-color:var(--bg-base);color:var(--text-primary);min-height:100vh;
+        body{font-family:var(--ui-font);background-color:var(--bg-base);color:var(--text-primary);min-height:100vh;
             background-image:radial-gradient(ellipse 90% 60% at 50% -20%,rgba(190,150,170,.05) 0%,transparent 70%),
                              radial-gradient(ellipse 50% 40% at 85% 85%,rgba(245,158,11,.035) 0%,transparent 65%),
                              radial-gradient(ellipse 50% 40% at 15% 90%,rgba(168,85,247,.03) 0%,transparent 65%);}
-        .mono{font-family:'JetBrains Mono','IBM Plex Mono',monospace;}
+        button,input,select,textarea{font-family:var(--ui-font);}
+        .mono{font-family:var(--number-font);}
         .ui-icon{display:inline-block;width:1em;height:1em;flex:0 0 auto;background:currentColor;vertical-align:-.14em;mask:center/contain no-repeat;-webkit-mask:center/contain no-repeat;}
         .i-history{mask-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v15l-3-1.7-3 1.7-3-1.7-3 1.7-4-2.2v-13Z' fill='none' stroke='black' stroke-width='2' stroke-linejoin='round'/%3E%3Cpath d='M8 7h8M8 11h8M8 15h5' stroke='black' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");-webkit-mask-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v15l-3-1.7-3 1.7-3-1.7-3 1.7-4-2.2v-13Z' fill='none' stroke='black' stroke-width='2' stroke-linejoin='round'/%3E%3Cpath d='M8 7h8M8 11h8M8 15h5' stroke='black' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");}
         .i-activity{mask-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M4 13h4l2-7 4 12 2-5h4' fill='none' stroke='black' stroke-width='2.3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");-webkit-mask-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M4 13h4l2-7 4 12 2-5h4' fill='none' stroke='black' stroke-width='2.3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");}
@@ -51,8 +54,10 @@
         .card{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;
             box-shadow:0 1px 0 0 rgba(255,255,255,.02) inset, 0 8px 32px -8px rgba(0,0,0,.5);}
         .header-glow{text-shadow:0 0 24px rgba(190,150,170,.35),0 0 60px rgba(190,150,170,.15);}
-        .countdown-badge{background:linear-gradient(135deg,#1a1a1f,#0a0a0c);border:1px solid #2a2a32;border-radius:999px;padding:8px 24px;display:inline-block;
-            box-shadow:0 0 0 1px rgba(255,255,255,.02) inset, 0 0 18px rgba(190,150,170,.08);}
+        .countdown-badge{background:transparent;border:none;border-radius:0;padding:0;display:inline-flex;align-items:baseline;gap:8px;
+            box-shadow:none;color:#c8d0bd;font-family:var(--number-font);font-weight:700;}
+        .countdown-label{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:#aeb7a7;}
+        #countdown{color:#d5decf!important;font-size:18px;letter-spacing:.02em;}
         .status-pill{display:inline-flex;align-items:center;gap:8px;padding:6px 16px;border-radius:999px;font-size:12px;font-weight:600;border:1px solid transparent;}
         .status-loading{background:rgba(245,158,11,.08);border-color:rgba(245,158,11,.25);color:var(--accent-amber);}
         .status-ok{background:rgba(34,197,94,.08);border-color:rgba(34,197,94,.25);color:var(--accent-green);}
@@ -83,9 +88,14 @@
             opacity:.78;}
         .portfolio-card>*{position:relative;z-index:1;}
         .portfolio-card:hover{border-color:color-mix(in srgb,var(--player-color) 42%,var(--border-bright));box-shadow:0 1px 0 0 rgba(255,255,255,.05) inset,0 10px 32px -12px color-mix(in srgb,var(--player-color) 30%,transparent),0 20px 56px -22px rgba(0,0,0,.82);}
-        .net-value-box{position:relative;overflow:hidden;background:linear-gradient(180deg,rgba(20,20,25,.86),rgba(8,8,11,.94));border:1px solid color-mix(in srgb,var(--player-color) 22%,var(--border-bright));border-radius:12px;padding:17px;
+        .net-value-box{position:relative;overflow:hidden;background:linear-gradient(180deg,rgba(20,20,25,.86),rgba(8,8,11,.94));border:1px solid color-mix(in srgb,var(--player-color) 22%,var(--border-bright));border-radius:12px;padding:13px 16px;
             box-shadow:0 1px 0 0 rgba(255,255,255,.05) inset,0 14px 34px -20px color-mix(in srgb,var(--player-color) 40%,transparent);}
         .net-value-box::before{content:'';position:absolute;left:0;right:0;top:0;height:1px;background:linear-gradient(90deg,transparent,var(--player-color),transparent);opacity:.75;}
+        .net-value-inner{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"label value" "change value";align-items:center;gap:4px 18px;min-height:68px;}
+        .net-value-label{grid-area:label;font-size:11px;color:var(--text-muted);margin-bottom:0;}
+        .net-value-main{grid-area:value;font-family:var(--number-font);font-weight:700;line-height:1.05;justify-self:end;text-align:right;font-size:1.55rem!important;}
+        .net-value-change{grid-area:change;align-self:start;justify-self:start;text-align:left;min-width:max-content;}
+        .net-value-change .trend-badge{font-family:var(--number-font);font-size:1.25rem!important;font-weight:700;}
         .stat-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;font-size:13px;}
         .stat-label{color:var(--text-secondary);}
         .portfolio-stats{margin-bottom:16px;padding:10px 12px;border:1px solid rgba(255,255,255,.055);border-radius:12px;background:linear-gradient(180deg,rgba(255,255,255,.026),rgba(255,255,255,.008));box-shadow:inset 0 1px 0 rgba(255,255,255,.025);}
@@ -93,14 +103,17 @@
         .portfolio-stats .stat-row:last-child{border-bottom:none;}
         .portfolio-stats .stat-label{font-weight:650;color:#a9a9b0;}
         .portfolio-stats .stat-row span:last-child{text-shadow:0 0 14px rgba(0,0,0,.35);}
+        .stat-value-current{color:#d9c6ce;}
+        .stat-value-leverage{color:#d6b37a;}
+        .stat-value-muted{color:var(--text-muted);}
         .holding-row{background:var(--bg-input);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:6px;font-size:12px;transition:border-color .2s;}
         .holding-row:hover{border-color:var(--border-bright);}
         .btn-update{background:linear-gradient(135deg,#1a1a1f,#0d0d10);border:1px solid var(--border-bright);color:var(--text-primary);padding:6px 14px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;transition:all .2s;}
         .btn-update:hover{background:linear-gradient(135deg,#22222a,#15151a);border-color:var(--accent-cyan);box-shadow:0 0 12px rgba(190,150,170,.2);}
         .btn-cancel{padding:9px 18px;background:rgba(31,31,36,.6);border:1px solid var(--border);color:var(--text-secondary);border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;}
         .btn-cancel:hover{background:rgba(31,31,36,.9);color:var(--text-primary);border-color:var(--border-bright);}
-        .btn-save{padding:9px 20px;background:linear-gradient(135deg,#22d3ee,#0891b2);border:none;color:#04111a;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;transition:all .2s;box-shadow:0 4px 18px rgba(190,150,170,.25);}
-        .btn-save:hover{background:linear-gradient(135deg,#06b6d4,#0e7490);transform:translateY(-1px);box-shadow:0 6px 24px rgba(190,150,170,.35);}
+        .btn-save{padding:9px 20px;background:linear-gradient(135deg,rgba(190,150,170,.34),rgba(118,98,105,.28));border:1px solid rgba(190,150,170,.42);color:#f2e9ec;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;transition:all .2s;box-shadow:0 10px 24px -18px rgba(190,150,170,.7);}
+        .btn-save:hover{background:linear-gradient(135deg,rgba(214,179,122,.26),rgba(190,150,170,.28));border-color:rgba(214,179,122,.42);color:#fff;transform:translateY(-1px);box-shadow:0 14px 28px -20px rgba(214,179,122,.8);}
         .btn-add-stock{display:flex;align-items:center;gap:5px;background:rgba(190,150,170,.08);border:1px solid rgba(190,150,170,.25);color:var(--accent-cyan);padding:6px 12px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;transition:all .2s;}
         .btn-add-stock:hover{background:rgba(190,150,170,.15);border-color:rgba(190,150,170,.5);}
         .btn-add-trade{display:flex;align-items:center;gap:5px;background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.25);color:var(--accent-green);padding:4px 10px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;transition:all .2s;}
@@ -111,8 +124,8 @@
         .btn-lock.unlocked{background:rgba(34,197,94,.08);border-color:rgba(34,197,94,.28);color:var(--accent-green);}
         .btn-lock.unlocked:hover{background:rgba(34,197,94,.16);border-color:rgba(34,197,94,.55);box-shadow:0 0 12px rgba(34,197,94,.18);}
         /* 圖示式鎖頭按鈕(僅鎖/解鎖圖示) */
-        .btn-lock-icon{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:10px;cursor:pointer;transition:all .2s;flex-shrink:0;background:var(--bg-elevated);border:1px solid var(--border);color:var(--text-secondary);padding:0;}
-        .btn-lock-icon svg{display:block;}
+        .btn-lock-icon{display:inline-flex;align-items:center;justify-content:center;width:31px;height:31px;border-radius:9px;cursor:pointer;transition:all .2s;flex-shrink:0;background:var(--bg-elevated);border:1px solid var(--border);color:var(--text-secondary);padding:0;}
+        .btn-lock-icon svg{display:block;width:15px;height:15px;}
         .btn-lock-icon:hover{border-color:var(--border-bright);color:var(--text-primary);}
         .btn-lock-icon.locked{background:rgba(190,150,170,.11);border-color:rgba(190,150,170,.34);color:#d7bec8;}
         .btn-lock-icon.locked:hover{background:rgba(190,150,170,.18);border-color:rgba(190,150,170,.62);box-shadow:0 0 12px rgba(190,150,170,.20);}
@@ -120,15 +133,16 @@
         .btn-lock-icon.unlocked:hover{background:rgba(34,197,94,.18);border-color:rgba(34,197,94,.6);box-shadow:0 0 12px rgba(34,197,94,.18);}
         .btn-lock-icon.nopwd{background:var(--bg-elevated);border-color:var(--border);color:var(--text-muted);}
         .btn-lock-icon.nopwd:hover{border-color:var(--border-bright);color:var(--text-secondary);}
-        .hold-lock-toolbar{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;margin:20px 0 12px;padding:10px 12px;border-radius:10px;gap:14px;
+        .hold-lock-toolbar{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,auto);align-items:center;margin:20px 0 12px;padding:9px 10px;border-radius:10px;gap:10px;
             background:linear-gradient(135deg,rgba(18,18,22,.92),rgba(7,7,9,.86));
             border:1px solid rgba(255,255,255,.08);
             box-shadow:inset 0 1px 0 rgba(255,255,255,.04),0 10px 28px rgba(0,0,0,.22);}
-        .hold-lock-title{display:flex;align-items:center;gap:10px;min-width:0;overflow:hidden;}
-        .hold-lock-label{position:relative;font-size:11px;font-weight:800;color:#ededf2;text-transform:uppercase;letter-spacing:.08em;white-space:nowrap;padding-left:12px;}
+        .hold-lock-title{display:flex;align-items:center;gap:8px;min-width:0;overflow:hidden;}
+        .hold-lock-label{position:relative;font-size:10.5px;font-weight:800;color:#ededf2;text-transform:uppercase;letter-spacing:.06em;white-space:nowrap;padding-left:11px;min-width:0;overflow:hidden;text-overflow:ellipsis;}
         .hold-lock-label::before{content:'';position:absolute;left:0;top:50%;width:5px;height:5px;border-radius:50%;transform:translateY(-50%);background:var(--player-color);box-shadow:0 0 10px color-mix(in srgb,var(--player-color) 70%,transparent);}
-        .hold-lock-count{font-size:10px;font-weight:800;color:color-mix(in srgb,var(--player-color) 82%,#fff);font-family:'JetBrains Mono','IBM Plex Mono',monospace;white-space:nowrap;padding:3px 8px;border-radius:999px;background:color-mix(in srgb,var(--player-color) 12%,transparent);border:1px solid color-mix(in srgb,var(--player-color) 28%,transparent);flex:0 0 auto;}
-        .hold-lock-actions{display:flex;align-items:center;gap:12px;flex-shrink:0;}
+        .hold-lock-count{font-size:9.5px;font-weight:800;color:color-mix(in srgb,var(--player-color) 82%,#fff);font-family:var(--number-font);white-space:nowrap;padding:2px 7px;border-radius:999px;background:color-mix(in srgb,var(--player-color) 12%,transparent);border:1px solid color-mix(in srgb,var(--player-color) 28%,transparent);flex:0 0 auto;}
+        .hold-lock-actions{display:flex;align-items:center;gap:9px;flex-shrink:1;min-width:0;}
+        .hold-lock-actions .btn-update{padding:6px 12px;font-size:11px;white-space:nowrap;min-width:0;}
         .lock-zone{position:relative;border-radius:14px;border:1px solid color-mix(in srgb,var(--player-color) 28%,rgba(255,255,255,.05));background:rgba(6,6,8,.58);
             box-shadow:0 20px 42px rgba(0,0,0,.28),0 0 28px -18px color-mix(in srgb,var(--player-color) 58%,transparent),inset 0 1px 0 rgba(255,255,255,.04);}
         .lock-zone .lock-content{transition:filter .35s ease;}
@@ -176,10 +190,10 @@
             box-shadow:0 0 30px color-mix(in srgb,var(--player-color) 8%,transparent);
             animation:lockSweep 4.6s cubic-bezier(.45,.08,.55,.92) infinite;}
         @keyframes lockSweep{0%{top:-90px;opacity:0;}8%{opacity:1;}62%{opacity:1;}78%,100%{top:112%;opacity:0;}}
-        .lock-vault-header{position:absolute;left:16px;right:16px;top:16px;display:flex;justify-content:space-between;align-items:center;font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:800;letter-spacing:.12em;color:color-mix(in srgb,var(--player-color) 78%,#fff);text-transform:uppercase;}
+        .lock-vault-header{position:absolute;left:16px;right:16px;top:16px;display:flex;justify-content:space-between;align-items:center;font-family:var(--number-font);font-size:9px;font-weight:800;letter-spacing:.12em;color:color-mix(in srgb,var(--player-color) 78%,#fff);text-transform:uppercase;}
         .lock-vault-status{color:#050506;background:linear-gradient(135deg,var(--player-color),color-mix(in srgb,var(--player-color) 38%,#fff));border-radius:999px;padding:3px 8px;box-shadow:0 0 18px color-mix(in srgb,var(--player-color) 24%,transparent);}
         .lock-preview{position:absolute;left:16px;right:16px;bottom:16px;display:grid;grid-template-columns:1fr;gap:8px;opacity:.70;}
-        .lock-preview-row{display:grid;grid-template-columns:50px 1fr 58px;align-items:center;height:30px;padding:0 10px;border-radius:9px;border:1px solid rgba(255,255,255,.075);background:linear-gradient(90deg,rgba(255,255,255,.075),rgba(255,255,255,.018));font-family:'IBM Plex Mono',monospace;font-size:9px;color:rgba(226,232,240,.76);}
+        .lock-preview-row{display:grid;grid-template-columns:50px 1fr 58px;align-items:center;height:30px;padding:0 10px;border-radius:9px;border:1px solid rgba(255,255,255,.075);background:linear-gradient(90deg,rgba(255,255,255,.075),rgba(255,255,255,.018));font-family:var(--number-font);font-size:9px;color:rgba(226,232,240,.76);}
         .lock-preview-row span:nth-child(2){height:5px;border-radius:999px;background:linear-gradient(90deg,rgba(148,163,184,.36),rgba(148,163,184,.08));}
         .lock-preview-row span:nth-child(3){color:#34d399;text-align:right;font-weight:800;}
         .lock-preview-row:nth-child(3) span:nth-child(3){color:#fb7185;}
@@ -192,7 +206,7 @@
         }
         /* 密碼輸入框 */
         .pin-input{width:100%;background:linear-gradient(180deg,rgba(4,4,6,.95),rgba(9,9,12,.95));border:1px solid var(--border);color:var(--text-primary);
-            padding:15px 14px;border-radius:12px;font-family:'IBM Plex Mono',monospace;font-size:28px;font-weight:800;
+            padding:15px 14px;border-radius:12px;font-family:var(--number-font);font-size:28px;font-weight:800;
             text-align:center;letter-spacing:.48em;outline:none;transition:border-color .2s,box-shadow .2s,background .2s;caret-color:var(--accent-cyan);}
         .pin-input:focus{border-color:var(--accent-cyan);box-shadow:0 0 0 1px rgba(190,150,170,.45),0 0 0 5px rgba(190,150,170,.08),0 18px 42px -24px rgba(190,150,170,.7);}
         .pin-input.err{border-color:var(--accent-red);box-shadow:0 0 0 3px rgba(239,68,68,.15);animation:pinShake .35s;}
@@ -230,7 +244,7 @@
         .modal-input{width:100%;background:var(--bg-input);border:1px solid var(--border);color:var(--text-primary);padding:9px 12px;border-radius:8px;font-size:14px;font-family:'Inter',sans-serif;outline:none;transition:border-color .2s,box-shadow .2s;}
         .modal-input:focus{border-color:var(--accent-cyan);box-shadow:0 0 0 3px rgba(190,150,170,.15);}
         .modal-input[readonly]{background:#040405;color:var(--text-secondary);cursor:not-allowed;}
-        .net-preview{color:var(--accent-green)!important;font-family:'IBM Plex Mono',monospace!important;font-size:16px!important;font-weight:600!important;}
+        .net-preview{color:var(--accent-green)!important;font-family:var(--number-font)!important;font-size:16px!important;font-weight:600!important;}
         .net-negative{color:var(--accent-red)!important;}
         .divider{border:none;border-top:1px solid var(--border);margin:14px 0;}
         .stock-slot{background:rgba(10,10,12,.7);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:10px;}
@@ -242,7 +256,7 @@
         .ac-item{padding:9px 14px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(31,31,36,.6);transition:background .15s;}
         .ac-item:last-child{border-bottom:none;}
         .ac-item:hover,.ac-item.active{background:rgba(190,150,170,.08);}
-        .ac-ticker{font-family:'IBM Plex Mono',monospace;font-weight:600;color:var(--accent-cyan);font-size:13px;}
+        .ac-ticker{font-family:var(--serif-font);font-weight:700;color:var(--accent-cyan);font-size:13px;}
         .ac-name{font-size:11px;color:var(--text-secondary);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
         .ac-exch{font-size:10px;color:var(--text-muted);background:rgba(31,31,36,.8);padding:2px 6px;border-radius:4px;}
         .ac-spinner{padding:10px 14px;color:var(--text-muted);font-size:12px;text-align:center;}
@@ -251,14 +265,23 @@
         .trade-card::before{content:'';position:absolute;left:0;top:12px;bottom:12px;width:2px;border-radius:999px;background:color-mix(in srgb,var(--player-color) 62%,var(--accent-cyan));opacity:.65;}
         .trade-card:hover{border-color:color-mix(in srgb,var(--player-color) 34%,var(--border-bright));box-shadow:0 12px 30px -20px color-mix(in srgb,var(--player-color) 45%,transparent);transform:translateY(-1px);}
         .trade-card:last-child{margin-bottom:0;}
+        .trade-card-head{display:grid;grid-template-columns:minmax(100px,110px) minmax(max-content,1fr) auto;grid-template-areas:"ticker pnl actions" "name name name";align-items:start;gap:3px 7px;margin-bottom:8px;min-width:0;}
+        .trade-card-title{grid-area:ticker;display:flex;align-items:center;min-width:100px;max-width:110px;gap:5px;padding-right:2px;overflow:hidden;}
+        .trade-card-ticker{font-size:11.5px;color:var(--player-color);min-width:0;max-width:54px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:0 1 auto;}
+        .trade-card-name{grid-area:name;color:var(--text-secondary);font-size:11px;font-weight:500;line-height:1.25;min-width:0;overflow:hidden;white-space:nowrap;mask-image:linear-gradient(90deg,#000 calc(100% - 18px),transparent);-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 18px),transparent);}
+        .trade-card-actions{grid-area:actions;display:flex;align-items:center;justify-content:flex-end;gap:6px;white-space:nowrap;align-self:start;}
+        .trade-card-pnl{grid-area:pnl;display:inline-flex;align-items:baseline;justify-content:flex-end;gap:4px;white-space:nowrap;min-width:max-content;overflow:visible;align-self:start;}
+        .trade-card-pnl-amt{font-size:11px;font-weight:750;}
+        .trade-card-pnl-pct{font-size:9px;font-weight:700;opacity:.85;}
+        .trade-card-actions .btn-edit,.trade-card-actions .btn-del{font-size:13px;line-height:1;padding:1px 2px;flex:0 0 auto;}
         .trade-card-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;gap:8px;flex-wrap:wrap;min-width:0;}
         .trade-card-row>div{min-width:0;}
         .trade-card-row:last-child{margin-bottom:0;}
-        .profit-pos{color:var(--accent-green);font-weight:700;font-family:'IBM Plex Mono',monospace;}
-        .profit-neg{color:var(--accent-red);font-weight:700;font-family:'IBM Plex Mono',monospace;}
+        .profit-pos{color:var(--accent-green);font-weight:700;font-family:var(--number-font);}
+        .profit-neg{color:var(--accent-red);font-weight:700;font-family:var(--number-font);}
         .currency-badge{font-size:10px;font-weight:700;letter-spacing:.06em;padding:2px 8px;border-radius:4px;background:rgba(190,150,170,.1);border:1px solid rgba(190,150,170,.25);color:var(--accent-cyan);}
-        .leverage-bar-wrap{height:4px;background:rgba(31,31,36,.8);border-radius:2px;margin-top:6px;}
-        .leverage-bar{height:100%;border-radius:2px;background:linear-gradient(90deg,var(--accent-amber),#ef4444);transition:width .5s;}
+        .leverage-bar-wrap{height:6px;background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.055);border-radius:999px;margin-top:8px;overflow:hidden;box-shadow:inset 0 1px 4px rgba(0,0,0,.55);}
+        .leverage-bar{height:100%;border-radius:999px;background:linear-gradient(90deg,#766269 0%,#be96aa 48%,#d6b37a 100%);box-shadow:0 0 14px rgba(190,150,170,.24);transition:width .5s;}
         .price-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--accent-green);animation:pulse-dot 2s infinite;margin-right:4px;
             box-shadow:0 0 6px rgba(34,197,94,.7);}
         @keyframes pulse-dot{0%,100%{opacity:1}50%{opacity:.3}}
@@ -277,13 +300,13 @@
         .holding-pie-canvas-wrap canvas{display:block;width:100%!important;height:100%!important;}
         .holding-pie-canvas-wrap::before{content:'';position:absolute;inset:29%;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,.06),rgba(255,255,255,.018) 58%,transparent 60%);border:1px solid rgba(255,255,255,.055);}
         .holding-pie-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;}
-        .holding-pie-center-num{font-family:'JetBrains Mono','IBM Plex Mono',monospace;font-size:28px;font-weight:900;color:#fff;line-height:1;text-shadow:0 0 22px color-mix(in srgb,var(--player-color) 30%,transparent);}
+        .holding-pie-center-num{font-family:var(--number-font);font-size:28px;font-weight:900;color:#fff;line-height:1;text-shadow:0 0 22px color-mix(in srgb,var(--player-color) 30%,transparent);}
         .holding-pie-center-lbl{font-size:11px;color:#c6cbd4;margin-top:5px;letter-spacing:.04em;font-weight:850;}
         .holding-pie-legend{display:none;}
         .holding-pie-legend-row{width:100%;display:grid;grid-template-columns:12px minmax(0,1fr) auto;align-items:center;gap:9px;font-size:12px;min-width:0;padding:7px 9px;border-radius:10px;background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.045);}
         .holding-pie-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;box-shadow:0 0 12px currentColor;}
-        .holding-pie-ticker{font-family:'JetBrains Mono','IBM Plex Mono',monospace;font-weight:750;color:#eef2f7;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;}
-        .holding-pie-pct{font-family:'JetBrains Mono','IBM Plex Mono',monospace;font-weight:850;color:#cbd5e1;font-size:12px;flex-shrink:0;}
+        .holding-pie-ticker{font-family:var(--serif-font);font-weight:700;color:#eef2f7;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;}
+        .holding-pie-pct{font-family:var(--number-font);font-weight:850;color:#cbd5e1;font-size:12px;flex-shrink:0;}
         .holding-pie-value{grid-column:2 / 4;height:4px;border-radius:999px;background:rgba(255,255,255,.055);overflow:hidden;margin-top:-1px;}
         .holding-pie-value span{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,currentColor,rgba(255,255,255,.75));}
         .holding-pie-empty{padding:22px;text-align:center;color:var(--text-muted);font-size:12px;}
@@ -301,9 +324,12 @@
         .lot-breakdown-title{font-size:11px;color:color-mix(in srgb,var(--player-color) 72%,#fff);font-weight:850;margin-bottom:7px;letter-spacing:.03em;}
         .lot-list{display:flex;flex-direction:column;gap:7px;}
         .lot-card{padding:8px 9px;background:rgba(0,0,0,.22);border:1px solid rgba(255,255,255,.055);border-radius:10px;font-size:11px;}
-        .lot-card-main{display:grid;grid-template-columns:46px minmax(0,1fr);gap:6px 10px;align-items:center;}
-        .lot-card-main span{min-width:0;overflow-wrap:anywhere;}
-        .lot-card-main span:nth-child(4){text-align:left!important;}
+        .lot-card-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px;}
+        .lot-card-date{color:var(--text-muted);}
+        .lot-card-metrics{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 18px;}
+        .lot-card-metrics>span{min-width:0;white-space:nowrap;}
+        .lot-card-shares,.lot-card-price,.lot-card-cost{color:var(--text-secondary);}
+        .lot-card-price .mono,.lot-card-cost .mono{color:#f2e9ec;}
         .lot-tag{color:color-mix(in srgb,var(--player-color) 76%,#fff);font-weight:850;}
         .lot-card-sub{display:flex;justify-content:space-between;align-items:center;margin-top:6px;padding-top:6px;border-top:1px dashed rgba(255,255,255,.065);gap:8px;flex-wrap:wrap;font-size:10px;}
         /* ── 卡片漲跌閃光 (交易所終端風) ── */
@@ -393,10 +419,10 @@
         .rank-card.rank-1 .rank-medal{display:inline-block;animation:crownfloat 2.6s ease-in-out infinite;}
         @keyframes crownfloat{0%,100%{transform:translateY(0) rotate(-4deg);}50%{transform:translateY(-3px) rotate(4deg);}}
         /* 排名變動箭頭 */
-        .rank-move{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:800;padding:2px 7px;border-radius:999px;margin-left:6px;font-family:'JetBrains Mono','IBM Plex Mono',monospace;flex-shrink:0;}
+        .rank-move{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:800;padding:2px 7px;border-radius:999px;margin-left:6px;font-family:var(--number-font);flex-shrink:0;}
         .rank-move.up{background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.3);color:var(--accent-green);}
         .rank-move.down{background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.3);color:var(--accent-red);}
-        .rank-move.flat{background:rgba(90,90,96,.12);border:1px solid var(--border);color:var(--text-muted);}
+        .rank-move.flat{display:none;}
         /* Sticky 迷你排行條 */
         .mini-rankbar{position:fixed;top:0;left:0;right:0;z-index:45;transform:translateY(-110%);transition:transform .3s ease;
             background:rgba(8,8,10,.82);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--border);cursor:pointer;
@@ -530,21 +556,37 @@
             .rank-money-value .mono:last-child{font-size:10px!important;line-height:1.2;}
             .benchmark-card{padding:10px 13px;}
             .portfolio-card{padding:14px;}
-            .countdown-badge{padding:6px 16px;font-size:13px;}
+            .countdown-badge{padding:0;font-size:13px;}
             .holding-pie-wrap{padding:14px;}
             .holding-pie-body{gap:12px;}
             .holding-pie-canvas-wrap{width:min(230px,94%);}
             .holding-pie-center-num{font-size:23px;}
-            .lot-card-main{grid-template-columns:42px 1fr;gap:5px 8px;}
-            .lot-card-main span:nth-child(4){text-align:left!important;}
+            .lot-card-head{font-size:10px;gap:6px;margin-bottom:5px;}
+            .lot-card-metrics{gap:3px 14px;font-size:10px;}
             .trade-card{padding:11px 12px;}
-            .trade-pager{grid-template-columns:1fr 1fr;gap:8px;}
-            .pager-status{grid-column:1 / -1;grid-row:1;text-align:center;min-width:0;}
-            .pager-btn.prev{grid-column:1;grid-row:2;}
-            .pager-btn.next{grid-column:2;grid-row:2;}
-            .hold-lock-toolbar{gap:10px;padding:10px;}
-            .hold-lock-actions{gap:10px;}
-            .btn-lock-icon{width:34px;height:34px;}
+            .trade-card-head{grid-template-columns:minmax(96px,104px) minmax(max-content,1fr) auto;gap:3px 6px;}
+            .trade-card-title{min-width:96px;max-width:104px;gap:5px;}
+            .trade-card-ticker{font-size:10.5px;max-width:49px;}
+            .trade-card-pnl{gap:3px;min-width:max-content;overflow:visible;}
+            .trade-card-pnl-amt{font-size:10.5px;}
+            .trade-card-pnl-pct{font-size:8.5px;}
+            .trade-card-actions{gap:5px;}
+            .trade-pager{grid-template-columns:64px minmax(48px,1fr) 64px;gap:5px;padding:7px 8px;margin-top:8px;}
+            .pager-status{grid-column:2;grid-row:1;text-align:center;min-width:0;}
+            .pager-btn{max-width:none;min-height:31px;font-size:10px;padding:5px 5px;}
+            .pager-btn.prev{grid-column:1;grid-row:1;}
+            .pager-btn.next{grid-column:3;grid-row:1;}
+            .pager-page{font-size:12px;}
+            .pager-total{font-size:9px;}
+            .hold-lock-toolbar{gap:7px;padding:8px;grid-template-columns:minmax(0,1fr) minmax(0,auto);}
+            .hold-lock-title{gap:6px;}
+            .hold-lock-label{font-size:10px;letter-spacing:.04em;padding-left:10px;}
+            .hold-lock-label::before{width:4px;height:4px;}
+            .hold-lock-count{font-size:9px;padding:2px 6px;}
+            .hold-lock-actions{gap:7px;min-width:0;}
+            .hold-lock-actions .btn-update{padding:6px 9px;font-size:10.5px;border-radius:8px;}
+            .btn-lock-icon{width:28px;height:28px;border-radius:8px;}
+            .btn-lock-icon svg{width:14px;height:14px;}
             header h1{font-size:1.6rem !important;}
             .top-meta-row{display:grid!important;grid-template-columns:minmax(0,1fr) auto;align-items:center;justify-content:stretch!important;gap:8px!important;max-width:360px;margin-left:auto;margin-right:auto;}
             #system-status{width:100%;min-width:0;justify-content:center;padding:8px 12px;line-height:1.45;text-align:left;white-space:normal;}
@@ -647,12 +689,12 @@
         @media (min-width:768px){.stats-panel-grid{grid-template-columns:repeat(3,minmax(0,1fr));}}
         /* 個股貢獻度橫條 */
         .attr-list{display:flex;flex-direction:column;gap:7px;}
-        .attr-row{display:grid;grid-template-columns:minmax(72px,auto) 1fr 84px;align-items:center;gap:8px;font-size:11px;}
-        .attr-label{display:flex;align-items:center;gap:5px;min-width:0;}
-        .attr-name{color:var(--text-muted);font-size:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:90px;}
+        .attr-row{display:grid;grid-template-columns:minmax(48px,72px) minmax(74px,1fr) minmax(50px,70px);align-items:center;gap:6px;font-size:11px;min-width:0;}
+        .attr-label{display:flex;align-items:center;gap:5px;min-width:0;overflow:hidden;}
+        .attr-name{font-family:var(--serif-font);font-weight:700;color:#c9a4b8;font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%;min-width:0;letter-spacing:0;}
         .attr-track{height:9px;border-radius:999px;background:var(--bg-base);border:1px solid var(--border);overflow:hidden;}
         .attr-bar{height:100%;border-radius:999px;transition:width .6s cubic-bezier(.4,0,.2,1);}
-        .attr-pp{text-align:right;font-weight:700;font-size:11px;}
+        .attr-pp{text-align:right;font-weight:700;font-size:10px;min-width:0;white-space:nowrap;}
         .card-tabs{display:flex;gap:5px;background:rgba(0,0,0,.28);border:1px solid rgba(255,255,255,.075);border-radius:11px;padding:4px;box-shadow:inset 0 1px 0 rgba(255,255,255,.025);}
         .card-tab{border:none;background:transparent;color:var(--text-muted);font-size:11px;font-weight:800;padding:6px 11px;border-radius:8px;cursor:pointer;letter-spacing:.02em;transition:all .18s;white-space:nowrap;}
         .card-tab:hover{color:var(--text-secondary);background:rgba(255,255,255,.035);}
@@ -667,30 +709,45 @@
         .history-toolbar{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;margin-bottom:10px;gap:10px;}
         .history-toolbar .card-tabs{min-width:0;overflow:hidden;}
         .history-toolbar .btn-add-trade{min-width:54px;max-width:72px;white-space:normal;line-height:1.15;padding:7px 10px;}
-        .trade-pager{display:grid;grid-template-columns:1fr 1fr;align-items:center;gap:8px;margin-top:12px;padding:10px;border-radius:14px;border:1px solid rgba(255,255,255,.07);background:linear-gradient(180deg,rgba(255,255,255,.035),rgba(255,255,255,.012));box-shadow:inset 0 1px 0 rgba(255,255,255,.035);min-width:0;}
-        .pager-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:38px;min-width:0;border-radius:11px;border:1px solid color-mix(in srgb,var(--player-color) 26%,rgba(255,255,255,.08));background:color-mix(in srgb,var(--player-color) 10%,rgba(10,10,14,.9));color:color-mix(in srgb,var(--player-color) 80%,#fff);font-size:11px;font-weight:850;cursor:pointer;transition:all .18s;padding:7px 10px;overflow:hidden;}
+        .trade-pager{display:grid;grid-template-columns:82px minmax(54px,1fr) 82px;align-items:center;gap:8px;margin-top:8px;padding:8px 10px;border-radius:14px;border:1px solid rgba(255,255,255,.07);background:linear-gradient(180deg,rgba(255,255,255,.03),rgba(255,255,255,.01));box-shadow:inset 0 1px 0 rgba(255,255,255,.035);width:100%;max-width:100%;box-sizing:border-box;overflow:hidden;min-width:0;}
+        .pager-btn{display:inline-flex;align-items:center;justify-content:center;gap:5px;min-height:34px;min-width:0;width:100%;max-width:none;border-radius:10px;border:1px solid color-mix(in srgb,var(--player-color) 22%,rgba(255,255,255,.08));background:color-mix(in srgb,var(--player-color) 8%,rgba(10,10,14,.9));color:color-mix(in srgb,var(--player-color) 74%,#fff);font-family:var(--serif-font);font-size:12px;font-weight:700;cursor:pointer;transition:all .18s;padding:6px 7px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;box-sizing:border-box;}
         .pager-btn.next{justify-self:end;}
         .pager-btn.prev{justify-self:start;}
         .pager-btn:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 10px 24px -16px color-mix(in srgb,var(--player-color) 70%,transparent);}
         .pager-btn:disabled{cursor:not-allowed;color:var(--text-muted);background:rgba(255,255,255,.025);border-color:rgba(255,255,255,.055);opacity:.58;}
-        .pager-status{grid-column:1 / -1;grid-row:1;text-align:center;min-width:0;}
-        .pager-btn.prev{grid-column:1;grid-row:2;justify-self:stretch;}
-        .pager-btn.next{grid-column:2;grid-row:2;justify-self:stretch;}
-        .pager-page{font-family:'JetBrains Mono','IBM Plex Mono',monospace;font-size:13px;font-weight:850;color:#fff;line-height:1.25;}
+        .pager-status{grid-column:2;grid-row:1;text-align:center;min-width:0;align-self:center;overflow:hidden;}
+        .pager-btn.prev{grid-column:1;grid-row:1;justify-self:stretch;}
+        .pager-btn.next{grid-column:3;grid-row:1;justify-self:stretch;}
+        .pager-page{font-family:var(--number-font);font-size:13px;font-weight:850;color:#fff;line-height:1.25;}
         .pager-total{font-size:10px;font-weight:700;color:var(--text-muted);line-height:1.35;}
-        .trend-badge{display:inline-flex;align-items:center;gap:6px;white-space:nowrap;min-width:0;}
+        .color-picker-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:16px;flex-wrap:wrap;}
+        .color-action-btn{border-radius:9px;padding:8px 15px;font-size:13px;font-weight:750;cursor:pointer;transition:all .18s;}
+        .color-action-reset{background:rgba(190,150,170,.09);border:1px solid rgba(190,150,170,.28);color:#d9c6ce;}
+        .color-action-reset:hover{background:rgba(190,150,170,.16);border-color:rgba(190,150,170,.46);color:#fff;}
+        .color-action-cancel{background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.075);color:var(--text-secondary);}
+        .color-action-cancel:hover{background:rgba(255,255,255,.06);border-color:rgba(190,150,170,.28);color:#fff;}
+        .color-apply-btn{background:linear-gradient(135deg,rgba(190,150,170,.34),rgba(118,98,105,.28));border:1px solid rgba(190,150,170,.42);color:#f2e9ec;padding:9px 16px;border-radius:9px;font-size:13px;font-weight:800;cursor:pointer;flex-shrink:0;box-shadow:0 10px 24px -18px rgba(190,150,170,.7);transition:all .18s;}
+        .color-apply-btn:hover{transform:translateY(-1px);border-color:rgba(214,179,122,.42);box-shadow:0 14px 28px -20px rgba(214,179,122,.8);}
+        .color-grid{display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:6px;width:100%;}
+        .color-swatch{width:100%;aspect-ratio:1;height:auto;border-radius:9px;border:1px solid rgba(255,255,255,.11);cursor:pointer;padding:0;transition:transform .12s,border-color .12s,box-shadow .12s,background .12s;box-sizing:border-box;}
+        .color-swatch.empty{background:linear-gradient(180deg,rgba(255,255,255,.028),rgba(255,255,255,.012));border-style:dashed;border-color:rgba(190,150,170,.26);}
+        .color-swatch.filled{box-shadow:inset 0 1px 0 rgba(255,255,255,.16),0 8px 18px -16px currentColor;}
+        .color-swatch:hover{transform:translateY(-1px);border-color:rgba(255,255,255,.42);}
+        .color-swatch.current{border:2px solid #fff;box-shadow:0 0 0 2px currentColor,0 0 14px color-mix(in srgb,currentColor 65%,transparent);}
+        .trend-badge{display:inline-flex;align-items:center;gap:0;white-space:nowrap;min-width:0;}
         .daily-change-value{justify-content:flex-end;white-space:normal;flex-wrap:wrap;line-height:1.45;text-align:right;max-width:190px;font-size:11px;}
-        .trend-arrow{width:16px;height:16px;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;background:currentColor;box-shadow:0 0 14px color-mix(in srgb,currentColor 24%,transparent);}
+        .trend-arrow{display:none!important;}
         .trend-arrow::before{content:'';width:0;height:0;border-left:4px solid transparent;border-right:4px solid transparent;}
         .trend-arrow.up::before{border-bottom:6px solid #06120d;transform:translateY(-1px);}
         .trend-arrow.down::before{border-top:6px solid #160607;transform:translateY(1px);}
         .trend-arrow.small{width:14px;height:14px;border-radius:5px;}
         .trend-arrow.small::before{border-left-width:3.5px;border-right-width:3.5px;}
         @media (max-width:640px){
-            .trade-pager{grid-template-columns:1fr 1fr;gap:8px;}
-            .pager-status{grid-column:1 / -1;grid-row:1;text-align:center;min-width:0;}
-            .pager-btn.prev{grid-column:1;grid-row:2;justify-self:stretch;}
-            .pager-btn.next{grid-column:2;grid-row:2;justify-self:stretch;}
+            .trade-pager{grid-template-columns:64px minmax(48px,1fr) 64px;gap:5px;padding:7px 8px;}
+            .pager-status{grid-column:2;grid-row:1;text-align:center;min-width:0;}
+            .pager-btn{max-width:none;min-height:32px;font-size:11px;padding:5px 5px;}
+            .pager-btn.prev{grid-column:1;grid-row:1;justify-self:end;}
+            .pager-btn.next{grid-column:3;grid-row:1;justify-self:start;}
         }
         .card-pane-attr{padding-top:2px;}
         .attr-sum{font-size:11px;color:var(--text-secondary);margin-bottom:9px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
@@ -699,15 +756,24 @@
 </head>
 <body class="p-4 md:p-8">
 <div id="mini-rankbar" class="mini-rankbar" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="回到排行榜">
-    <div class="mini-rankbar-inner" id="mini-rankbar-inner"></div>
+    <div class="mini-rankbar-inner" id="mini-rankbar-inner"><span class="mini-rank-item">1.
+            <span class="stats-dot" style="width:8px;height:8px;background:#5b6475;"></span>
+            <span class="mini-rank-name" title="川普">川普</span>
+            <span class="mono font-bold text-emerald-400">+16.96%</span></span><span class="mini-rank-item">2.
+            <span class="stats-dot" style="width:8px;height:8px;background:#dab061;"></span>
+            <span class="mini-rank-name" title="老黃乾兒子">老黃乾兒子</span>
+            <span class="mono font-bold text-emerald-400">+7.91%</span></span><span class="mini-rank-item">3.
+            <span class="stats-dot" style="width:8px;height:8px;background:#cabbbd;"></span>
+            <span class="mini-rank-name" title="朋友放鳥我 但是沒跟我說放我後面">朋友放鳥我</span>
+            <span class="mono font-bold text-red-400">-2.94%</span></span></div>
 </div>
 <div class="max-w-6xl mx-auto">
     <header class="text-center mb-10">
         <h1 class="text-4xl md:text-5xl font-bold mb-1 header-glow"><span style="color:#BFB8AF;">投資績效大賽</span></h1>
-        <p class="text-slate-400 mt-2 tracking-wide" id="player-names" style="color:#BFB8AF;">載入中...</p>
-        <div class="mt-5"><div class="countdown-badge"><span class="text-blue-300 font-semibold text-sm" style="color:#BFB8AF;">賽程倒數</span><span class="text-white font-bold ml-2 mono" id="countdown" style="color:#BFB8AF;">計算中...</span></div></div>
+        <p class="text-slate-400 mt-2 tracking-wide" id="player-names" style="color:#BFB8AF;">川普  /  朋友放鳥我  /  老黃乾兒子</p>
+        <div class="mt-5"><div class="countdown-badge"><span class="text-white font-bold mono" id="countdown">139:00:54:45</span></div></div>
         <div class="mt-4 top-meta-row" style="display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;">
-            <span id="system-status" class="status-pill status-loading">系統連線中...</span>
+            <span id="system-status" class="status-pill status-ok"><span class="live-dot"></span><span style="color:#BFB8AF;">下午11:05:14｜1 USD = 31.55 TWD｜下次刷新：6s</span></span>
             <div class="tools-menu-wrap">
                 <button onclick="toggleToolsMenu(event)" class="btn-update" style="font-size:11px;padding:5px 12px;">工具</button>
                 <div class="tools-menu" id="tools-menu">
@@ -719,11 +785,99 @@
             </div>
             <input type="file" id="backupFileInput" accept=".json,application/json" style="display:none;" onchange="importBackup(this)">
         </div>
-        <div class="mt-3" id="market-session-indicator" style="font-size:12px;"></div>
+        <div class="mt-3" id="market-session-indicator" style="font-size:12px;"><span style="color:var(--accent-green);font-weight:600;">盤中</span> ｜ <span style="color:var(--text-secondary);">11:05 ET (EDT (夏令))</span></div>
     </header>
     <section class="card p-6 mb-8">
         <h2 class="text-lg font-bold section-title mb-4 flex items-center gap-2"><span></span> 即時排名</h2>
-        <div id="leaderboard" class="flex flex-col gap-3"><div class="skeleton" style="height:62px;"></div><div class="skeleton" style="height:62px;"></div><div class="skeleton" style="height:62px;"></div></div>
+        <div id="leaderboard" class="flex flex-col gap-3"><div class="rank-card rank-1" style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+            <span class="player-strip" style="background:#5b6475;box-shadow:0 0 8px #5b647588;"></span>
+            <div class="rank-main">
+                <span class="rank-medal">1.</span>
+                <span class="rank-name font-bold" title="川普">川普</span>
+                <span class="rank-move flat" title="名次與昨日相同">—</span>
+            </div>
+            <div class="rank-metrics">
+                <div class="rank-metric">
+                    <div class="rank-metric-label">績效</div>
+                    <div class="rank-metric-value num-tick" data-live="rk-ret-0"><span class="mono font-bold text-emerald-400">+16.96%</span></div>
+                </div>
+                <div class="rank-metric">
+                    <div class="rank-metric-label">今日</div>
+                    <div class="rank-daily-value num-tick" data-live="rk-daily-0"><span class="trend-badge mono font-semibold" style="color:var(--accent-green);font-size:11px;"><span class="trend-arrow small up"></span>+$106.77 (+2.97%)</span></div>
+                </div>
+                <div class="rank-money-value num-tick" data-live="rk-dual-0">
+            <div class="mono font-bold text-white" style="font-size:14px;line-height:1.2;">NT$ 116,676</div>
+            <div class="mono" style="font-size:11px;color:var(--text-muted);line-height:1.3;">≈ $3,697.67</div>
+        </div>
+            </div>
+        </div><div class="rank-card rank-2" style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+            <span class="player-strip" style="background:#dab061;box-shadow:0 0 8px #dab06188;"></span>
+            <div class="rank-main">
+                <span class="rank-medal">2.</span>
+                <span class="rank-name font-bold" title="老黃乾兒子">老黃乾兒子</span>
+                <span class="rank-move flat" title="名次與昨日相同">—</span>
+            </div>
+            <div class="rank-metrics">
+                <div class="rank-metric">
+                    <div class="rank-metric-label">績效</div>
+                    <div class="rank-metric-value" data-live="rk-ret-1"><span class="mono font-bold text-emerald-400">+7.91%</span></div>
+                </div>
+                <div class="rank-metric">
+                    <div class="rank-metric-label">今日</div>
+                    <div class="rank-daily-value" data-live="rk-daily-1"><span class="trend-badge mono font-semibold" style="color:#ef4444;font-size:11px;"><span class="trend-arrow small down"></span>-NT$ 820 (-0.75%)</span></div>
+                </div>
+                <div class="rank-money-value" data-live="rk-dual-1">
+            <div class="mono font-bold text-white" style="font-size:14px;line-height:1.2;">NT$ 107,910</div>
+            <div class="mono" style="font-size:11px;color:var(--text-muted);line-height:1.3;">≈ $3,419.87</div>
+        </div>
+            </div>
+        </div><div class="rank-card rank-3" style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+            <span class="player-strip" style="background:#cabbbd;box-shadow:0 0 8px #cabbbd88;"></span>
+            <div class="rank-main">
+                <span class="rank-medal">3.</span>
+                <span class="rank-name font-bold" title="朋友放鳥我 但是沒跟我說放我後面">朋友放鳥我</span>
+                <span class="rank-move flat" title="名次與昨日相同">—</span>
+            </div>
+            <div class="rank-metrics">
+                <div class="rank-metric">
+                    <div class="rank-metric-label">績效</div>
+                    <div class="rank-metric-value num-tick" data-live="rk-ret-2"><span class="mono font-bold text-red-400">-2.94%</span></div>
+                </div>
+                <div class="rank-metric">
+                    <div class="rank-metric-label">今日</div>
+                    <div class="rank-daily-value num-tick" data-live="rk-daily-2"><span class="trend-badge mono font-semibold" style="color:#ef4444;font-size:11px;"><span class="trend-arrow small down"></span>-NT$ 525 (-0.54%)</span></div>
+                </div>
+                <div class="rank-money-value num-tick" data-live="rk-dual-2">
+            <div class="mono font-bold text-white" style="font-size:14px;line-height:1.2;">NT$ 97,061</div>
+            <div class="mono" style="font-size:11px;color:var(--text-muted);line-height:1.3;">≈ $3,076.05</div>
+        </div>
+            </div>
+        </div><div id="gapbar-wrap"><div class="gap-bar-wrap">
+        <div class="gap-bar-top">
+            <span>淨盈利佔比</span>
+            <span class="mono" style="color:var(--text-primary);font-weight:700;">NT$ 24,828</span>
+        </div>
+        <div class="gap-bar-track">
+            <div class="gap-bar-seg" title="川普 68.1%" style="width:68.14%;background:linear-gradient(90deg,#5b6475bb,#5b6475);"></div><div class="gap-bar-seg" title="老黃乾兒子 31.9%" style="width:31.86%;background:linear-gradient(90deg,#dab061bb,#dab061);"></div>
+        </div>
+        <div class="gap-bar-legend"><span class="gap-bar-legend-item" title="淨值 - 本金">
+            <span class="gap-bar-dot" style="background:#5b6475;box-shadow:0 0 8px #5b647588;"></span>
+            <b style="color:#5b6475;" title="川普">川普</b>
+            <span class="mono" style="color:var(--text-primary);font-weight:700;">68.1%</span>
+            <span class="mono" style="color:var(--accent-green);">+NT$ 16,918</span>
+        </span><span class="gap-bar-legend-item" title="淨值 - 本金">
+            <span class="gap-bar-dot" style="background:#dab061;box-shadow:0 0 8px #dab06188;"></span>
+            <b style="color:#dab061;" title="老黃乾兒子">老黃乾兒子</b>
+            <span class="mono" style="color:var(--text-primary);font-weight:700;">31.9%</span>
+            <span class="mono" style="color:var(--accent-green);">+NT$ 7,910</span>
+        </span><span class="gap-bar-legend-item" title="淨值 - 本金">
+            <span class="gap-bar-dot" style="background:#cabbbd;box-shadow:0 0 8px #cabbbd88;"></span>
+            <b style="color:#cabbbd;" title="朋友放鳥我 但是沒跟我說放我後面">朋友放鳥我</b>
+            <span class="mono" style="color:var(--text-primary);font-weight:700;">0.0%</span>
+            <span class="mono" style="color:#ef4444;">-NT$ 2,939</span>
+        </span></div>
+        
+    </div></div></div>
     </section>
 
     <section class="card p-6 mb-8" id="chart-market-panel">
@@ -734,20 +888,95 @@
             </h2>
             <div class="adv-nav">
                 <button class="adv-arrow" onclick="cmGoto(-1)" title="上一頁">‹</button>
-                <div class="adv-dots" id="cm-dots"></div>
+                <div class="adv-dots" id="cm-dots"><button class="adv-dot active" onclick="cmGotoIdx(0)" title=" 投資組合績效曲線"></button><button class="adv-dot " onclick="cmGotoIdx(1)" title=" 市場"></button></div>
                 <button class="adv-arrow" onclick="cmGoto(1)" title="下一頁">›</button>
             </div>
         </div>
-        <div id="cm-page-chart">
+        <div id="cm-page-chart" class="adv-fade">
             <div class="text-xs text-slate-500" id="snapshot-window-hint" style="display:none;font-style:italic;margin-bottom:10px;"></div>
             <div id="performance-mobile-legend" class="performance-mobile-legend"></div>
             <div class="performance-chart-wrap" style="height:380px;position:relative;">
-                <canvas id="performance-chart"></canvas>
+                <canvas id="performance-chart" width="1145" height="380" style="display: block; box-sizing: border-box; height: 380px; width: 1145px;"></canvas>
             </div>
-            <div id="chart-status" class="text-xs text-slate-500 text-center mt-3" style="font-style:italic;">資料載入中...</div>
+            <div id="chart-status" class="text-xs text-slate-500 text-center mt-3" style="font-style:italic;"></div>
         </div>
         <div id="cm-page-market" style="display:none;">
-            <div id="benchmarks" class="flex flex-col gap-2"></div>
+            <div id="benchmarks" class="flex flex-col gap-2"><div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:6px;">
+        <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider">市場 <span class="text-slate-600 font-normal normal-case">（自 2026-05-04 起）</span></div>
+        <div id="market-countdown" class="text-xs mono" style="color:var(--text-secondary);"><span style="color:var(--text-secondary);">盤中</span> ｜ <span style="color:var(--accent-amber);">距收盤</span> <span class="mono font-bold" style="color:#fff;">4h 54m 46s</span></div>
+    </div><div class="benchmark-card">
+            <div style="display:flex;align-items:center;gap:10px;">
+                <button onclick="event.stopPropagation();openColorPicker('index','twii','#6e767a')" title="變更顏色" style="width:14px;height:14px;border-radius:50%;background:#6e767a;border:1.5px solid rgba(255,255,255,.4);cursor:pointer;padding:0;flex-shrink:0;"></button>
+                <div>
+                    <div class="font-semibold text-white text-sm">加權指數</div>
+                    <div class="text-xs text-slate-500">台股・基準 2026-05-04</div>
+                </div>
+            </div>
+            <div class="text-right">
+                <div class="mono font-bold text-white text-sm">45,877</div>
+                <div class="trend-badge text-xs mono font-semibold text-emerald-400"><span class="trend-arrow small up"></span>+12.71%</div>
+            </div>
+        </div><div class="benchmark-card">
+            <div style="display:flex;align-items:center;gap:10px;">
+                <button onclick="event.stopPropagation();openColorPicker('index','ndx','#0a1d4b')" title="變更顏色" style="width:14px;height:14px;border-radius:50%;background:#0a1d4b;border:1.5px solid rgba(255,255,255,.4);cursor:pointer;padding:0;flex-shrink:0;"></button>
+                <div>
+                    <div class="font-semibold text-white text-sm">NASDAQ 100</div>
+                    <div class="text-xs text-slate-500">美股・科技・基準 2026-05-04</div>
+                </div>
+            </div>
+            <div class="text-right">
+                <div class="mono font-bold text-white text-sm">30,107</div>
+                <div class="trend-badge text-xs mono font-semibold text-emerald-400"><span class="trend-arrow small up"></span>+8.88%</div>
+            </div>
+        </div><div class="benchmark-card">
+            <div style="display:flex;align-items:center;gap:10px;">
+                <button onclick="event.stopPropagation();openColorPicker('index','dji','#b61e38')" title="變更顏色" style="width:14px;height:14px;border-radius:50%;background:#b61e38;border:1.5px solid rgba(255,255,255,.4);cursor:pointer;padding:0;flex-shrink:0;"></button>
+                <div>
+                    <div class="font-semibold text-white text-sm">DOW</div>
+                    <div class="text-xs text-slate-500">美股・道瓊・基準 2026-05-04</div>
+                </div>
+            </div>
+            <div class="text-right">
+                <div class="mono font-bold text-white text-sm">52,170</div>
+                <div class="trend-badge text-xs mono font-semibold text-emerald-400"><span class="trend-arrow small up"></span>+6.60%</div>
+            </div>
+        </div><div class="benchmark-card">
+            <div style="display:flex;align-items:center;gap:10px;">
+                <button onclick="event.stopPropagation();openColorPicker('index','sp500','#efe5d2')" title="變更顏色" style="width:14px;height:14px;border-radius:50%;background:#efe5d2;border:1.5px solid rgba(255,255,255,.4);cursor:pointer;padding:0;flex-shrink:0;"></button>
+                <div>
+                    <div class="font-semibold text-white text-sm">S&amp;P 500</div>
+                    <div class="text-xs text-slate-500">美股・標普・基準 2026-05-04</div>
+                </div>
+            </div>
+            <div class="text-right">
+                <div class="mono font-bold text-white text-sm">7,513.32</div>
+                <div class="trend-badge text-xs mono font-semibold text-emerald-400"><span class="trend-arrow small up"></span>+4.34%</div>
+            </div>
+        </div><div class="benchmark-card">
+            <div style="display:flex;align-items:center;gap:10px;">
+                <button onclick="event.stopPropagation();openColorPicker('index','gold','#c28d39')" title="變更顏色" style="width:14px;height:14px;border-radius:50%;background:#c28d39;border:1.5px solid rgba(255,255,255,.4);cursor:pointer;padding:0;flex-shrink:0;"></button>
+                <div>
+                    <div class="font-semibold text-white text-sm">黃金</div>
+                    <div class="text-xs text-slate-500">GC=F・期貨・基準 2026-05-04</div>
+                </div>
+            </div>
+            <div class="text-right">
+                <div class="mono font-bold text-white text-sm">4,379.60</div>
+                <div class="trend-badge text-xs mono font-semibold text-red-400"><span class="trend-arrow small down"></span>-3.10%</div>
+            </div>
+        </div><div class="benchmark-card">
+            <div style="display:flex;align-items:center;gap:10px;">
+                <button onclick="event.stopPropagation();openColorPicker('index','btc','#d4564c')" title="變更顏色" style="width:14px;height:14px;border-radius:50%;background:#d4564c;border:1.5px solid rgba(255,255,255,.4);cursor:pointer;padding:0;flex-shrink:0;"></button>
+                <div>
+                    <div class="font-semibold text-white text-sm">BTC</div>
+                    <div class="text-xs text-slate-500">比特幣・基準 2026-05-03</div>
+                </div>
+            </div>
+            <div class="text-right">
+                <div class="mono font-bold text-white text-sm">65,087</div>
+                <div class="trend-badge text-xs mono font-semibold text-red-400"><span class="trend-arrow small down"></span>-17.13%</div>
+            </div>
+        </div></div>
         </div>
     </section>
 
@@ -759,13 +988,226 @@
             </h2>
             <div class="adv-nav">
                 <button class="adv-arrow" onclick="advGoto(-1)" title="上一頁">‹</button>
-                <div class="adv-dots" id="adv-dots"></div>
+                <div class="adv-dots" id="adv-dots"><button class="adv-dot active" onclick="advGotoIdx(0)" title=" 王座爭奪戰"></button><button class="adv-dot " onclick="advGotoIdx(1)" title=" 撞股對決"></button><button class="adv-dot " onclick="advGotoIdx(2)" title=" 水下回撤"></button><button class="adv-dot " onclick="advGotoIdx(3)" title=" 比賽回放"></button></div>
                 <button class="adv-arrow" onclick="advGoto(1)" title="下一頁">›</button>
             </div>
         </div>
-        <div id="adv-body" class="adv-body"><div style="display:flex;flex-direction:column;gap:10px;"><div class="skeleton" style="height:88px;"></div><div class="skeleton" style="height:42px;"></div><div class="skeleton" style="height:42px;"></div><div class="skeleton" style="height:42px;"></div></div></div>
+        <div id="adv-body" class="adv-body"><div class="throne-hero">
+            <div class="throne-crown"></div>
+            <div class="font-bold text-white" style="font-size:20px;">
+                <span class="stats-dot" style="display:inline-block;background:#5b6475;box-shadow:0 0 8px #5b647566;margin-right:6px;vertical-align:middle;"></span><span title="川普">川普</span>
+            </div>
+            <div class="text-xs" style="color:var(--accent-cyan);">現任王者 · 已連霸 <span class="mono font-bold">3</span> 個交易日</div>
+        </div>
+        <div style="margin-bottom:14px;"><div class="throne-row">
+                <span class="stats-dot" style="background:#5b6475;box-shadow:0 0 8px #5b647566;"></span>
+                <span class="font-bold text-white" style="font-size:13px;min-width:5.5em;">川普 </span>
+                <div class="throne-bar-wrap"><div class="throne-bar" style="width:53.1%;background:#5b6475;box-shadow:0 0 8px #5b647555;"></div></div>
+                <span class="mono text-white font-bold" style="font-size:13px;min-width:3.2em;text-align:right;">17 天</span>
+                <span class="mono" style="font-size:11px;color:var(--text-muted);min-width:6.5em;text-align:right;">連霸最長 10 天 · 登基 5 次</span>
+            </div><div class="throne-row">
+                <span class="stats-dot" style="background:#dab061;box-shadow:0 0 8px #dab06166;"></span>
+                <span class="font-bold text-white" style="font-size:13px;min-width:5.5em;">老黃乾兒子</span>
+                <div class="throne-bar-wrap"><div class="throne-bar" style="width:40.6%;background:#dab061;box-shadow:0 0 8px #dab06155;"></div></div>
+                <span class="mono text-white font-bold" style="font-size:13px;min-width:3.2em;text-align:right;">13 天</span>
+                <span class="mono" style="font-size:11px;color:var(--text-muted);min-width:6.5em;text-align:right;">連霸最長 11 天 · 登基 3 次</span>
+            </div><div class="throne-row">
+                <span class="stats-dot" style="background:#cabbbd;box-shadow:0 0 8px #cabbbd66;"></span>
+                <span class="font-bold text-white" style="font-size:13px;min-width:5.5em;">朋友放鳥我 但是沒跟我說放我後面</span>
+                <div class="throne-bar-wrap"><div class="throne-bar" style="width:6.3%;background:#cabbbd;box-shadow:0 0 8px #cabbbd55;"></div></div>
+                <span class="mono text-white font-bold" style="font-size:13px;min-width:3.2em;text-align:right;">2 天</span>
+                <span class="mono" style="font-size:11px;color:var(--text-muted);min-width:6.5em;text-align:right;">連霸最長 2 天 · 登基 1 次</span>
+            </div></div>
+        <div class="stats-heatmap-title">王座易主時間軸（共 9 次 · 統計 32 個交易日）</div>
+        <div class="throne-timeline" style="margin-top:7px;"><div class="throne-tl-item">
+            <span class="mono" style="color:var(--accent-cyan);min-width:3.6em;">6/15</span>
+            <span><span style="color:#5b6475;font-weight:700;" title="川普">川普</span> 從 <span style="color:var(--text-muted);" title="老黃乾兒子">老黃乾兒子</span> 手中奪下王座</span>
+        </div><div class="throne-tl-item">
+            <span class="mono" style="color:var(--accent-cyan);min-width:3.6em;">6/12</span>
+            <span><span style="color:#dab061;font-weight:700;" title="老黃乾兒子">老黃乾兒子</span> 從 <span style="color:var(--text-muted);" title="川普">川普</span> 手中奪下王座</span>
+        </div><div class="throne-tl-item">
+            <span class="mono" style="color:var(--accent-cyan);min-width:3.6em;">6/10</span>
+            <span><span style="color:#5b6475;font-weight:700;" title="川普">川普</span> 從 <span style="color:var(--text-muted);" title="老黃乾兒子">老黃乾兒子</span> 手中奪下王座</span>
+        </div><div class="throne-tl-item">
+            <span class="mono" style="color:var(--accent-cyan);min-width:3.6em;">6/9</span>
+            <span><span style="color:#dab061;font-weight:700;" title="老黃乾兒子">老黃乾兒子</span> 從 <span style="color:var(--text-muted);" title="川普">川普</span> 手中奪下王座</span>
+        </div><div class="throne-tl-item">
+            <span class="mono" style="color:var(--accent-cyan);min-width:3.6em;">5/26</span>
+            <span><span style="color:#5b6475;font-weight:700;" title="川普">川普</span> 從 <span style="color:var(--text-muted);" title="朋友放鳥我 但是沒跟我說放我後面">朋友放鳥我</span> 手中奪下王座</span>
+        </div><div class="throne-tl-item">
+            <span class="mono" style="color:var(--accent-cyan);min-width:3.6em;">5/22</span>
+            <span><span style="color:#cabbbd;font-weight:700;" title="朋友放鳥我 但是沒跟我說放我後面">朋友放鳥我</span> 從 <span style="color:var(--text-muted);" title="川普">川普</span> 手中奪下王座</span>
+        </div><div class="throne-tl-item">
+            <span class="mono" style="color:var(--accent-cyan);min-width:3.6em;">5/21</span>
+            <span><span style="color:#5b6475;font-weight:700;" title="川普">川普</span> 從 <span style="color:var(--text-muted);" title="老黃乾兒子">老黃乾兒子</span> 手中奪下王座</span>
+        </div><div class="throne-tl-item">
+            <span class="mono" style="color:var(--accent-cyan);min-width:3.6em;">5/6</span>
+            <span><span style="color:#dab061;font-weight:700;" title="老黃乾兒子">老黃乾兒子</span> 從 <span style="color:var(--text-muted);" title="川普">川普</span> 手中奪下王座</span>
+        </div><div class="throne-tl-item">
+            <span class="mono" style="color:var(--accent-cyan);min-width:3.6em;">5/5</span>
+            <span><span style="color:#5b6475;font-weight:700;" title="川普">川普</span> 率先登上王座</span>
+        </div></div></div>
     </section>
-    <section class="grid grid-cols-1 md:grid-cols-3 gap-5" id="portfolios"><div class="skeleton" style="height:430px;"></div><div class="skeleton" style="height:430px;"></div><div class="skeleton" style="height:430px;"></div></section>
+    <section class="grid grid-cols-1 md:grid-cols-3 gap-5" id="portfolios"><div class="portfolio-card" id="pcard-川普" style="--player-color:#5b6475;">
+            <div class="pcard-accent" style="background:linear-gradient(90deg,#5b6475,transparent 70%);"></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+                <div style="display:flex;align-items:center;gap:6px;">
+                    <button onclick="openColorPicker('player','川普','#5b6475')" title="變更曲線顏色" style="width:18px;height:18px;border-radius:50%;background:#5b6475;border:2px solid rgba(255,255,255,.5);cursor:pointer;padding:0;flex-shrink:0;box-shadow:0 0 8px #5b647566;"></button>
+                    <h3 class="text-lg font-bold text-white" id="name-川普">川普</h3>
+                    <button onclick="editName('川普')" title="修改名稱" class="icon-edit-btn"><span class="ui-icon i-edit"></span></button>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;"><span class="currency-badge">USD</span></div>
+            </div>
+            <div class="net-value-box" style="margin-bottom:16px;">
+                <div class="net-value-inner">
+                    <div class="net-value-label">帳戶淨值</div>
+                    <div class="net-value-main text-3xl" id="netval-川普" data-netval="3697.6699029968263" data-cur="USD"><span class="mono font-bold text-white">$3,697.67</span></div>
+                    <div class="net-value-change num-tick" data-live="retpct-0"><span class="trend-badge text-xs mono font-semibold text-emerald-400">+16.96%</span></div>
+                </div>
+            </div>
+            <div class="hold-lock-toolbar">
+                <div class="hold-lock-title">
+                    <span class="hold-lock-label">資產與持倉</span>
+                    <span class="hold-lock-count">2/20</span>
+                </div>
+                <div class="hold-lock-actions">
+                    <button id="lockbtn-川普" class="btn-lock-icon locked" title="已鎖定 · 點擊輸入密碼解鎖" aria-label="已鎖定 · 點擊輸入密碼解鎖" onclick="toggleLock('川普')"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="9" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg></button>
+                    <button onclick="requestEdit('川普')" class="btn-update">更改部位</button>
+                </div>
+            </div>
+            <div class="lock-zone locked" data-player="川普">
+                <div class="lock-content lock-content-empty">
+                        <div class="lock-grid-lines"></div>
+                        <div class="lock-sweep"></div>
+                        <div class="lock-corner tl"></div>
+                        <div class="lock-corner br"></div>
+                        <div class="lock-vault-header">
+                            <span>Private Ledger</span>
+                            <span class="lock-vault-status">Locked</span>
+                        </div>
+                        <div class="lock-preview">
+                            <div class="lock-preview-row"><span>初始本金</span><span></span><span>SAFE</span></div>
+                            <div class="lock-preview-row"><span>淨值損益</span><span></span><span>SAFE</span></div>
+                            <div class="lock-preview-row"><span>STK 持倉</span><span></span><span>SAFE</span></div>
+                            <div class="lock-preview-row"><span>CASH</span><span></span><span>SAFE</span></div>
+                        </div>
+                    </div>
+                <div class="lock-overlay" onclick="openLockModal('川普','unlock')">
+                    <div class="lock-overlay-panel">
+                        <div class="lock-badge"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="9" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg></div>
+                        <div class="lock-kicker">Protected Ledger</div>
+                        <div class="lock-overlay-text">資產與持倉已保護</div>
+                        <div class="lock-overlay-sub">解鎖後顯示本金、損益與持股明細</div>
+                    </div>
+                </div>
+            </div>
+        </div><div class="portfolio-card" id="pcard-朋友放鳥我 但是沒跟我說放我後面" style="--player-color:#cabbbd;">
+            <div class="pcard-accent" style="background:linear-gradient(90deg,#cabbbd,transparent 70%);"></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+                <div style="display:flex;align-items:center;gap:6px;">
+                    <button onclick="openColorPicker('player','朋友放鳥我 但是沒跟我說放我後面','#cabbbd')" title="變更曲線顏色" style="width:18px;height:18px;border-radius:50%;background:#cabbbd;border:2px solid rgba(255,255,255,.5);cursor:pointer;padding:0;flex-shrink:0;box-shadow:0 0 8px #cabbbd66;"></button>
+                    <h3 class="text-lg font-bold text-white" id="name-朋友放鳥我 但是沒跟我說放我後面">朋友放鳥我 但是沒跟我說放我後面</h3>
+                    <button onclick="editName('朋友放鳥我 但是沒跟我說放我後面')" title="修改名稱" class="icon-edit-btn"><span class="ui-icon i-edit"></span></button>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;"><span class="currency-badge">TWD</span></div>
+            </div>
+            <div class="net-value-box" style="margin-bottom:16px;">
+                <div class="net-value-inner">
+                    <div class="net-value-label">帳戶淨值</div>
+                    <div class="net-value-main text-3xl" id="netval-朋友放鳥我 但是沒跟我說放我後面" data-netval="97061.05043331256" data-cur="TWD"><span class="mono font-bold text-white">NT$ 97,061</span></div>
+                    <div class="net-value-change num-tick" data-live="retpct-1"><span class="trend-badge text-xs mono font-semibold text-red-400">-2.94%</span></div>
+                </div>
+            </div>
+            <div class="hold-lock-toolbar">
+                <div class="hold-lock-title">
+                    <span class="hold-lock-label">資產與持倉</span>
+                    <span class="hold-lock-count">1/20</span>
+                </div>
+                <div class="hold-lock-actions">
+                    <button id="lockbtn-朋友放鳥我 但是沒跟我說放我後面" class="btn-lock-icon locked" title="已鎖定 · 點擊輸入密碼解鎖" aria-label="已鎖定 · 點擊輸入密碼解鎖" onclick="toggleLock('朋友放鳥我 但是沒跟我說放我後面')"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="9" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg></button>
+                    <button onclick="requestEdit('朋友放鳥我 但是沒跟我說放我後面')" class="btn-update">更改部位</button>
+                </div>
+            </div>
+            <div class="lock-zone locked" data-player="朋友放鳥我 但是沒跟我說放我後面">
+                <div class="lock-content lock-content-empty">
+                        <div class="lock-grid-lines"></div>
+                        <div class="lock-sweep"></div>
+                        <div class="lock-corner tl"></div>
+                        <div class="lock-corner br"></div>
+                        <div class="lock-vault-header">
+                            <span>Private Ledger</span>
+                            <span class="lock-vault-status">Locked</span>
+                        </div>
+                        <div class="lock-preview">
+                            <div class="lock-preview-row"><span>初始本金</span><span></span><span>SAFE</span></div>
+                            <div class="lock-preview-row"><span>淨值損益</span><span></span><span>SAFE</span></div>
+                            <div class="lock-preview-row"><span>STK 持倉</span><span></span><span>SAFE</span></div>
+                            <div class="lock-preview-row"><span>CASH</span><span></span><span>SAFE</span></div>
+                        </div>
+                    </div>
+                <div class="lock-overlay" onclick="openLockModal('朋友放鳥我 但是沒跟我說放我後面','unlock')">
+                    <div class="lock-overlay-panel">
+                        <div class="lock-badge"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="9" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg></div>
+                        <div class="lock-kicker">Protected Ledger</div>
+                        <div class="lock-overlay-text">資產與持倉已保護</div>
+                        <div class="lock-overlay-sub">解鎖後顯示本金、損益與持股明細</div>
+                    </div>
+                </div>
+            </div>
+        </div><div class="portfolio-card" id="pcard-老黃乾兒子" style="--player-color:#dab061;">
+            <div class="pcard-accent" style="background:linear-gradient(90deg,#dab061,transparent 70%);"></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+                <div style="display:flex;align-items:center;gap:6px;">
+                    <button onclick="openColorPicker('player','老黃乾兒子','#dab061')" title="變更曲線顏色" style="width:18px;height:18px;border-radius:50%;background:#dab061;border:2px solid rgba(255,255,255,.5);cursor:pointer;padding:0;flex-shrink:0;box-shadow:0 0 8px #dab06166;"></button>
+                    <h3 class="text-lg font-bold text-white" id="name-老黃乾兒子">老黃乾兒子</h3>
+                    <button onclick="editName('老黃乾兒子')" title="修改名稱" class="icon-edit-btn"><span class="ui-icon i-edit"></span></button>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;"><span class="currency-badge">TWD</span></div>
+            </div>
+            <div class="net-value-box" style="margin-bottom:16px;">
+                <div class="net-value-inner">
+                    <div class="net-value-label">帳戶淨值</div>
+                    <div class="net-value-main text-3xl" id="netval-老黃乾兒子" data-netval="107910" data-cur="TWD"><span class="mono font-bold text-white">NT$ 107,910</span></div>
+                    <div class="net-value-change" data-live="retpct-2"><span class="trend-badge text-xs mono font-semibold text-emerald-400">+7.91%</span></div>
+                </div>
+            </div>
+            <div class="hold-lock-toolbar">
+                <div class="hold-lock-title">
+                    <span class="hold-lock-label">資產與持倉</span>
+                    <span class="hold-lock-count">3/20</span>
+                </div>
+                <div class="hold-lock-actions">
+                    <button id="lockbtn-老黃乾兒子" class="btn-lock-icon locked" title="已鎖定 · 點擊輸入密碼解鎖" aria-label="已鎖定 · 點擊輸入密碼解鎖" onclick="toggleLock('老黃乾兒子')"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="9" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg></button>
+                    <button onclick="requestEdit('老黃乾兒子')" class="btn-update">更改部位</button>
+                </div>
+            </div>
+            <div class="lock-zone locked" data-player="老黃乾兒子">
+                <div class="lock-content lock-content-empty">
+                        <div class="lock-grid-lines"></div>
+                        <div class="lock-sweep"></div>
+                        <div class="lock-corner tl"></div>
+                        <div class="lock-corner br"></div>
+                        <div class="lock-vault-header">
+                            <span>Private Ledger</span>
+                            <span class="lock-vault-status">Locked</span>
+                        </div>
+                        <div class="lock-preview">
+                            <div class="lock-preview-row"><span>初始本金</span><span></span><span>SAFE</span></div>
+                            <div class="lock-preview-row"><span>淨值損益</span><span></span><span>SAFE</span></div>
+                            <div class="lock-preview-row"><span>STK 持倉</span><span></span><span>SAFE</span></div>
+                            <div class="lock-preview-row"><span>CASH</span><span></span><span>SAFE</span></div>
+                        </div>
+                    </div>
+                <div class="lock-overlay" onclick="openLockModal('老黃乾兒子','unlock')">
+                    <div class="lock-overlay-panel">
+                        <div class="lock-badge"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="9" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg></div>
+                        <div class="lock-kicker">Protected Ledger</div>
+                        <div class="lock-overlay-text">資產與持倉已保護</div>
+                        <div class="lock-overlay-sub">解鎖後顯示本金、損益與持股明細</div>
+                    </div>
+                </div>
+            </div>
+        </div></section>
 
     <section class="card p-6 mt-8" id="poker-section">
         <div class="poker-head">
@@ -785,35 +1227,81 @@
             <div class="poker-chart-card">
                 <div class="poker-card-title">
                     <span>累積損益曲線</span>
-                    <span class="mono" id="poker-record-count">0 筆</span>
+                    <span class="mono" id="poker-record-count">10 筆</span>
                 </div>
-                <div class="poker-chart-wrap"><canvas id="poker-chart"></canvas></div>
-                <div id="poker-chart-status" class="poker-chart-status">尚無紀錄</div>
+                <div class="poker-chart-wrap"><canvas id="poker-chart" width="685" height="230" style="display: block; box-sizing: border-box; height: 230px; width: 685px;"></canvas></div>
+                <div id="poker-chart-status" class="poker-chart-status">6/14 收盤累積 +NT$ 220</div>
             </div>
             <div class="poker-month-card">
-                <div class="poker-card-title"><span>月度損益</span><span class="mono" id="poker-month-count">0 月</span></div>
+                <div class="poker-card-title"><span>月度損益</span><span class="mono" id="poker-month-count">2 月</span></div>
                 <div class="poker-metrics">
                     <div class="poker-metric">
                         <div class="poker-metric-label">本月</div>
-                        <div class="poker-metric-value mono" id="poker-this-month">NT$ 0</div>
+                        <div class="poker-metric-value mono" id="poker-this-month" style="color: var(--accent-green);">+NT$ 1,220</div>
                     </div>
                     <div class="poker-metric">
                         <div class="poker-metric-label">最佳月</div>
-                        <div class="poker-metric-value mono" id="poker-best-month">--</div>
+                        <div class="poker-metric-value mono" id="poker-best-month" style="color: var(--accent-green);">26/6月 +NT$ 1,220</div>
                     </div>
                     <div class="poker-metric">
                         <div class="poker-metric-label">最差月</div>
-                        <div class="poker-metric-value mono" id="poker-worst-month">--</div>
+                        <div class="poker-metric-value mono" id="poker-worst-month" style="color: var(--accent-red);">26/5月 -NT$ 1,000</div>
                     </div>
                 </div>
-                <div id="poker-months" class="poker-months"><div style="color:var(--text-muted);font-size:12px;">尚無月度資料</div></div>
+                <div id="poker-months" class="poker-months"><div class="poker-month-cell loss">
+                <div class="poker-month-label">26/5月</div>
+                <div class="poker-month-value mono" style="color:var(--accent-red)">-NT$ 1,000</div>
+            </div><div class="poker-month-cell win">
+                <div class="poker-month-label">26/6月</div>
+                <div class="poker-month-value mono" style="color:var(--accent-green)">+NT$ 1,220</div>
+            </div></div>
             </div>
         </div>
         <div class="poker-record-title">金額紀錄</div>
-        <div id="poker-records"></div>
+        <div id="poker-records" class="poker-record-grid"><div class="poker-record-row win">
+            <span class="poker-record-date">2026-06-14</span>
+            <span class="poker-record-amount mono" style="color:var(--accent-green)">+NT$ 1,300</span>
+            <button class="btn-del" onclick="deletePokerRecord('-Ov5xHt2CN1rHK0PtkMZ')" title="刪除">✕</button>
+        </div><div class="poker-record-row loss">
+            <span class="poker-record-date">2026-06-06</span>
+            <span class="poker-record-amount mono" style="color:var(--accent-red)">-NT$ 500</span>
+            <button class="btn-del" onclick="deletePokerRecord('-OuTRHnJI_FA_fTxa4KN')" title="刪除">✕</button>
+        </div><div class="poker-record-row win">
+            <span class="poker-record-date">2026-06-05</span>
+            <span class="poker-record-amount mono" style="color:var(--accent-green)">+NT$ 420</span>
+            <button class="btn-del" onclick="deletePokerRecord('-OuNc6w_pZ-g1ZF31lSE')" title="刪除">✕</button>
+        </div><div class="poker-record-row loss">
+            <span class="poker-record-date">2026-05-23</span>
+            <span class="poker-record-amount mono" style="color:var(--accent-red)">-NT$ 4,400</span>
+            <button class="btn-del" onclick="deletePokerRecord('-OtJe28TQwcoCJICr89M')" title="刪除">✕</button>
+        </div><div class="poker-record-row win">
+            <span class="poker-record-date">2026-05-16</span>
+            <span class="poker-record-amount mono" style="color:var(--accent-green)">+NT$ 200</span>
+            <button class="btn-del" onclick="deletePokerRecord('-OslgWwvx_I3ut69i0zj')" title="刪除">✕</button>
+        </div><div class="poker-record-row win">
+            <span class="poker-record-date">2026-05-15</span>
+            <span class="poker-record-amount mono" style="color:var(--accent-green)">+NT$ 100</span>
+            <button class="btn-del" onclick="deletePokerRecord('-OsgGWldEhyB-7odWdm5')" title="刪除">✕</button>
+        </div><div class="poker-record-row win">
+            <span class="poker-record-date">2026-05-14</span>
+            <span class="poker-record-amount mono" style="color:var(--accent-green)">+NT$ 500</span>
+            <button class="btn-del" onclick="deletePokerRecord('-OsbFhN0cnxN0uAw31fo')" title="刪除">✕</button>
+        </div><div class="poker-record-row loss">
+            <span class="poker-record-date">2026-05-13</span>
+            <span class="poker-record-amount mono" style="color:var(--accent-red)">-NT$ 1,200</span>
+            <button class="btn-del" onclick="deletePokerRecord('-OsWl-AoinkOFsuTOLXf')" title="刪除">✕</button>
+        </div><div class="poker-record-row win">
+            <span class="poker-record-date">2026-05-12</span>
+            <span class="poker-record-amount mono" style="color:var(--accent-green)">+NT$ 2,300</span>
+            <button class="btn-del" onclick="deletePokerRecord('-OsRfc4sa5_Prmlte30k')" title="刪除">✕</button>
+        </div><div class="poker-record-row win">
+            <span class="poker-record-date">2026-05-07</span>
+            <span class="poker-record-amount mono" style="color:var(--accent-green)">+NT$ 1,500</span>
+            <button class="btn-del" onclick="deletePokerRecord('-Os2-QOavYikqawXjfgv')" title="刪除">✕</button>
+        </div></div>
         <div id="poker-total" class="poker-total-row">
             <span class="text-slate-400 font-semibold">生涯總計</span>
-            <span id="poker-total-value" class="mono font-bold text-2xl">NT$ 0</span>
+            <span id="poker-total-value" class="mono font-bold text-2xl" style="color: var(--accent-green);">+NT$ 220</span>
         </div>
     </section>
 </div>
@@ -822,7 +1310,7 @@
     <div class="modal-box" style="width:min(380px,94vw);">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
             <h2 class="text-lg font-bold text-white">新增打牌紀錄</h2>
-            <button onclick="closePokerModal()" class="text-slate-500 hover:text-white text-xl leading-none">&times;</button>
+            <button onclick="closePokerModal()" class="text-slate-500 hover:text-white text-xl leading-none">×</button>
         </div>
         <div class="mb-3">
             <label class="modal-label">日期</label>
@@ -843,7 +1331,7 @@
     <div class="modal-box">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
             <h2 class="text-lg font-bold text-white" id="modalTitle">更新部位</h2>
-            <button onclick="closeModal()" class="text-slate-500 hover:text-white text-xl leading-none">&times;</button>
+            <button onclick="closeModal()" class="text-slate-500 hover:text-white text-xl leading-none">×</button>
         </div>
         <input type="hidden" id="editName">
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:14px;">
@@ -851,12 +1339,12 @@
                 <select id="editCurrency" onchange="updateModalSummary()" class="modal-input" style="cursor:pointer;">
                     <option value="USD">美元 (USD)</option><option value="TWD">新台幣 (TWD)</option>
                 </select></div>
-            <div><label class="modal-label">初始本金（鎖定）</label><input type="text" id="displayInitialCapital" readonly class="modal-input mono"></div>
-            <div><label class="modal-label" style="color:var(--accent-cyan)">當前現金水位（自動計算）</label><input type="number" step="0.01" id="editCash" readonly class="modal-input mono" style="background:#040405;color:var(--text-secondary);" placeholder="0"></div>
+            <div><label class="modal-label">初始本金（鎖定）</label><input type="text" id="displayInitialCapital" readonly="" class="modal-input mono"></div>
+            <div><label class="modal-label" style="color:var(--accent-cyan)">當前現金水位（自動計算）</label><input type="number" step="0.01" id="editCash" readonly="" class="modal-input mono" style="background:#040405;color:var(--text-secondary);" placeholder="0"></div>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
-            <div><label class="modal-label">帳戶淨值（初始本金 + 損益）</label><input type="text" id="displayNetValue" readonly class="modal-input net-preview"></div>
-            <div><label class="modal-label">當前淨值（現金 + 持股市值）</label><input type="text" id="displayCurrentValue" readonly class="modal-input" style="color:var(--accent-cyan);font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:600;"></div>
+            <div><label class="modal-label">帳戶淨值（初始本金 + 損益）</label><input type="text" id="displayNetValue" readonly="" class="modal-input net-preview"></div>
+            <div><label class="modal-label">當前淨值（現金 + 持股市值）</label><input type="text" id="displayCurrentValue" readonly="" class="modal-input" style="color:var(--accent-cyan);font-family:var(--number-font);font-size:15px;font-weight:600;"></div>
         </div>
         <hr class="divider">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
@@ -881,7 +1369,7 @@
                     <h2 class="lock-modal-title" id="lockModalTitle"></h2>
                 </div>
             </div>
-            <button onclick="closeLockModal()" class="lock-close" aria-label="關閉">&times;</button>
+            <button onclick="closeLockModal()" class="lock-close" aria-label="關閉">×</button>
         </div>
         <input type="hidden" id="lockTargetName">
         <!-- 設定密碼視圖(尚未設定密碼鎖時) -->
@@ -934,7 +1422,7 @@
     <div class="modal-box" style="width:min(420px,94vw);">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
             <h2 class="text-lg font-bold text-white" id="tradeModalTitle">新增交易紀錄</h2>
-            <button onclick="closeTradeModal()" class="text-slate-500 hover:text-white text-xl leading-none">&times;</button>
+            <button onclick="closeTradeModal()" class="text-slate-500 hover:text-white text-xl leading-none">×</button>
         </div>
         <input type="hidden" id="tradeName">
         <input type="hidden" id="tradeIndex" value="">
@@ -955,8 +1443,7 @@
             <div>
                 <label class="modal-label">股票代號</label>
                 <div class="ac-wrap">
-                    <input type="text" id="tradeTicker" placeholder="例: TSLA 或 2330" class="modal-input" style="text-transform:uppercase;" autocomplete="off"
-                        oninput="onTradeTickerInput(this.value)" onkeydown="onTradeTickerKey(event)" onblur="handleTradeTickerBlur()">
+                    <input type="text" id="tradeTicker" placeholder="例: TSLA 或 2330" class="modal-input" style="text-transform:uppercase;" autocomplete="off" oninput="onTradeTickerInput(this.value)" onkeydown="onTradeTickerKey(event)" onblur="handleTradeTickerBlur()">
                     <div class="ac-list" id="trade-ac-list"></div>
                 </div>
                 <div id="tradeTickerName" style="font-size:11px;color:var(--accent-cyan);margin-top:4px;min-height:16px;"></div>
@@ -1005,7 +1492,7 @@
     <div class="modal-box" style="width:min(460px,94vw);">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;">
             <h2 class="text-lg font-bold section-title">平倉持股</h2>
-            <button onclick="closeClosePositionModal()" class="text-slate-500 hover:text-white text-xl leading-none">&times;</button>
+            <button onclick="closeClosePositionModal()" class="text-slate-500 hover:text-white text-xl leading-none">×</button>
         </div>
         <input type="hidden" id="closePlayerName">
         <input type="hidden" id="closeSlotId">
@@ -1071,17 +1558,17 @@
     <div class="modal-box" style="width:min(760px,96vw);">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
             <h2 class="text-lg font-bold section-title">收盤快照健檢 <span class="text-xs font-normal text-slate-400">（快照值 vs 同源重算值）</span></h2>
-            <button onclick="closeSnapshotAudit()" class="text-slate-500 hover:text-white text-xl leading-none">&times;</button>
+            <button onclick="closeSnapshotAudit()" class="text-slate-500 hover:text-white text-xl leading-none">×</button>
         </div>
         <div id="snapshotAuditBody"></div>
     </div>
 </div>
 
 <div id="colorPickerModal" class="modal-overlay" style="z-index:70;">
-    <div class="modal-box" style="max-width:480px;">
+    <div class="modal-box" style="width:min(440px,94vw);">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
             <h2 class="text-lg font-bold text-white" id="colorPickerTitle">選擇顏色</h2>
-            <button onclick="closeColorPicker()" class="text-slate-500 hover:text-white text-xl leading-none">&times;</button>
+            <button onclick="closeColorPicker()" class="text-slate-500 hover:text-white text-xl leading-none">×</button>
         </div>
         <input type="hidden" id="colorPickerType">
         <input type="hidden" id="colorPickerKey">
@@ -1091,23 +1578,20 @@
         <div style="background:rgba(10,10,12,.6);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:14px;">
             <div style="font-size:11px;color:var(--accent-cyan);margin-bottom:8px;font-weight:700;letter-spacing:.05em;">自訂色域（可選任意顏色）</div>
             <div style="display:flex;align-items:center;gap:8px;">
-                <input type="color" id="customColorInput" value="#a855f7" 
-                    style="width:54px;height:38px;border:1px solid var(--border);border-radius:8px;cursor:pointer;background:transparent;padding:2px;flex-shrink:0;">
-                <input type="text" id="customColorHex" value="#a855f7" maxlength="7" placeholder="#RRGGBB"
-                    class="mono" style="flex:1;min-width:0;background:rgba(10,10,12,.7);border:1px solid var(--border);color:#fff;padding:9px 10px;border-radius:8px;font-size:13px;text-transform:lowercase;">
-                <button onclick="applyCustomColor()" 
-                    style="background:rgba(190,150,170,.2);border:1px solid rgba(190,150,170,.4);color:var(--accent-cyan);padding:9px 16px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;flex-shrink:0;">套用</button>
+                <input type="color" id="customColorInput" value="#a855f7" style="width:54px;height:38px;border:1px solid var(--border);border-radius:8px;cursor:pointer;background:transparent;padding:2px;flex-shrink:0;">
+                <input type="text" id="customColorHex" value="#a855f7" maxlength="7" placeholder="#RRGGBB" class="mono" style="flex:1;min-width:0;background:rgba(10,10,12,.7);border:1px solid var(--border);color:#fff;padding:9px 10px;border-radius:8px;font-size:13px;text-transform:lowercase;">
+                <button onclick="applyCustomColor()" class="color-apply-btn">套用</button>
             </div>
             <div style="font-size:10px;color:var(--text-muted);margin-top:6px;font-style:italic;">點左側色塊開啟系統色域選擇器,或直接輸入 hex 色碼</div>
         </div>
 
-        <!-- 快速色票 (50 色) -->
-        <div style="font-size:11px;color:var(--text-secondary);margin-bottom:6px;font-weight:600;letter-spacing:.05em;">快速色票</div>
-        <div id="colorPickerGrid" style="display:grid;grid-template-columns:repeat(10,1fr);gap:6px;"></div>
+        <!-- 記憶色格 (每個玩家/指數各自 20 格) -->
+        <div style="font-size:11px;color:var(--text-secondary);margin-bottom:6px;font-weight:600;letter-spacing:.05em;">記憶色格</div>
+        <div id="colorPickerGrid" class="color-grid"></div>
 
-        <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px;">
-            <button onclick="resetColorChoice()" style="background:rgba(245,158,11,.15);border:1px solid rgba(245,158,11,.3);color:var(--accent-amber);padding:8px 16px;border-radius:8px;font-size:13px;cursor:pointer;">重設為預設</button>
-            <button onclick="closeColorPicker()" style="background:rgba(31,31,36,.6);border:1px solid var(--border);color:var(--text-secondary);padding:8px 16px;border-radius:8px;font-size:13px;cursor:pointer;">取消</button>
+        <div class="color-picker-actions">
+            <button onclick="resetColorChoice()" class="color-action-btn color-action-reset">重設為預設</button>
+            <button onclick="closeColorPicker()" class="color-action-btn color-action-cancel">取消</button>
         </div>
     </div>
 </div>
@@ -1117,7 +1601,9 @@ const firebaseConfig={apiKey:"AIzaSyB0JZSBEgE11JQvPINRIHkztapNazgCrPU",authDomai
 if(!firebase.apps.length)firebase.initializeApp(firebaseConfig);
 const db=firebase.database();
 // ── 應用版本: 每次部署新版時更新此字串, Service Worker 快取會自動換代 ──
-const APP_VERSION = '2026.06.16-2';
+const APP_VERSION = '2026.06.18-04';
+const NUMBER_FONT_FAMILY = '"Inter", "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+if(typeof Chart !== 'undefined') Chart.defaults.font.family = NUMBER_FONT_FAMILY;
 // ── Firebase 匿名驗證 ─────────────────────────
 // 規則鎖定 (".write": "auth != null") 後, 僅完成匿名登入的 session 可寫入資料庫,
 // 可擋下所有未經頁面的純 REST 掃描寫入。使用者完全無感, 不需帳號密碼。
@@ -1136,6 +1622,7 @@ const sleep = ms => new Promise(r=>setTimeout(r, ms));
 function esc(s){return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
 function escJs(s){return String(s??'').replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'\\u0022').replace(/</g,'\\u003c').replace(/>/g,'\\u003e').replace(/&/g,'\\u0026');}
 function shortName(s, max=5){return [...String(s??'')].slice(0,max).join('');}
+function shortChartName(s){return shortName(s, 2);}
 // 併發限制: 同時最多 limit 個請求, 每批之間 gap 毫秒
 async function mapLimit(items, limit, gap, worker){
     const results = new Array(items.length);
@@ -1279,7 +1766,7 @@ const holdingPieLabelPlugin = {
             const pctFont = Math.max(10, Math.min(13, chart.width * .046));
             const labelFont = Math.max(8, Math.min(10, chart.width * .036));
             const labelGap = Math.max(9, Math.min(18, chart.width * .055));
-            ctx.font = `800 ${pctFont}px JetBrains Mono, IBM Plex Mono, monospace`;
+            ctx.font = `800 ${pctFont}px ${NUMBER_FONT_FAMILY}`;
             ctx.fillStyle = '#fff';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
@@ -1302,32 +1789,40 @@ const holdingPieLabelPlugin = {
     }
 };
 
-// ── 50 色色盤 (玩家曲線 / 指數虛線通用) ─────
-const COLOR_PALETTE = [
-    // Reds
-    '#ef4444','#f87171','#dc2626','#b91c1c','#fca5a5',
-    // Oranges
-    '#f97316','#fb923c','#ea580c','#c2410c','#fdba74',
-    // Yellows
-    '#eab308','#facc15','#ca8a04','#a16207','#fde047',
-    // Greens
-    '#22c55e','#4ade80','#16a34a','#15803d','#86efac',
-    // Teals
-    '#14b8a6','#2dd4bf','#0d9488','#0f766e','#5eead4',
-    // Cyans
-    '#06b6d4','#22d3ee','#0891b2','#0e7490','#67e8f9',
-    // Blues
-    '#3b82f6','#60a5fa','#2563eb','#1d4ed8','#93c5fd',
-    // Indigos
-    '#6366f1','#818cf8','#4f46e5','#4338ca','#a5b4fc',
-    // Purples
-    '#a855f7','#c084fc','#9333ea','#7e22ce','#d8b4fe',
-    // Pinks
-    '#ec4899','#f472b6','#db2777','#be185d','#f9a8d4'
-];
-
 // 色彩偏好 (Firebase 同步, 所有人共用)
 let chartColors = { players:{}, indices:{} };
+const COLOR_MEMORY_KEY = 'investmentColorMemorySlotsV2';
+
+function colorMemoryScope(type, key){
+    return `${type || 'player'}::${key || 'default'}`;
+}
+
+function getColorMemoryMap(){
+    try{
+        const map = JSON.parse(localStorage.getItem(COLOR_MEMORY_KEY) || '{}');
+        return map && typeof map === 'object' && !Array.isArray(map) ? map : {};
+    }catch(e){
+        return {};
+    }
+}
+
+function getColorMemorySlots(type, key){
+    const slots = getColorMemoryMap()[colorMemoryScope(type, key)];
+    const normalized = Array.isArray(slots) ? slots : [];
+    return Array.from({ length: 20 }, (_, i) => {
+        const c = String(normalized[i] || '').trim().toLowerCase();
+        return /^#[0-9a-f]{6}$/i.test(c) ? c : '';
+    });
+}
+
+function saveColorMemorySlots(type, key, slots){
+    const map = getColorMemoryMap();
+    map[colorMemoryScope(type, key)] = Array.from({ length: 20 }, (_, i) => {
+        const c = String(slots?.[i] || '').trim().toLowerCase();
+        return /^#[0-9a-f]{6}$/i.test(c) ? c : '';
+    });
+    try{ localStorage.setItem(COLOR_MEMORY_KEY, JSON.stringify(map)); }catch(e){}
+}
 
 // 顏色淨化: 僅允許合法色彩格式 (#hex / rgb / hsl / 具名色), 阻擋塞入 style 的 CSS 注入
 function safeColor(c, fallback){
@@ -1392,6 +1887,21 @@ function getStockCurrency(ticker){
 // 判斷 ticker 是否為台股
 function isTaiwanStock(ticker){
     return getStockCurrency(ticker) === 'TWD';
+}
+
+function normalizeSession(sess){
+    const s = String(sess || '').trim();
+    if(s.includes('盤後')) return '盤後';
+    if(s.includes('夜盤') || s.includes('盤前')) return '夜盤';
+    if(s.includes('盤中')) return '盤中';
+    return s;
+}
+
+function getLatestStockPrice(s){
+    const sess = normalizeSession(s?.session);
+    if(sess === '夜盤' && Number(s?.prePrice) > 0) return Number(s.prePrice);
+    if(sess === '盤後' && Number(s?.postPrice) > 0) return Number(s.postPrice);
+    return Number(s?.currentPrice) || 0;
 }
 
 function stockNameHasChinese(name){
@@ -1592,7 +2102,12 @@ async function fetchFinnhubPrice(ticker){
                     }
                 }
 
-                const prevClose = meta.regularMarketPreviousClose||meta.chartPreviousClose||meta.previousClose||null;
+                let prevClose = meta.regularMarketPreviousClose||meta.chartPreviousClose||meta.previousClose||null;
+                const recentRegularCloses = await fetchRecentUSRegularCloses(ticker);
+                const prevRegularDate = Object.keys(recentRegularCloses).filter(d=>d<etDateStr).sort().pop();
+                if(prevRegularDate && recentRegularCloses[prevRegularDate] > 0){
+                    prevClose = recentRegularCloses[prevRegularDate];
+                }
                 if(currentPrice>0){
                     console.log(`[YF] ${ticker} 昨收:${prevClose} 現價:${currentPrice} 盤後:${lastPostClose} (${session})`);
                     // 假日不回傳盤前/盤後價，避免顯示陳舊延伸時段資料
@@ -1887,9 +2402,7 @@ function calcCurrentNetValue(p){
     let totalUnPnl = 0;
     stocks.forEach(s=>{
         const sess = s.session || '';
-        const lp = (sess==='夜盤'&&s.prePrice) ? s.prePrice :
-                   (sess==='盤後'&&s.postPrice) ? s.postPrice :
-                   s.currentPrice || 0;
+        const lp = getLatestStockPrice(s);
         const sCur = getStockCurrency(s.ticker) || s.currency || p.currency;
         const unPnlRaw = (s.shares||0) * (lp - (s.buyPrice||0));
         totalUnPnl += convertCurrency(unPnlRaw, sCur, p.currency);
@@ -1946,18 +2459,7 @@ function getTaipeiToday(){
 //   2) 若完全沒有任何快照 → 改用前一交易日收盤價即時計算淨值作為基準
 function getPrevUSCloseSnapshotNetValue(playerIndex){
     // 取得所有交易日 (美股+台股合併去重排序)
-    const tradingDates = getAllTradingDates();
-    if(tradingDates.length === 0) return null;
-    // 目前美東交易日
-    const todayET = getUSTradingDate();
-    // 找「小於今日」的最近一個交易日 (即前一交易日)
-    let prevTradingDate = null;
-    for(let i = tradingDates.length - 1; i >= 0; i--){
-        if(tradingDates[i] < todayET){
-            prevTradingDate = tradingDates[i];
-            break;
-        }
-    }
+    const prevTradingDate = getPrevTradingDate();
     if(!prevTradingDate) return null;
 
     // 1) 僅採用「緊鄰前一交易日(prevTradingDate)」當天的收盤快照 (us 優先, 其次 tw)。
@@ -1980,6 +2482,87 @@ function getPrevUSCloseSnapshotNetValue(playerIndex){
         }
     }
     return null;
+}
+
+function getPrevTradingDate(){
+    const tradingDates = getAllTradingDates();
+    if(tradingDates.length === 0) return null;
+    const todayET = getUSTradingDate();
+    for(let i = tradingDates.length - 1; i >= 0; i--){
+        if(tradingDates[i] < todayET) return tradingDates[i];
+    }
+    return null;
+}
+
+function getStockDailyBasePrice(s, lotBuyDate, lotBuyPrice, baseDate){
+    if(!baseDate) return Number(lotBuyPrice) || 0;
+    if(lotBuyDate && lotBuyDate > baseDate) return Number(lotBuyPrice) || 0;
+    const prevClose = Number(s?.prevClose || 0);
+    if(prevClose > 0) return prevClose;
+    const histClose = getStockCloseOnOrBefore(s?.ticker, baseDate);
+    if(histClose && histClose > 0) return histClose;
+    return Number(lotBuyPrice) || 0;
+}
+
+function calcTodayChange(p, playerIndex, netVal){
+    const prevSnap = getPrevUSCloseSnapshotNetValue(playerIndex);
+    const baseDate = prevSnap?.date || getPrevTradingDate();
+    let dailyChange = 0;
+    let hasPriceBase = false;
+
+    (Array.isArray(p.stocks) ? p.stocks : []).forEach(s=>{
+        const ticker = s.ticker || '';
+        const latestPrice = getLatestStockPrice(s);
+        if(!ticker || !latestPrice || latestPrice <= 0) return;
+        const sCur = getStockCurrency(ticker) || s.currency || p.currency;
+        const lots = (Array.isArray(s.lots)&&s.lots.length>0) ? s.lots : [{
+            shares: parseFloat(s.shares)||0,
+            buyPrice: parseFloat(s.buyPrice)||0,
+            buyDate: normalizeDate(s.buyDate||'')
+        }];
+        lots.forEach(lot=>{
+            const shares = parseFloat(lot.shares)||0;
+            const buyPrice = parseFloat(lot.buyPrice)||0;
+            const buyDate = normalizeDate(lot.buyDate||'');
+            if(shares <= 0) return;
+            const basePrice = getStockDailyBasePrice(s, buyDate, buyPrice, baseDate);
+            if(!basePrice || basePrice <= 0) return;
+            hasPriceBase = true;
+            dailyChange += convertCurrency(shares * (latestPrice - basePrice), sCur, p.currency);
+        });
+    });
+
+    // 今日已平倉部位: 用賣出價對昨收(或今日買入價)計入今日貢獻。
+    (Array.isArray(p.trades) ? p.trades : []).forEach(t=>{
+        const td = normalizeDate(t.date || '');
+        if(!td || !baseDate || td <= baseDate) return;
+        const ticker = t.ticker || '';
+        const shares = parseFloat(t.shares)||0;
+        const sellPrice = parseFloat(t.sellPrice)||0;
+        const buyPrice = parseFloat(t.buyPrice)||0;
+        if(!ticker || shares <= 0 || sellPrice <= 0) return;
+        const tCur = getStockCurrency(ticker) || p.currency;
+        const openDate = normalizeDate(t.firstBuyDate || '');
+        const basePrice = (openDate && openDate > baseDate) ? buyPrice : (getStockCloseOnOrBefore(ticker, baseDate) || buyPrice);
+        if(!basePrice || basePrice <= 0) return;
+        const costs = (parseFloat(t.fee)||0) + (parseFloat(t.tax)||0) + (parseFloat(t.interest)||0);
+        hasPriceBase = true;
+        dailyChange += convertCurrency(shares * (sellPrice - basePrice) - costs, tCur, p.currency);
+    });
+
+    const denom = prevSnap?.netValue || (netVal - dailyChange);
+    const dailyChangePct = denom ? (dailyChange / denom) * 100 : 0;
+    return {
+        dailyChange: hasPriceBase ? dailyChange : 0,
+        dailyChangePct: hasPriceBase ? dailyChangePct : 0,
+        prevSnap: prevSnap || (baseDate ? {date:baseDate, netValue:denom, currency:p.currency} : null),
+        hasPriceBase
+    };
+}
+
+function calcChartNetValueOnDate(p, playerIndex, dateStr, allDates, dateIndex, lastTradingDayStr){
+    if(dateStr === lastTradingDayStr) return calcCurrentNetValue(p);
+    return calcNetValueOnDate(p, dateStr, false);
 }
 
 // ── 判斷目前是否落在「收盤定錨視窗」內 ───
@@ -2183,6 +2766,34 @@ async function refreshBenchmarkHistory(){
 // ── 個股每日歷史日 K (供曲線回算每日淨值) ───
 let stockHistory = {}; // {ticker: [{date:'YYYY-MM-DD', close:Number}, ...] (asc)}
 let stockHistoryRefreshing = false;
+let recentUSRegularCloseCache = {}; // {ticker:{ts, closes:{YYYY-MM-DD:close}}}
+
+async function fetchRecentUSRegularCloses(ticker){
+    const cached = recentUSRegularCloseCache[ticker];
+    if(cached && Date.now() - cached.ts < 120000) return cached.closes;
+    const yfUrl=`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?range=5d&interval=1m&includePrePost=false`;
+    try{
+        const r=await fetchYF(`${CF_PROXY}?url=${encodeURIComponent(yfUrl)}`,12000);
+        if(!r.ok) return cached?.closes || {};
+        const raw=await r.json();
+        const result=raw?.chart?.result?.[0];
+        const closes=result?.indicators?.quote?.[0]?.close||[];
+        const timestamps=result?.timestamp||[];
+        const offset=result?.meta?.gmtoffset || 0;
+        const byDate={};
+        for(let i=0;i<timestamps.length;i++){
+            const close=closes[i];
+            if(!close || close<=0) continue;
+            const dateStr=new Date((timestamps[i]+offset)*1000).toISOString().slice(0,10);
+            byDate[dateStr]=close;
+        }
+        recentUSRegularCloseCache[ticker]={ts:Date.now(), closes:byDate};
+        return byDate;
+    }catch(e){
+        console.warn(`US 1m regular close fail (${ticker}):`, e.message);
+        return cached?.closes || {};
+    }
+}
 
 async function fetchStockHistoryUS(ticker){
     const CF='https://yf-proxy.steven961205.workers.dev';
@@ -2199,13 +2810,26 @@ async function fetchStockHistoryUS(ticker){
         const closes=result.indicators?.quote?.[0]?.close||[];
         const timestamps=result.timestamp||[];
         const out=[];
+        let hasRecentMissingClose=false;
+        const recentCutoff = Date.now() - 10*86400000;
         for(let i=0;i<closes.length;i++){
+            if(timestamps[i] && (!closes[i] || closes[i]<=0) && timestamps[i]*1000 >= recentCutoff){
+                hasRecentMissingClose=true;
+            }
             if(closes[i] && closes[i]>0){
                 const dStr=new Date(timestamps[i]*1000).toISOString().slice(0,10);
                 out.push({date:dStr, close:closes[i]});
             }
         }
-        return out.sort((a,b)=>a.date.localeCompare(b.date));
+        if(hasRecentMissingClose){
+            const recentCloses = await fetchRecentUSRegularCloses(ticker);
+            Object.entries(recentCloses).forEach(([date, close])=>{
+                if(close && close>0) out.push({date, close, patched:true});
+            });
+        }
+        const dedup = {};
+        out.forEach(row=>{ dedup[row.date]=row; });
+        return Object.values(dedup).sort((a,b)=>a.date.localeCompare(b.date));
     } catch(e){
         console.warn(`Stock history US fail (${ticker}):`, e.message);
         return [];
@@ -2353,10 +2977,7 @@ function calcNetValueOnDate(p, dateStr, useLivePrice){
         // 取得該日(或即時)估值用的單一股價
         let priceOnDate;
         if(useLivePrice){
-            const sess = s.session || '';
-            priceOnDate = (sess==='夜盤' && s.prePrice>0)  ? s.prePrice  :
-                          (sess==='盤後' && s.postPrice>0) ? s.postPrice :
-                          (parseFloat(s.currentPrice)||0) || getStockCloseOnOrBefore(ticker, dateStr);
+            priceOnDate = getLatestStockPrice(s) || getStockCloseOnOrBefore(ticker, dateStr);
         } else {
             priceOnDate = getStockCloseOnOrBefore(ticker, dateStr);
         }
@@ -2469,24 +3090,24 @@ function renderPerformanceChart(){
     // 2. 參賽者 datasets — 每日淨值定錨
     //    每日淨值 = 初始本金 + 累積已實現損益(截至該日) + 當日持股的未實現損益
     //    當日持股 = 當前持倉中 buyDate <= 該日的部位; 用該日(或之前最近)收盤估值
-    //    最後一個交易日(今日) = 用即時價格(含夜盤/盤後)估值
+    //    最後一個交易日(今日) = 目前帳戶淨值, 百分比與上方「績效」一致
     const playerColors = ['#a855f7', '#ffffff', '#fbbf24', '#06b6d4', '#ec4899'];
     const datasets = [];
     participants.forEach((p, idx)=>{
         const initCap = getFixedInitialCapital(p.currency);
-        // 每日報酬率曲線統一改用 calcNetValueOnDate() 計算,與「即時排名」「今日變動」共用同一套定錨邏輯:
+        // 每日報酬率曲線統一改用 calcChartNetValueOnDate() 計算,與「即時排名」「今日變動」共用同一套定錨邏輯:
         //   每日淨值 = 初始本金 + 累積已實現損益(<=該日) + 當日持股未實現損益
         //   「當前持股」依各 lot 的 buyDate 定錨; 「歷史交易紀錄」依 [建倉日, 平倉日) 持倉視窗定錨
-        //   最後一個交易日(端點)改用即時價(含夜盤/盤後),其餘日子用該日(或之前最近)收盤價
-        const data = allDates.map(date => {
-            const netVal = calcNetValueOnDate(p, date, date === lastTradingDayStr);
+        //   最後一個交易日(端點) = 目前帳戶淨值, 避免曲線端點與排行榜「績效」不同步
+        const data = allDates.map((date, dateIndex) => {
+            const netVal = calcChartNetValueOnDate(p, idx, date, allDates, dateIndex, lastTradingDayStr);
             return ((netVal - initCap) / initCap) * 100;
         });
 
         const color = getPlayerColor(p.name, playerColors[idx % playerColors.length]);
         datasets.push({
             label: p.name,
-            displayLabel: shortName(p.name, 5),
+            displayLabel: shortChartName(p.name),
             originalLabel: p.name,
             data,
             borderColor: color,
@@ -2555,7 +3176,7 @@ function renderPerformanceChart(){
             boxWidth: compactChart ? 9 : 12,
             boxHeight: compactChart ? 9 : 12,
             padding: compactChart ? 8 : 14,
-            font: { size:compactChart ? 10 : 12, family:'Inter' },
+            font: { size:compactChart ? 10 : 12, family:NUMBER_FONT_FAMILY },
             generateLabels(chart){
                 const labels = Chart.defaults.plugins.legend.labels.generateLabels(chart);
                 labels.forEach(item=>{
@@ -2599,21 +3220,27 @@ function renderPerformanceChart(){
     };
     const xTickOptions = {
         color:'#7ba5cc',
-        font:{ size:compactChart ? 10 : 11 },
+        font:{ size:compactChart ? 10 : 11, family:NUMBER_FONT_FAMILY },
         maxRotation: 0,
         autoSkipPadding: compactChart ? 12 : 20,
         maxTicksLimit: compactChart ? 5 : 8
     };
     const yTickOptions = {
         color:'#7ba5cc',
-        font:{ size:compactChart ? 10 : 11 },
+        font:{ size:compactChart ? 10 : 11, family:NUMBER_FONT_FAMILY },
         callback: v => (v>=0?'+':'') + v.toFixed(1) + '%'
+    };
+    const tooltipItemSort = (a, b) => {
+        const av = Number.isFinite(a.parsed?.y) ? a.parsed.y : -Infinity;
+        const bv = Number.isFinite(b.parsed?.y) ? b.parsed.y : -Infinity;
+        return bv - av;
     };
     if(performanceChart){
         performanceChart.data.labels = labels;
         performanceChart.data.datasets = datasets;
         performanceChart.options.layout.padding = { right: compactChart ? 58 : 76, top: compactChart ? 2 : 0 };
         performanceChart.options.plugins.legend = legendOptions;
+        performanceChart.options.plugins.tooltip.itemSort = tooltipItemSort;
         performanceChart.options.scales.x.ticks = xTickOptions;
         performanceChart.options.scales.y.ticks = yTickOptions;
         performanceChart.update('none');
@@ -2631,14 +3258,20 @@ function renderPerformanceChart(){
                 plugins: {
                     legend: legendOptions,
                     tooltip: {
-                        backgroundColor: 'rgba(13, 23, 38, 0.96)',
-                        borderColor: '#34343c',
+                        backgroundColor: 'rgba(13, 10, 12, 0.96)',
+                        borderColor: 'rgba(190,150,170,.34)',
                         borderWidth: 1,
-                        titleColor: '#e8f4fd',
-                        bodyColor: '#e8f4fd',
-                        padding: 12,
-                        titleFont: { size:12, weight:'600' },
-                        bodyFont: { size:12, family:'IBM Plex Mono' },
+                        titleColor: '#f2e9ec',
+                        bodyColor: '#f2e9ec',
+                        padding: 14,
+                        cornerRadius: 8,
+                        boxWidth: 14,
+                        boxHeight: 14,
+                        boxPadding: 4,
+                        usePointStyle: false,
+                        itemSort: tooltipItemSort,
+                        titleFont: { size:14, weight:'700', family:NUMBER_FONT_FAMILY },
+                        bodyFont: { size:14, family:NUMBER_FONT_FAMILY },
                         callbacks: {
                             title: function(items){
                                 if(!items.length) return '';
@@ -2653,9 +3286,14 @@ function renderPerformanceChart(){
                             },
                             label: function(c){
                                 const v = c.parsed.y;
-                                if(v===null || v===undefined) return `${c.dataset.label}: --`;
+                                const label = c.dataset.originalLabel ? shortChartName(c.dataset.originalLabel) : c.dataset.label;
+                                if(v===null || v===undefined) return `${label}: --`;
                                 const sign = v>=0?'+':'';
-                                return `${c.dataset.label}: ${sign}${v.toFixed(2)}%`;
+                                return `${label}: ${sign}${v.toFixed(2)}%`;
+                            },
+                            labelColor: function(c){
+                                const color = c.dataset.fullColor || c.dataset.borderColor || '#f2e9ec';
+                                return {borderColor: color, backgroundColor: color, borderWidth: 0};
                             }
                         }
                     }
@@ -2871,10 +3509,7 @@ function buildPlayerAttrHTML(p){
         bump(t.ticker, 'realized', convertCurrency(parseFloat(t.pnl)||0, tCur, p.currency), t.stockName);
     });
     (Array.isArray(p.stocks)?p.stocks:[]).forEach(s=>{
-        const sess = s.session || '';
-        const lp = (sess==='夜盤'&&s.prePrice) ? s.prePrice :
-                   (sess==='盤後'&&s.postPrice) ? s.postPrice :
-                   s.currentPrice || 0;
+        const lp = getLatestStockPrice(s);
         const sCur = getStockCurrency(s.ticker) || s.currency || p.currency;
         const unPnl = convertCurrency((s.shares||0)*(lp-(s.buyPrice||0)), sCur, p.currency);
         bump(s.ticker, 'unrealized', unPnl, s.stockName);
@@ -3273,6 +3908,7 @@ function renderPlayerNames(){
 // ── 價格新鮮度 ───────────────────────────
 // 開盤時段顯示「N 秒/分鐘前更新」; 超過 120 秒未更新 → 標示逾時並將該列數字轉灰
 function freshnessInfo(s, sess){
+    sess = normalizeSession(sess);
     const live = sess==='盤中' || sess==='盤後' || sess==='夜盤';
     if(!live) return { html:'', stale:false };
     const lf = s.lastFetch || 0;
@@ -3417,10 +4053,7 @@ function renderDashboard(){
         const trades=Array.isArray(p.trades)?p.trades:[];
         let totalMV=0,totalUnPnl=0, totalCost=0;
         stocks.forEach(s=>{
-            const sess=s.session||'';
-            const latestPrice=(sess==='夜盤'&&s.prePrice)?s.prePrice:
-                              (sess==='盤後'&&s.postPrice)?s.postPrice:
-                              s.currentPrice||0;
+            const latestPrice=getLatestStockPrice(s);
             // 永遠以 ticker 為準, s.currency 僅作 fallback (舊資料相容)
             const sCur=getStockCurrency(s.ticker)||s.currency||p.currency;
             const mvRaw=(s.shares||0)*latestPrice;
@@ -3447,23 +4080,13 @@ function renderDashboard(){
         const valTWD=p.currency==='USD'?netVal*usdToTwd:netVal;
         const valUSD=p.currency==='TWD'?netVal/usdToTwd:netVal;
 
-        // ── 今日變動 (相較前一交易日美股收盤快照) ────────────────
-        // 基準 = 前一交易日 16:00 ET 的快照淨值 (已含當日收盤價)
-        // 當前淨值使用即時價格 (含盤前/盤後)，與該基準比較
-        // 嚴格：僅有「緊鄰前一交易日」的快照時才計算；否則顯示 --
         let dailyChange = 0, dailyChangePct = 0;
         let prevCloseSnap = null;
         try {
-            prevCloseSnap = getPrevUSCloseSnapshotNetValue(pIdx);
-            if(prevCloseSnap){
-                // 僅在有前一交易日快照時計算
-                dailyChange = netVal - prevCloseSnap.netValue;
-                dailyChangePct = prevCloseSnap.netValue !== 0 ? (dailyChange / prevCloseSnap.netValue) * 100 : 0;
-            } else {
-                // 無前一交易日快照 → 不顯示今日變動 (顯示 --)
-                dailyChange = 0;
-                dailyChangePct = 0;
-            }
+            const dailyInfo = calcTodayChange(p, pIdx, netVal);
+            dailyChange = dailyInfo.dailyChange;
+            dailyChangePct = dailyInfo.dailyChangePct;
+            prevCloseSnap = dailyInfo.prevSnap;
         } catch(e){ console.warn('today change calc fail:', e); dailyChange = 0; dailyChangePct = 0; }
         
         // ── 重新定義的現金水位 / 槓桿邏輯 ──
@@ -3502,10 +4125,8 @@ function renderDashboard(){
         const holdHTML=stocks.length===0
             ?`<div class="holding-row text-center text-slate-500">目前無持股紀錄</div>`
             :stocks.map((s,si)=>{
-                const sess2=s.session||'';
-                const latestPrice=(sess2==='夜盤'&&s.prePrice)?s.prePrice:
-                                  (sess2==='盤後'&&s.postPrice)?s.postPrice:
-                                  s.currentPrice||0;
+                const sess2=normalizeSession(s.session);
+                const latestPrice=getLatestStockPrice(s);
                 const mv=(s.shares||0)*latestPrice;
                 const cost=(s.shares||0)*(s.buyPrice||0);
                 const pnl=mv-cost;
@@ -3596,11 +4217,14 @@ function renderDashboard(){
                         const lotPctSign = lotPnl>=0?'+':'';
                         const lotCls  = lotPnl<0?'text-red-400':'text-emerald-400';
                         return `<div class="lot-card">
-                            <div class="lot-card-main">
+                            <div class="lot-card-head">
                                 <span class="lot-tag">第${i+1}筆</span>
-                                <span style="color:var(--text-muted);" class="mono">${ld}</span>
-                                <span style="color:var(--text-secondary);">${ls.toLocaleString()} 股 @ <span class="mono text-white">${lp.toFixed(2)}</span></span>
-                                <span style="color:var(--text-muted);text-align:right;" class="mono">${fmtRaw(lotCost,sCurrency)}</span>
+                                <span class="lot-card-date mono">${ld}</span>
+                            </div>
+                            <div class="lot-card-metrics">
+                                <span class="lot-card-shares">${ls.toLocaleString()} 股</span>
+                                <span class="lot-card-price">股價 <span class="mono">${lp.toFixed(2)}</span></span>
+                                <span class="lot-card-cost">成本 <span class="mono">${fmtRaw(lotCost,sCurrency)}</span></span>
                             </div>
                             <div class="lot-card-sub">
                                 <span style="color:var(--text-muted);">市值 <span class="mono" style="color:var(--accent-cyan);" data-live="lotmv-${pIdx}-${si}-${i}">${fmtRaw(lotMV,sCurrency)}</span></span>
@@ -3618,7 +4242,7 @@ function renderDashboard(){
                 return`<div class="holding-row${fresh.stale?' stale':''}" data-live="hrow-${pIdx}-${si}">
                     <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
                         <div>
-                            <span class="mono font-bold text-cyan-400">${s.ticker}</span>
+                            <span class="mono font-bold" style="color:var(--player-color);">${s.ticker}</span>
                             ${stockName?`<span style="font-size:11px;color:var(--text-muted);margin-left:6px;">${esc(stockName)}</span>`:''}
                         </div>
                         <div style="text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:1px;">
@@ -3658,10 +4282,7 @@ function renderDashboard(){
         let pieHTML = '';
         if(stocks.length > 0){
             const stockSlices = stocks.map(s=>{
-                const sess=s.session||'';
-                const lp=(sess==='夜盤'&&s.prePrice)?s.prePrice:
-                         (sess==='盤後'&&s.postPrice)?s.postPrice:
-                         s.currentPrice||0;
+                const lp=getLatestStockPrice(s);
                 const sCur=getStockCurrency(s.ticker)||s.currency||p.currency;
                 const mvRaw=(s.shares||0)*lp;
                 return { ticker: s.ticker||'--', mv: Math.max(0, convertCurrency(mvRaw, sCur, p.currency)) };
@@ -3734,7 +4355,7 @@ function renderDashboard(){
                 const pnlPct = bp>0 ? ((sp-bp)/bp*100).toFixed(2) : null;
                 const pnlPctStr = pnlPct!==null ? `${pnl>=0?'+':''}${pnlPct}%` : '--';
                 const displayStockName = formatStockDisplayName(t.ticker, t.stockName);
-                const nameDisplay = displayStockName ? `<span style="font-size:11px;color:var(--text-secondary);margin-left:6px;font-weight:normal;">${esc(displayStockName)}</span>` : '';
+                const nameDisplay = displayStockName ? `<div class="trade-card-name" title="${esc(displayStockName)}">${esc(displayStockName)}</div>` : '<div class="trade-card-name">&nbsp;</div>';
                 // ── 依 ticker 自動判定原生幣別 (含 .TW 後綴與純數字代號) ──
                 const tradeCur = getStockCurrency(t.ticker);
                 const isTrTW = isTaiwanStock(t.ticker);
@@ -3784,15 +4405,17 @@ function renderDashboard(){
                     </div>` : '';
                 
                 return`<div class="trade-card">
-                    <div class="trade-card-row">
-                        <div style="display:flex;align-items:center;">
-                            <span class="mono font-bold text-cyan-300" style="font-size:13px;">${t.ticker||'--'}</span>
+                    <div class="trade-card-head">
+                        <div class="trade-card-title">
+                            <span class="mono font-bold trade-card-ticker">${t.ticker||'--'}</span>
                             ${curBadge}
-                            ${nameDisplay}
                         </div>
-                        <div style="display:flex;align-items:center;gap:8px;">
-                            <span class="${cls}" style="font-size:13px;font-weight:700;">${pnl>=0?'+':'-'}${fmtRaw(Math.abs(pnl),tradeCur)}</span>
-                            <span class="${cls}" style="font-size:11px;opacity:.85;">(${pnlPctStr})</span>
+                        ${nameDisplay}
+                        <span class="trade-card-pnl">
+                            <span class="${cls} trade-card-pnl-amt">${pnl>=0?'+':'-'}${fmtRaw(Math.abs(pnl),tradeCur)}</span>
+                            <span class="${cls} trade-card-pnl-pct">(${pnlPctStr})</span>
+                        </span>
+                        <div class="trade-card-actions">
                             <button class="btn-edit" onclick="openTradeModal('${escJs(p.name)}', ${idx})" title="編輯">✎</button>
                             <button class="btn-del" onclick="deleteTrade('${escJs(p.name)}', ${idx})" title="刪除">✕</button>
                         </div>
@@ -3847,9 +4470,11 @@ function renderDashboard(){
                 <div style="display:flex;align-items:center;gap:8px;"><span class="currency-badge">${p.currency}</span></div>
             </div>
             <div class="net-value-box" style="margin-bottom:16px;">
-                <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">帳戶淨值</div>
-                <div class="text-3xl" id="netval-${esc(p.name)}" data-netval="${netVal}" data-cur="${p.currency}">${fmtC(netVal,p.currency,true)}</div>
-                <div style="margin-top:6px;" data-live="retpct-${pIdx}">${buildRetpctHTML(retPct)}</div>
+                <div class="net-value-inner">
+                    <div class="net-value-label">帳戶淨值</div>
+                    <div class="net-value-main text-3xl" id="netval-${esc(p.name)}" data-netval="${netVal}" data-cur="${p.currency}">${fmtC(netVal,p.currency,true)}</div>
+                    <div class="net-value-change" data-live="retpct-${pIdx}">${buildRetpctHTML(retPct)}</div>
+                </div>
             </div>
             <div class="hold-lock-toolbar">
                 <div class="hold-lock-title">
@@ -3889,10 +4514,10 @@ function renderDashboard(){
                         <div class="stat-row"><span class="stat-label">初始本金</span><span class="mono text-white text-xs">${fmtRaw(initCap,p.currency)}</span></div>
                         <div class="stat-row"><span class="stat-label">持有現金</span><span data-live="cash-${pIdx}">${fmtC(autoCash,p.currency,true)}</span></div>
                         <div class="stat-row"><span class="stat-label">持股總市值</span><span data-live="mv-${pIdx}">${fmtC(totalMV,p.currency,true)}</span></div>
-                        <div class="stat-row"><span class="stat-label" title="現金 + 持股市值">當前淨值</span><span class="mono font-bold text-cyan-400 text-sm" data-live="cur-${pIdx}">${fmtRaw(currentVal,p.currency)}</span></div>
+                        <div class="stat-row"><span class="stat-label" title="現金 + 持股市值">當前淨值</span><span class="mono font-bold text-sm stat-value-current" data-live="cur-${pIdx}">${fmtRaw(currentVal,p.currency)}</span></div>
                         <div class="stat-row" style="margin-top:4px;padding-top:4px;border-top:1px dashed rgba(31,31,36,.6);">
                             <span class="stat-label" title="淨值 × 60%">可使用最高槓桿金額</span>
-                            <span class="mono font-bold text-amber-300 text-sm" data-live="maxlev-${pIdx}">${fmtRaw(maxLeverage,p.currency)}</span>
+                            <span class="mono font-bold text-sm stat-value-leverage" data-live="maxlev-${pIdx}">${fmtRaw(maxLeverage,p.currency)}</span>
                         </div>
                         <div class="stat-row">
                             <span class="stat-label" title="現金水位 ÷ 淨值">槓桿使用率</span>
@@ -3901,7 +4526,7 @@ function renderDashboard(){
                         ${hasLev?`<div class="leverage-bar-wrap"><div class="leverage-bar" data-live="levbar-${pIdx}" style="width:${Math.min(usagePct,100).toFixed(0)}%"></div></div>`:''}
                         <div class="stat-row" style="margin-top:4px;"><span class="stat-label">已實現損益</span><span class="${realCls}">${realSign}${fmtRaw(Math.abs(realPnl),p.currency)}</span></div>
                         <div class="stat-row"><span class="stat-label" title="所有持股合計">未實現損益</span><span data-live="unreal-${pIdx}">${buildUnrealHTML(totalUnPnl, p.currency)}</span></div>
-                        ${prevCloseSnap ? `<div class="stat-row" style="margin-top:4px;"><span class="stat-label" title="相對 ${prevCloseSnap.date} 收盤快照">今日變動</span><span data-live="daily-${pIdx}">${buildDailyCellHTML(dailyChange, dailyChangePct, p.currency)}</span></div>` : ''}
+                        ${prevCloseSnap ? `<div class="stat-row" style="margin-top:4px;"><span class="stat-label" title="持股相對 ${prevCloseSnap.date} 昨收；今日買入部位相對買入價">今日變動</span><span data-live="daily-${pIdx}">${buildDailyCellHTML(dailyChange, dailyChangePct, p.currency)}</span></div>` : ''}
                         <div class="stat-row" style="margin-top:4px; padding-top:4px; border-top:1px solid rgba(31,31,36,.6);"><span class="stat-label" title="手續費 + 證交稅 + 利息">交易成本</span><span class="mono text-slate-400">${totalFeeTax > 0 ? '-' : ''}${fmtRaw(totalFeeTax, p.currency)}</span></div>
                     </div>
                     </div>
@@ -3963,7 +4588,7 @@ function renderDashboard(){
                     const diff = pi - idx;
                     if(diff>0) return `<span class="rank-move up" title="昨日第 ${pi+1} 名"><span class="trend-arrow small up"></span>${diff}</span>`;
                     if(diff<0) return `<span class="rank-move down" title="昨日第 ${pi+1} 名"><span class="trend-arrow small down"></span>${-diff}</span>`;
-                    return `<span class="rank-move flat" title="名次與昨日相同">—</span>`;
+                    return '';
                 })()}
             </div>
             <div class="rank-metrics">
@@ -4794,22 +5419,20 @@ function openColorPicker(type, key, currentColor){
         if(/^#[0-9a-f]{6}$/i.test(v) && ci) ci.value = v.toLowerCase();
     };
 
-    // 快速色票網格
+    // 玩家/指數各自獨立的 20 格顏色記憶槽
     const grid = document.getElementById('colorPickerGrid');
-    grid.innerHTML = COLOR_PALETTE.map(c => {
-        const isCurrent = c.toLowerCase() === (currentColor||'').toLowerCase();
-        return `<button onclick="pickColor('${c}')" title="${c}"
-            style="width:100%;aspect-ratio:1;border-radius:50%;background:${c};
-                   border:${isCurrent?'3px solid #fff':'1.5px solid rgba(255,255,255,.15)'};
-                   cursor:pointer;padding:0;transition:transform .12s;
-                   ${isCurrent?'box-shadow:0 0 0 2px '+c+',0 0 12px '+c+'aa;':''}"
-            onmouseover="this.style.transform='scale(1.18)'" onmouseout="this.style.transform='scale(1)'"></button>`;
+    const slots = getColorMemorySlots(type, key);
+    grid.innerHTML = slots.map((c, i) => {
+        const isCurrent = c && c.toLowerCase() === (currentColor||'').toLowerCase();
+        const slotTitle = c ? `套用 ${c}` : '記住目前顏色';
+        return `<button onclick="pickMemoryColorSlot(${i})" title="${slotTitle}"
+            class="color-swatch ${c?'filled':'empty'} ${isCurrent?'current':''}"
+            ${c ? `style="background:${c};color:${c};"` : ''}></button>`;
     }).join('');
     document.getElementById('colorPickerModal').classList.add('open');
 }
 
-// 套用自訂 hex 色
-function applyCustomColor(){
+function getCustomColorValue(){
     const ch = document.getElementById('customColorHex');
     const ci = document.getElementById('customColorInput');
     let c = (ch?.value || ci?.value || '').trim().toLowerCase();
@@ -4817,8 +5440,15 @@ function applyCustomColor(){
     if(!/^#[0-9a-f]{6}$/i.test(c)){
         alert('請輸入有效的 hex 色碼,例如 #a855f7');
         ch?.focus();
-        return;
+        return '';
     }
+    return c;
+}
+
+// 套用自訂 hex 色
+function applyCustomColor(){
+    const c = getCustomColorValue();
+    if(!c) return;
     pickColor(c);
 }
 
@@ -4843,6 +5473,21 @@ function pickColor(color){
             scheduleChartRender();
         })
         .catch(e=>{ console.warn('Color save fail:', e); alert('儲存失敗,請再試一次'); });
+}
+
+function pickMemoryColorSlot(index){
+    const type = document.getElementById('colorPickerType').value;
+    const key = document.getElementById('colorPickerKey').value;
+    if(!type || !key) return;
+    const slots = getColorMemorySlots(type, key);
+    let color = slots[index];
+    if(!color){
+        color = getCustomColorValue();
+        if(!color) return;
+        slots[index] = color;
+        saveColorMemorySlots(type, key, slots);
+    }
+    pickColor(color);
 }
 
 function resetColorChoice(){
@@ -5640,12 +6285,14 @@ function renderPokerChart(points){
                     borderWidth:1,
                     titleColor:'#f2e9ec',
                     bodyColor:'#d7bec8',
+                    titleFont:{family:NUMBER_FONT_FAMILY},
+                    bodyFont:{family:NUMBER_FONT_FAMILY},
                     callbacks:{ label:(ctx)=>`累積 ${fmtPokerMoney(ctx.parsed.y, true)}` }
                 }
             },
             scales:{
-                x:{ grid:{ color:'rgba(190,150,170,.07)' }, ticks:{ color:'#766269', maxRotation:0, autoSkip:true, maxTicksLimit:7 } },
-                y:{ grid:{ color:'rgba(190,150,170,.09)' }, ticks:{ color:'#766269', callback:v=>fmtPokerMoney(v, true).replace('NT$ ','') } }
+                x:{ grid:{ color:'rgba(190,150,170,.07)' }, ticks:{ color:'#766269', font:{family:NUMBER_FONT_FAMILY}, maxRotation:0, autoSkip:true, maxTicksLimit:7 } },
+                y:{ grid:{ color:'rgba(190,150,170,.09)' }, ticks:{ color:'#766269', font:{family:NUMBER_FONT_FAMILY}, callback:v=>fmtPokerMoney(v, true).replace('NT$ ','') } }
             }
         }
     };
@@ -5955,7 +6602,7 @@ function renderAdvancedPanel(allDates, lastTradingDayStr){
     const playerColors = ['#a855f7', '#ffffff', '#fbbf24', '#06b6d4', '#ec4899'];
     const players = participants.map((p, idx)=>{
         const initCap = getFixedInitialCapital(p.currency);
-        const nav = allDates.map(date => calcNetValueOnDate(p, date, date === lastTradingDayStr));
+        const nav = allDates.map((date, dateIndex) => calcChartNetValueOnDate(p, idx, date, allDates, dateIndex, lastTradingDayStr));
         const ret = nav.map(v => (v==null || isNaN(v)) ? null : ((v - initCap) / initCap) * 100);
         return { name:p.name, color:getPlayerColor(p.name, playerColors[idx % playerColors.length]), initCap, nav, ret };
     });
@@ -6112,8 +6759,7 @@ function renderAdvClash(body){
         const stocks = Array.isArray(p.stocks)?p.stocks:[];
         stocks.forEach(s=>{
             if(!s.ticker) return;
-            const sess = s.session||'';
-            const price = (sess==='夜盤'&&s.prePrice)?s.prePrice:(sess==='盤後'&&s.postPrice)?s.postPrice:(s.currentPrice||0);
+            const price = getLatestStockPrice(s);
             const cost = parseFloat(s.buyPrice)||0;
             const shares = parseFloat(s.shares)||0;
             if(shares<=0 || cost<=0) return;
@@ -6206,17 +6852,17 @@ function renderAdvUnderwater(body){
                 interaction:{ mode:'index', intersect:false },
                 animation:{ duration:400 },
                 plugins:{
-                    legend:{ labels:{ color:'#e8f4fd', usePointStyle:true, padding:12, font:{ size:11, family:'Inter' } } },
+                    legend:{ labels:{ color:'#e8f4fd', usePointStyle:true, padding:12, font:{ size:11, family:NUMBER_FONT_FAMILY } } },
                     tooltip:{
                         backgroundColor:'rgba(13,23,38,.96)', borderColor:'#34343c', borderWidth:1,
                         titleColor:'#e8f4fd', bodyColor:'#e8f4fd', padding:10,
-                        bodyFont:{ size:12, family:'IBM Plex Mono' },
+                        bodyFont:{ size:12, family:NUMBER_FONT_FAMILY },
                         callbacks:{ label:c=>{ const v=c.parsed.y; return v==null?`${c.dataset.label}: --`:`${c.dataset.label}: ${v.toFixed(2)}%`; } }
                     }
                 },
                 scales:{
-                    x:{ ticks:{ color:'#7ba5cc', font:{ size:10 }, maxRotation:0, autoSkipPadding:20 }, grid:{ color:'rgba(31,31,36,.3)' } },
-                    y:{ max:0.5, ticks:{ color:'#7ba5cc', font:{ size:10 }, callback:v=>v.toFixed(1)+'%' }, grid:{ color:'rgba(31,31,36,.3)' } }
+                    x:{ ticks:{ color:'#7ba5cc', font:{ size:10, family:NUMBER_FONT_FAMILY }, maxRotation:0, autoSkipPadding:20 }, grid:{ color:'rgba(31,31,36,.3)' } },
+                    y:{ max:0.5, ticks:{ color:'#7ba5cc', font:{ size:10, family:NUMBER_FONT_FAMILY }, callback:v=>v.toFixed(1)+'%' }, grid:{ color:'rgba(31,31,36,.3)' } }
                 }
             }
         });
@@ -6278,18 +6924,18 @@ function renderAdvReplay(body, switched){
                 interaction:{ mode:'index', intersect:false },
                 animation:false,
                 plugins:{
-                    legend:{ labels:{ color:'#e8f4fd', usePointStyle:true, padding:12, font:{ size:11, family:'Inter' } } },
+                    legend:{ labels:{ color:'#e8f4fd', usePointStyle:true, padding:12, font:{ size:11, family:NUMBER_FONT_FAMILY } } },
                     tooltip:{
                         backgroundColor:'rgba(13,23,38,.96)', borderColor:'#34343c', borderWidth:1,
                         titleColor:'#e8f4fd', bodyColor:'#e8f4fd', padding:10,
-                        bodyFont:{ size:12, family:'IBM Plex Mono' },
+                        bodyFont:{ size:12, family:NUMBER_FONT_FAMILY },
                         callbacks:{ label:c=>{ const v=c.parsed.y; return v==null?`${c.dataset.label}: --`:`${c.dataset.label}: ${v>=0?'+':''}${v.toFixed(2)}%`; } }
                     }
                 },
                 scales:{
-                    x:{ ticks:{ color:'#7ba5cc', font:{ size:10 }, maxRotation:0, autoSkipPadding:20 }, grid:{ color:'rgba(31,31,36,.3)' } },
+                    x:{ ticks:{ color:'#7ba5cc', font:{ size:10, family:NUMBER_FONT_FAMILY }, maxRotation:0, autoSkipPadding:20 }, grid:{ color:'rgba(31,31,36,.3)' } },
                     y:{ min: Math.floor((yMin-pad)*10)/10, max: Math.ceil((yMax+pad)*10)/10,
-                        ticks:{ color:'#7ba5cc', font:{ size:10 }, callback:v=>(v>=0?'+':'')+v.toFixed(1)+'%' }, grid:{ color:'rgba(31,31,36,.3)' } }
+                        ticks:{ color:'#7ba5cc', font:{ size:10, family:NUMBER_FONT_FAMILY }, callback:v=>(v>=0?'+':'')+v.toFixed(1)+'%' }, grid:{ color:'rgba(31,31,36,.3)' } }
                 }
             }
         });
@@ -6523,10 +7169,10 @@ const endpointLabelPlugin = {
         const labelFontSize = compact ? 9 : 10;
         const labelHeight = compact ? 16 : 18;
         const minGap = compact ? 22 : 19;
-        c.font = `700 ${labelFontSize}px Inter, sans-serif`;
-        // 名稱統一截 5 個字, 標籤靠右對齊成一欄
+        c.font = `700 ${labelFontSize}px Inter, "Noto Sans TC", sans-serif`;
+        // 名稱統一截 2 個字, 標籤靠右對齊成一欄
         items.forEach(it=>{
-            it.short = [...String(it.label)].slice(0,5).join('');
+            it.short = shortChartName(it.label);
             it.w = c.measureText(it.short).width;
             it.dotY = Math.min(Math.max(it.y, area.top + 5), area.bottom - 5);
             it.ly = it.dotY;
@@ -6626,10 +7272,10 @@ function buildRankDualHTML(d){
 }
 function buildRetpctHTML(retPct){
     const pos = parseFloat(retPct) >= 0;
-    return `<span class="trend-badge text-xs mono font-semibold ${pos?'text-emerald-400':'text-red-400'}"><span class="trend-arrow small ${pos?'up':'down'}"></span>${retPct}%</span>`;
+    return `<span class="trend-badge text-xs mono font-semibold ${pos?'text-emerald-400':'text-red-400'}">${pos?'+':''}${retPct}%</span>`;
 }
 function buildLevRateHTML(hasLev, levRate, usagePct){
-    return `<span class="mono font-bold text-sm ${hasLev?'text-amber-400':'text-slate-400'}">${hasLev?`${levRate>=0?'+':''}${levRate.toFixed(2)}%（已用 ${usagePct.toFixed(1)}%）`:'未使用槓桿'}</span>`;
+    return `<span class="mono font-bold text-sm ${hasLev?'stat-value-leverage':'stat-value-muted'}">${hasLev?`${levRate>=0?'+':''}${levRate.toFixed(2)}%（已用 ${usagePct.toFixed(1)}%）`:'未使用槓桿'}</span>`;
 }
 function buildUnrealHTML(totalUnPnl, cur){
     const upSign = totalUnPnl >= 0 ? '+' : '-';
@@ -6638,7 +7284,8 @@ function buildUnrealHTML(totalUnPnl, cur){
 }
 function buildDailyCellHTML(dailyChange, dailyChangePct, cur){
     const up = dailyChange >= 0;
-    return `<span class="trend-badge daily-change-value font-bold mono ${up?'text-emerald-400':'text-red-400'}"><span class="trend-arrow ${up?'up':'down'}"></span><span>${fmtRaw(Math.abs(dailyChange), cur)}</span> <span style="opacity:.9">(${Math.abs(dailyChangePct).toFixed(2)}%)</span></span>`;
+    const sign = up ? '+' : '-';
+    return `<span class="trend-badge daily-change-value font-bold mono ${up?'text-emerald-400':'text-red-400'}"><span class="trend-arrow ${up?'up':'down'}"></span><span>${sign}${fmtRaw(Math.abs(dailyChange), cur)}</span> <span style="opacity:.9">(${sign}${Math.abs(dailyChangePct).toFixed(2)}%)</span></span>`;
 }
 function buildHoldPnlHTML(pnl, pnlPct, cur){
     const ps = pnl >= 0 ? '+' : '-';
@@ -6685,10 +7332,8 @@ function computeLiveStats(p, pIdx){
     let totalMV = 0, totalUnPnl = 0;
     const rows = [];
     stocks.forEach((s, si)=>{
-        const sess2 = s.session||'';
-        const latestPrice = (sess2==='夜盤'&&s.prePrice)?s.prePrice:
-                            (sess2==='盤後'&&s.postPrice)?s.postPrice:
-                            s.currentPrice||0;
+        const sess2 = normalizeSession(s.session);
+        const latestPrice = getLatestStockPrice(s);
         const sCur = getStockCurrency(s.ticker)||s.currency||p.currency;
         const mvN = (s.shares||0)*latestPrice;
         const costN = (s.shares||0)*(s.buyPrice||0);
@@ -6751,11 +7396,10 @@ function computeLiveStats(p, pIdx){
     const valUSD = p.currency==='TWD' ? netVal/usdToTwd : netVal;
     let dailyChange=0, dailyChangePct=0, prevSnap=null;
     try{
-        prevSnap = getPrevUSCloseSnapshotNetValue(pIdx);
-        if(prevSnap){
-            dailyChange = netVal - prevSnap.netValue;
-            dailyChangePct = prevSnap.netValue !== 0 ? (dailyChange/prevSnap.netValue)*100 : 0;
-        }
+        const dailyInfo = calcTodayChange(p, pIdx, netVal);
+        dailyChange = dailyInfo.dailyChange;
+        dailyChangePct = dailyInfo.dailyChangePct;
+        prevSnap = dailyInfo.prevSnap;
     }catch(e){}
     const autoCash = netVal - totalMV;
     const cashLevel = totalMV - netVal;
@@ -6767,10 +7411,7 @@ function computeLiveStats(p, pIdx){
     let pieSlices = [];
     if(stocks.length > 0){
         const stockSlices = stocks.map(s=>{
-            const sess=s.session||'';
-            const lp=(sess==='夜盤'&&s.prePrice)?s.prePrice:
-                     (sess==='盤後'&&s.postPrice)?s.postPrice:
-                     s.currentPrice||0;
+            const lp=getLatestStockPrice(s);
             const sCur=getStockCurrency(s.ticker)||s.currency||p.currency;
             return { ticker:s.ticker||'--', mv: Math.max(0, convertCurrency((s.shares||0)*lp, sCur, p.currency)) };
         }).filter(x=>x.mv>0).sort((a,b)=>b.mv-a.mv);
@@ -6952,8 +7593,17 @@ function cmGotoIdx(i){
 renderCmPage();   // 初始化 (套用上次選擇的頁面)
 
 const endDate=new Date('2026-11-04T00:00:00').getTime();
-(function tick(){const d=endDate-Date.now();if(d<0){document.getElementById('countdown').textContent='比賽已結束！';return;}
-document.getElementById('countdown').textContent=`${Math.floor(d/86400000)} 天 ${Math.floor(d%86400000/3600000)} 時 ${Math.floor(d%3600000/60000)} 分`;setTimeout(tick,60000);})();
+(function tick(){
+    const el = document.getElementById('countdown');
+    if(!el) return;
+    const d=Math.max(0, endDate-Date.now());
+    const days=Math.floor(d/86400000);
+    const hours=Math.floor((d%86400000)/3600000);
+    const minutes=Math.floor((d%3600000)/60000);
+    const seconds=Math.floor((d%60000)/1000);
+    el.textContent=`${days}:${String(hours).padStart(2,'0')}:${String(minutes).padStart(2,'0')}:${String(seconds).padStart(2,'0')}`;
+    setTimeout(tick,1000);
+})();
 
 // ── 自動刷新股價（交易時段內每 10 秒）────────────────
 // 持倉/淨值更新時段（台北時間）：台股 09:00~13:31、美股相關 16:00~隔日 04:00
@@ -7119,15 +7769,15 @@ function updateMarketSessionIndicator(){
     } else if(totalMin >= 240 && totalMin < 570){  // 04:00-09:30 ET 盤前
         session = '盤前';
         sessionColor = 'var(--accent-cyan)';
-        detail = '今日變動基準：前一交易日 16:00 收盤快照';
+        detail = '今日變動基準：持股昨收；今日買入部位用買入價';
     } else if(totalMin >= 570 && totalMin < 960){  // 09:30-16:00 ET 盤中
         session = '盤中';
         sessionColor = 'var(--accent-green)';
-        detail = '今日變動基準：前一交易日 16:00 收盤快照';
+        detail = '今日變動基準：持股昨收；今日買入部位用買入價';
     } else if(totalMin >= 960 && totalMin < 1200){  // 16:00-20:00 ET 盤後
         session = '盤後';
         sessionColor = 'var(--accent-amber)';
-        detail = '今日變動基準：今日 16:00 收盤快照(視窗內寫入中)';
+        detail = '今日變動基準：持股昨收；今日買入部位用買入價';
     } else {
         session = '休市';
         sessionColor = 'var(--text-muted)';
@@ -7137,7 +7787,7 @@ function updateMarketSessionIndicator(){
     const isDST = getETOffsetHours() === 4;
     const zoneLabel = isDST ? 'EDT (夏令)' : 'EST (冬令)';
     
-    el.innerHTML = `<span style="color:${sessionColor};font-weight:600;">${session}</span> ｜ <span style="color:var(--text-secondary);">${etStr} (${zoneLabel})</span> ｜ <span style="color:var(--text-muted);font-size:11px;">${detail}</span>`;
+    el.innerHTML = `<span style="color:${sessionColor};font-weight:600;">${session}</span> ｜ <span style="color:var(--text-secondary);">${etStr} (${zoneLabel})</span>`;
 }
 
 // 每秒更新美股開盤倒數 + 市場時段指示器
@@ -7153,5 +7803,6 @@ if('serviceWorker' in navigator){
     });
 }
 </script>
-</body>
-</html>
+
+
+</body></html>
