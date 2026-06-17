@@ -480,8 +480,15 @@
         .poker-month-label{font-size:10px;color:var(--text-muted);font-weight:800;margin-bottom:3px;}
         .poker-month-value{font-size:12px;font-weight:900;}
         .poker-record-title{font-size:11px;font-weight:900;color:var(--text-secondary);letter-spacing:.08em;text-transform:uppercase;margin:4px 0 8px;}
-        .poker-record-row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid rgba(190,150,170,.11);}
-        .poker-record-date{color:var(--text-secondary);font-size:13px;font-weight:700;}
+        #poker-records.poker-record-grid{display:flex;flex-wrap:wrap;align-items:stretch;gap:8px;}
+        .poker-record-row{position:relative;min-width:138px;min-height:70px;border-radius:8px;padding:12px 34px 12px 14px;border:1px solid rgba(190,150,170,.14);background:rgba(255,255,255,.035);box-shadow:inset 0 1px 0 rgba(255,255,255,.045);}
+        .poker-record-row.win{background:rgba(34,197,94,.11);border-color:rgba(34,197,94,.28);}
+        .poker-record-row.loss{background:rgba(239,68,68,.11);border-color:rgba(239,68,68,.3);}
+        .poker-record-row.flat{background:rgba(190,150,170,.06);border-color:rgba(190,150,170,.16);}
+        .poker-record-date{display:block;color:var(--text-secondary);font-size:13px;font-weight:900;line-height:1.2;margin-bottom:7px;}
+        .poker-record-amount{display:block;font-size:17px;font-weight:900;line-height:1.15;white-space:nowrap;}
+        .poker-record-row .btn-del{position:absolute;top:8px;right:9px;color:rgba(190,150,170,.62);font-size:14px;line-height:1;}
+        .poker-record-row .btn-del:hover{color:#fff;}
         .poker-total-row{margin-top:14px;padding-top:14px;border-top:1px solid rgba(190,150,170,.18);display:flex;justify-content:space-between;align-items:center;gap:12px;}
         @media (max-width:900px){.poker-dashboard{grid-template-columns:1fr;}.poker-chart-wrap{height:220px;}}
         @media (max-width:640px){
@@ -492,6 +499,7 @@
             .poker-head{grid-template-columns:1fr;align-items:start;}
             .poker-head .btn-add-trade{justify-self:start;}
             .poker-metrics{grid-template-columns:1fr;}
+            .poker-record-row{min-width:124px;flex:1 1 calc(50% - 8px);}
             .poker-player-name{font-size:18px;}
             .rank-move{font-size:10px;padding:1px 5px;margin-left:4px;}
             .nav-toast{font-size:12px;padding:8px 16px;max-width:92vw;white-space:normal;text-align:center;}
@@ -5696,20 +5704,21 @@ function renderPokerRecords(records){
     renderPokerMonthly(stats.months);
 
     if(records.length === 0){
+        container.classList.remove('poker-record-grid');
         container.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:16px;font-size:13px;">尚無紀錄</div>';
         totalEl.textContent = 'NT$ 0';
         totalEl.style.color = 'var(--text-secondary)';
         return;
     }
 
+    container.classList.add('poker-record-grid');
     container.innerHTML = sortedDesc.map(r=>{
         const amount = Number(r.amount || 0);
-        return `<div class="poker-record-row">
+        const cls = amount > 0 ? 'win' : amount < 0 ? 'loss' : 'flat';
+        return `<div class="poker-record-row ${cls}">
             <span class="poker-record-date">${esc(r.date)}</span>
-            <div style="display:flex;align-items:center;gap:12px;">
-                <span class="mono font-bold" style="color:${pokerAmountColor(amount)};font-size:15px;">${fmtPokerMoney(amount, true)}</span>
-                <button class="btn-del" onclick="deletePokerRecord('${escJs(r.key)}')" title="刪除">✕</button>
-            </div>
+            <span class="poker-record-amount mono" style="color:${pokerAmountColor(amount)}">${fmtPokerMoney(amount, true)}</span>
+            <button class="btn-del" onclick="deletePokerRecord('${escJs(r.key)}')" title="刪除">✕</button>
         </div>`;
     }).join('');
 
