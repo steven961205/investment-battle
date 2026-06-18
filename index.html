@@ -443,6 +443,58 @@
         .adv-dot{width:7px;height:7px;border-radius:50%;background:var(--border-bright);border:none;padding:0;cursor:pointer;transition:all .2s;}
         .adv-dot:hover{background:var(--text-secondary);}
         .adv-dot.active{background:var(--accent-cyan);box-shadow:0 0 8px rgba(190,150,170,.5);transform:scale(1.25);}
+        /* ── What-if 續抱曲線切換鈕 (新增功能, 不影響現有框架) ── */
+        .whatif-btn{display:inline-flex;align-items:center;gap:5px;height:26px;padding:0 11px;border-radius:8px;
+            background:var(--bg-elevated);border:1px solid var(--border-bright);color:var(--text-secondary);
+            font-size:11.5px;font-weight:700;letter-spacing:.02em;cursor:pointer;white-space:nowrap;line-height:1;
+            transition:all .2s;flex-shrink:0;font-family:inherit;animation:whatifPulse 2.4s ease-in-out infinite;}
+        .whatif-btn::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--text-muted);transition:all .2s;animation:whatifDotPulse 2.4s ease-in-out infinite;}
+        .whatif-btn:hover{border-color:var(--accent-cyan);color:var(--accent-cyan);box-shadow:0 0 18px rgba(190,150,170,.34);}
+        .whatif-btn.active{background:rgba(190,150,170,.14);border-color:var(--accent-cyan);color:#f2e9ec;
+            box-shadow:0 0 18px rgba(190,150,170,.38);}
+        .whatif-btn.active::before{background:var(--accent-cyan);box-shadow:0 0 10px var(--accent-cyan);}
+        @keyframes whatifPulse{
+            0%,100%{box-shadow:0 0 0 rgba(190,150,170,0);border-color:var(--border-bright);color:var(--text-secondary);}
+            50%{box-shadow:0 0 16px rgba(190,150,170,.32),0 0 32px rgba(190,150,170,.08);border-color:rgba(190,150,170,.48);color:#f2e9ec;}
+        }
+        @keyframes whatifDotPulse{
+            0%,100%{background:var(--text-muted);box-shadow:none;transform:scale(1);}
+            50%{background:var(--accent-cyan);box-shadow:0 0 10px var(--accent-cyan);transform:scale(1.18);}
+        }
+        .whatif-hint{display:none;font-size:11.5px;line-height:1.45;margin-bottom:10px;padding:12px;border-radius:14px;
+            background:rgba(12,12,15,.74);border:1px solid rgba(190,150,170,.18);color:var(--text-secondary);}
+        .whatif-hint.show{display:block;animation:advfade .3s ease;}
+        .whatif-hint b.wi-win{color:var(--accent-green);}
+        .whatif-hint b.wi-loss{color:var(--accent-red);}
+        .whatif-hint .wi-amt{font-weight:700;color:#f2e9ec;}
+        .wi-summary-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:10px;flex-wrap:wrap;}
+        .wi-summary-title{font-size:12px;font-weight:900;color:#f2e9ec;letter-spacing:.02em;}
+        .wi-summary-note{font-size:10.5px;color:var(--text-muted);}
+        .wi-net-list{display:grid;gap:8px;}
+        .wi-net-row{position:relative;overflow:hidden;display:grid;grid-template-columns:minmax(82px,.58fr) minmax(0,2.75fr);gap:12px;align-items:center;min-height:70px;padding:10px 14px;border-radius:15px;background:linear-gradient(135deg,rgba(16,16,20,.96),rgba(6,6,9,.98));border:1px solid color-mix(in srgb,var(--player-color) 36%,rgba(255,255,255,.08));box-shadow:inset 0 1px 0 rgba(255,255,255,.035),0 18px 42px -32px color-mix(in srgb,var(--player-color) 58%,transparent);}
+        .wi-net-row::before{content:'';position:absolute;inset:-2px;border-radius:18px;padding:1.5px;background:linear-gradient(110deg,transparent 0%,transparent 18%,color-mix(in srgb,var(--player-color) 82%,#fff) 34%,rgba(255,255,255,.92) 42%,color-mix(in srgb,var(--player-color) 78%,#fff) 50%,transparent 68%,transparent 100%);background-size:260% 100%;animation:wiBorderFlow 4.8s linear infinite;opacity:.7;-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none;}
+        .wi-net-row::after{content:'';position:absolute;inset:0;background:radial-gradient(60% 120% at 0% 50%,color-mix(in srgb,var(--player-color) 11%,transparent),transparent 62%);pointer-events:none;}
+        .wi-net-row>*{position:relative;z-index:1;}
+        @keyframes wiBorderFlow{0%{background-position:160% 0;}100%{background-position:-160% 0;}}
+        .wi-net-player{display:flex;align-items:center;justify-content:center;text-align:center;min-width:0;color:var(--player-color);font-weight:950;font-size:13px;line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+        .wi-net-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;align-items:center;min-width:0;}
+        .wi-net-cell{min-width:0;}
+        .wi-net-label{display:flex;align-items:center;justify-content:space-between;gap:7px;font-size:9.25px;font-weight:900;color:#928692;letter-spacing:.03em;margin-bottom:4px;}
+        .wi-net-label span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+        .wi-net-label span:last-child{text-align:right;}
+        .wi-net-cell.fly .wi-net-label{color:#8ccfa5;}
+        .wi-net-cell.escape .wi-net-label{color:#d9909b;}
+        .wi-net-val{font-family:var(--number-font);font-size:15.5px;font-weight:950;line-height:1.1;color:#f2e9ec;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+        .wi-net-cell.fly .wi-net-val{color:#3fd27a;}
+        .wi-net-cell.escape .wi-net-val{color:#ff6b78;}
+        .wi-net-sub{margin-top:4px;font-size:9.5px;color:#b9afba;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+        .wi-footnote{margin-top:9px;font-size:10.5px;color:var(--text-muted);}
+        .stats-mini-pair{display:grid;grid-template-columns:1fr 1fr;gap:7px;}
+        .stats-mini-cell{min-width:0;padding:7px 8px;border-radius:7px;background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.055);}
+        .stats-mini-title{font-size:9.5px;font-weight:850;color:var(--text-muted);margin-bottom:2px;}
+        .stats-mini-val{font-family:var(--number-font);font-size:13px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+        .stats-mini-sub{font-size:10px;color:var(--text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px;}
+        @media(max-width:760px){ .whatif-btn{height:30px;padding:0 12px;font-size:12px;} .wi-net-row{grid-template-columns:1fr;gap:8px;padding:11px;} .wi-net-player{justify-content:center;} .wi-net-metrics{grid-template-columns:1fr;gap:8px;} .wi-net-val{font-size:15px;} }
         .adv-body{min-height:240px;}
         .adv-fade{animation:advfade .3s ease;}
         @keyframes advfade{from{opacity:0;transform:translateX(10px);}to{opacity:1;transform:none;}}
@@ -885,6 +937,7 @@
             <h2 class="text-lg font-bold section-title flex items-center gap-2">
                 <span id="cm-page-icon"></span> <span id="cm-page-title">投資組合績效曲線</span>
                 <span class="text-xs font-normal text-slate-400 ml-1" id="cm-page-sub"></span>
+                <button type="button" id="whatif-toggle-btn" class="whatif-btn" onclick="toggleWhatIf()" title="切換 What-if 續抱曲線：三位玩家各自的賣飛與逃頂">What if</button>
             </h2>
             <div class="adv-nav">
                 <button class="adv-arrow" onclick="cmGoto(-1)" title="上一頁">‹</button>
@@ -893,6 +946,7 @@
             </div>
         </div>
         <div id="cm-page-chart" class="adv-fade">
+            <div id="whatif-hint" class="whatif-hint"></div>
             <div class="text-xs text-slate-500" id="snapshot-window-hint" style="display:none;font-style:italic;margin-bottom:10px;"></div>
             <div id="performance-mobile-legend" class="performance-mobile-legend"></div>
             <div class="performance-chart-wrap" style="height:380px;position:relative;">
@@ -1601,7 +1655,7 @@ const firebaseConfig={apiKey:"AIzaSyB0JZSBEgE11JQvPINRIHkztapNazgCrPU",authDomai
 if(!firebase.apps.length)firebase.initializeApp(firebaseConfig);
 const db=firebase.database();
 // ── 應用版本: 每次部署新版時更新此字串, Service Worker 快取會自動換代 ──
-const APP_VERSION = '2026.06.18-04';
+const APP_VERSION = '2026.06.19-whatif-07';
 const NUMBER_FONT_FAMILY = '"Inter", "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
 if(typeof Chart !== 'undefined') Chart.defaults.font.family = NUMBER_FONT_FAMILY;
 // ── Firebase 匿名驗證 ─────────────────────────
@@ -1730,6 +1784,8 @@ let benchmarkCache={ dji:null, sp500:null, ndx:null, twii:null, btc:null, gold:n
 let dailySnapshots={};       // {0:{date:{netValue,currency,initCap,ts}},...}
 let benchmarkHistory={ dji:[], sp500:[], ndx:[], twii:[], btc:[], gold:[] }; // [{date,close},...]
 let performanceChart=null;
+// ── What-if 續抱曲線模式 (新增功能, 預設關閉, 不影響現有框架) ──
+let whatIfMode=false;
 let chartRenderTimer=null;
 let holdingPieCharts={}; // {playerName: Chart instance}
 let pokerChart=null;
@@ -3062,6 +3118,9 @@ function togglePerformanceLegendItem(index, key){
 // ── 繪製績效曲線 ──────────────────────────
 function renderPerformanceChart(){
     if(typeof Chart==='undefined') return;
+    if(typeof ensureWhatIfGlowLinePlugin === 'function') ensureWhatIfGlowLinePlugin();
+    // What-if 模式: 改畫「續抱至今」賣飛/逃頂曲線 (進階面板仍照常更新, 見 renderWhatIfChart 尾端)
+    if(whatIfMode){ renderWhatIfChart(); return; }
     const canvas = document.getElementById('performance-chart');
     if(!canvas) return;
 
@@ -3118,6 +3177,7 @@ function renderPerformanceChart(){
             pointHoverRadius: 5,
             spanGaps: true,
             fill: 'origin',
+            glowLine: true,
             hidden: hiddenChartLabels.has(p.name)   // 保留隱藏狀態
         });
     });
@@ -3235,14 +3295,42 @@ function renderPerformanceChart(){
         const bv = Number.isFinite(b.parsed?.y) ? b.parsed.y : -Infinity;
         return bv - av;
     };
+    const performanceTooltipCallbacks = {
+        title: function(items){
+            if(!items.length) return '';
+            const i = items[0].dataIndex;
+            const date = allDates[i];
+            if(!date) return '';
+            const isLastPoint = (date === lastTradingDayStr);
+            if(isLastPoint){
+                return isTodayWeekend ? `${date}（最新・含未實現・週末）` : `${date}（今日・含未實現）`;
+            }
+            return date;
+        },
+        label: function(c){
+            const v = c.parsed.y;
+            const label = c.dataset.originalLabel ? shortChartName(c.dataset.originalLabel) : c.dataset.label;
+            if(v===null || v===undefined) return `${label}: --`;
+            const sign = v>=0?'+':'';
+            return `${label}: ${sign}${v.toFixed(2)}%`;
+        },
+        labelColor: function(c){
+            const color = c.dataset.fullColor || c.dataset.borderColor || '#f2e9ec';
+            return {borderColor: color, backgroundColor: color, borderWidth: 0};
+        }
+    };
     if(performanceChart){
         performanceChart.data.labels = labels;
         performanceChart.data.datasets = datasets;
-        performanceChart.options.layout.padding = { right: compactChart ? 58 : 76, top: compactChart ? 2 : 0 };
+        performanceChart.options.layout.padding = { right: compactChart ? 28 : 44, top: compactChart ? 2 : 0 };
         performanceChart.options.plugins.legend = legendOptions;
         performanceChart.options.plugins.tooltip.itemSort = tooltipItemSort;
+        performanceChart.options.plugins.tooltip.callbacks = performanceTooltipCallbacks;
+        performanceChart.options.plugins.zeroPnlLine = { enabled:false };
         performanceChart.options.scales.x.ticks = xTickOptions;
         performanceChart.options.scales.y.ticks = yTickOptions;
+        performanceChart.options.scales.y.suggestedMin = undefined;
+        performanceChart.options.scales.y.suggestedMax = undefined;
         performanceChart.update('none');
     } else {
         performanceChart = new Chart(ctx, {
@@ -3252,7 +3340,7 @@ function renderPerformanceChart(){
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                layout: { padding: { right: compactChart ? 58 : 76, top: compactChart ? 2 : 0 } },
+                layout: { padding: { right: compactChart ? 28 : 44, top: compactChart ? 2 : 0 } },
                 interaction: { mode:'index', intersect:false },
                 animation: { duration: 600 },
                 plugins: {
@@ -3272,31 +3360,9 @@ function renderPerformanceChart(){
                         itemSort: tooltipItemSort,
                         titleFont: { size:14, weight:'700', family:NUMBER_FONT_FAMILY },
                         bodyFont: { size:14, family:NUMBER_FONT_FAMILY },
-                        callbacks: {
-                            title: function(items){
-                                if(!items.length) return '';
-                                const i = items[0].dataIndex;
-                                const date = allDates[i];
-                                if(!date) return '';
-                                const isLastPoint = (date === lastTradingDayStr);
-                                if(isLastPoint){
-                                    return isTodayWeekend ? `${date}（最新・含未實現・週末）` : `${date}（今日・含未實現）`;
-                                }
-                                return date;
-                            },
-                            label: function(c){
-                                const v = c.parsed.y;
-                                const label = c.dataset.originalLabel ? shortChartName(c.dataset.originalLabel) : c.dataset.label;
-                                if(v===null || v===undefined) return `${label}: --`;
-                                const sign = v>=0?'+':'';
-                                return `${label}: ${sign}${v.toFixed(2)}%`;
-                            },
-                            labelColor: function(c){
-                                const color = c.dataset.fullColor || c.dataset.borderColor || '#f2e9ec';
-                                return {borderColor: color, backgroundColor: color, borderWidth: 0};
-                            }
-                        }
-                    }
+                        callbacks: performanceTooltipCallbacks
+                    },
+                    zeroPnlLine: { enabled:false }
                 },
                 scales: {
                     x: {
@@ -3328,6 +3394,334 @@ function renderPerformanceChart(){
 
     // 7. 進階戰情室 (王座/撞股/水下回撤/風險/回放) — 同源定錨
     renderAdvancedPanel(allDates, lastTradingDayStr);
+}
+
+// ══════════════════════════════════════════════
+// ──   What-if 續抱至今 曲線 (新增功能)         ──
+// ══════════════════════════════════════════════
+// 從各玩家「績效／風險」已平倉交易紀錄, 模擬「若當初沒賣、一路抱到今天」的淨值,
+// 找出每位玩家各自「賣飛」與「逃頂」畫成曲線。完全獨立, 不更動任何既有曲線資料/邏輯。
+// 個股逐日收盤取自既有 stockHistory (refreshStockHistory 已會收集有建倉日的已平倉股)。
+
+// 取交易建倉日: 優先 firstBuyDate, 否則取 closedLots 最早 buyDate
+function whatIfTradeBuyDate(t){
+    if(t.firstBuyDate) return normalizeDate(t.firstBuyDate);
+    if(Array.isArray(t.closedLots)){
+        const ds = t.closedLots.map(l=>normalizeDate(l.buyDate||'')).filter(Boolean).sort();
+        if(ds.length) return ds[0];
+    }
+    return '';
+}
+
+// 蒐集所有可模擬「續抱至今」的已平倉交易候選
+function collectWhatIfCandidates(){
+    const out = [];
+    participants.forEach((p, pIdx)=>{
+        const trades = Array.isArray(p.trades) ? p.trades : [];
+        trades.forEach(t=>{
+            const ticker = (t.ticker||'').toUpperCase().trim();
+            if(!ticker) return;
+            const buyPrice = parseFloat(t.buyPrice)||0;
+            const shares   = parseFloat(t.shares)||0;
+            if(buyPrice<=0 || shares<=0) return;
+            const buyDate = whatIfTradeBuyDate(t);
+            const sellDate = normalizeDate(t.date||'');
+            if(!buyDate || !sellDate) return;
+            const hist = stockHistory[ticker] || [];
+            if(!hist.length) return;
+            const latestClose = hist[hist.length-1].close;
+            if(!(latestClose>0)) return;
+            const cur = getStockCurrency(t.ticker) || p.currency || 'TWD';
+            const playerCur = p.currency || cur;
+            const realizedPnlNative = parseFloat(t.pnl)||0;
+            const realizedPnlPlayer = convertCurrency(realizedPnlNative, cur, playerCur);
+            const realizedPnlTwd    = cur==='USD' ? realizedPnlNative*usdToTwd : realizedPnlNative;
+            const hypoPnlNative = (latestClose - buyPrice) * shares;           // 續抱至今損益(原幣, 未計賣出手續費)
+            const hypoPnlPlayer = convertCurrency(hypoPnlNative, cur, playerCur);
+            const hypoPnlTwd    = cur==='USD' ? hypoPnlNative*usdToTwd : hypoPnlNative; // 跨幣別公平比較
+            const deltaPlayer   = hypoPnlPlayer - realizedPnlPlayer;           // 若沒賣, 今日淨值相對實際淨值的差額
+            const deltaTwd      = hypoPnlTwd - realizedPnlTwd;
+            const hypoPct       = (latestClose - buyPrice)/buyPrice*100;        // 該筆交易續抱至今報酬率
+            const actualNetToday = calcCurrentNetValue(p);
+            const hypoNetToday = actualNetToday - realizedPnlPlayer + hypoPnlPlayer;
+            out.push({
+                playerName: p.name, playerIndex: pIdx, player:p, ticker, stockName: t.stockName||'',
+                buyPrice, shares, buyDate, sellDate, currency: cur, playerCurrency: playerCur,
+                hist, latestClose, hypoPnlNative, hypoPnlPlayer, hypoPnlTwd, hypoPct,
+                realizedPnlNative, realizedPnlPlayer, deltaPlayer, deltaTwd,
+                actualNetToday, hypoNetToday, initCap:getFixedInitialCapital(playerCur),
+                wasModeledBeforeSell: !!normalizeDate(t.firstBuyDate||'')
+            });
+        });
+    });
+    return out;
+}
+
+function buildWhatIfPlayerExtremes(cands){
+    return participants.map((p, pIdx)=>{
+        const items = cands.filter(c=>c.playerIndex===pIdx);
+        if(!items.length) return null;
+        const fly = items.reduce((a,b)=> b.deltaTwd>a.deltaTwd ? b : a);
+        const escape = items.reduce((a,b)=> b.deltaTwd<a.deltaTwd ? b : a);
+        return { player:p, playerIndex:pIdx, fly, escape };
+    }).filter(Boolean);
+}
+
+// 把候選交易展開成逐日「假設淨值報酬率」曲線。
+// 賣出日前沿用原淨值; 賣出日後移除該筆已實現損益, 改用續抱未實現損益。
+function whatIfCurveData(cand, allDates, lastTradingDayStr){
+    const map = {}; cand.hist.forEach(h=>{ map[h.date]=h.close; });
+    let last=null;
+    const netValues = [];
+    const deltaValues = [];
+    const data = allDates.map((date, idx)=>{
+        if(date < cand.buyDate) return null;        // 尚未建倉
+        if(map[date]!=null) last=map[date];          // 有當日收盤則更新, 否則沿用前一個有效收盤
+        if(last==null) return null;
+        const baseNet = calcChartNetValueOnDate(cand.player, cand.playerIndex, date, allDates, idx, lastTradingDayStr);
+        if(baseNet==null || !isFinite(baseNet)) return null;
+        const hypoPnlNative = (last - cand.buyPrice) * cand.shares;
+        const hypoPnlPlayer = convertCurrency(hypoPnlNative, cand.currency, cand.playerCurrency);
+        let hypoNet = baseNet;
+        if(date >= cand.sellDate){
+            hypoNet = baseNet - cand.realizedPnlPlayer + hypoPnlPlayer;
+        } else if(!cand.wasModeledBeforeSell){
+            hypoNet = baseNet + hypoPnlPlayer;
+        }
+        netValues[idx] = hypoNet;
+        deltaValues[idx] = hypoNet - baseNet;
+        return ((hypoNet - cand.initCap) / cand.initCap) * 100;
+    });
+    return { data, netValues, deltaValues };
+}
+
+function renderWhatIfStatus(n, playerCount){
+    const el=document.getElementById('chart-status');
+    if(el) el.innerHTML = '';
+}
+
+// 主繪製: 切到 What-if 曲線
+function renderWhatIfChart(){
+    if(typeof Chart==='undefined') return;
+    const canvas = document.getElementById('performance-chart');
+    if(!canvas) return;
+    // 首次就直接進 What-if 時, 底層 chart 尚未建立 → 先用正常模式建一次再覆蓋
+    if(!performanceChart){ whatIfMode=false; renderPerformanceChart(); whatIfMode=true; }
+    if(!performanceChart) return;
+
+    // 1. 工作日序列 (與正常曲線完全一致)
+    const allDates=[];
+    const startDate=new Date(BENCHMARK_START_DATE+'T00:00:00');
+    const todayStr=getTaipeiToday();
+    const todayDate=new Date(todayStr+'T00:00:00');
+    for(let d=new Date(startDate); d<=todayDate; d.setDate(d.getDate()+1)){
+        const day=d.getDay(); if(day===0||day===6) continue;
+        const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), dd=String(d.getDate()).padStart(2,'0');
+        allDates.push(`${y}-${m}-${dd}`);
+    }
+    const labels=allDates.map(date=>{ const [,m,d]=date.split('-'); return `${parseInt(m,10)}/${parseInt(d,10)}`; });
+    const lastTradingDayStr = allDates.length ? allDates[allDates.length-1] : todayStr;
+
+    const cands = collectWhatIfCandidates();
+    const hintEl=document.getElementById('whatif-hint');
+    const compactChart = window.matchMedia && window.matchMedia('(max-width: 640px)').matches;
+    const playerColors = ['#a855f7', '#ffffff', '#fbbf24', '#06b6d4', '#ec4899'];
+    const datasets=[];
+
+    // 無可分析交易 → 空狀態
+    if(cands.length===0){
+        if(hintEl){
+            hintEl.classList.add('show');
+            hintEl.innerHTML = '<b>What-if · 續抱至今</b>　目前沒有可分析的已平倉交易紀錄（需具備建倉日、平倉日, 且該股有歷史日K資料）。';
+        }
+        performanceChart.data.labels=labels;
+        performanceChart.data.datasets=[];
+        performanceChart.update('none');
+        renderPerformanceMobileLegend([], compactChart);
+        renderWhatIfStatus(0, 0);
+        renderAdvancedPanel(allDates, lastTradingDayStr);
+        return;
+    }
+
+    const playerExtremes = buildWhatIfPlayerExtremes(cands);
+    if(typeof ensureZeroPnlLinePlugin === 'function') ensureZeroPnlLinePlugin();
+    if(typeof ensureWhatIfGlowLinePlugin === 'function') ensureWhatIfGlowLinePlugin();
+
+    // 2. 每位玩家各自賣飛 / 逃頂 (以換算 TWD 後的假設淨值差額排名, 曲線色沿用玩家色)
+    function mkDataset(cand, role, color){
+        const sellIdx = allDates.indexOf(cand.sellDate);
+        const roleTxt = role==='fly' ? '賣飛' : role==='escape' ? '逃頂' : '賣飛/逃頂';
+        const glow = role === 'fly';
+        const curve = whatIfCurveData(cand, allDates, lastTradingDayStr);
+        return {
+            label: `${shortName(cand.playerName, 2)} · ${roleTxt} · ${cand.ticker}`,
+            displayLabel: shortName(cand.playerName, 2),
+            originalLabel: `${cand.playerName} ${roleTxt} ${cand.ticker}`,
+            data: curve.data,
+            whatIfNetValues: curve.netValues,
+            whatIfDeltaValues: curve.deltaValues,
+            playerCurrency: cand.playerCurrency,
+            borderColor: color,
+            backgroundColor: 'transparent',
+            borderWidth: glow ? 2.8 : 2.15,
+            borderDash: role==='escape' ? [6, 4] : [],
+            tension: 0.25,
+            pointRadius: ctx=> ctx.dataIndex===sellIdx ? 5 : 0,   // 只在「實際賣出日」放菱形標記
+            pointHoverRadius: 6,
+            pointStyle: 'rectRot',
+            pointBackgroundColor: color,
+            pointBorderColor: '#ffffff',
+            pointBorderWidth: 1.4,
+            spanGaps: false,
+            fill: false,
+            whatIfGlow: glow,
+            glowLine: true,
+            hidden: false
+        };
+    }
+
+    playerExtremes.forEach(group=>{
+        const color = getPlayerColor(group.player.name, playerColors[group.playerIndex % playerColors.length]);
+        datasets.push(mkDataset(group.fly, 'fly', color));
+        if(group.escape !== group.fly) datasets.push(mkDataset(group.escape, 'escape', color));
+    });
+
+    performanceChart.data.labels=labels;
+    performanceChart.data.datasets=datasets;
+    const allY = datasets.flatMap(ds=>ds.data).filter(v=>v!=null && isFinite(v));
+    const yMin = allY.length ? Math.min(...allY, 0) : 0;
+    const yMax = allY.length ? Math.max(...allY, 0) : 0;
+    const yPad = Math.max((yMax - yMin) * 0.08, 1);
+    performanceChart.options.layout.padding = { right: compactChart ? 28 : 44, top: compactChart ? 2 : 0 };
+    performanceChart.options.plugins.legend = { display:false };
+    performanceChart.options.plugins.zeroPnlLine = { enabled:true };
+    performanceChart.options.plugins.tooltip.callbacks = {
+        title(items){
+            if(!items.length) return '';
+            const date = allDates[items[0].dataIndex] || '';
+            return date ? `${date}（假設續抱淨值）` : '';
+        },
+        label(c){
+            const v = c.parsed.y;
+            const ds = c.dataset || {};
+            const label = ds.displayLabel || ds.label || '';
+            const out = [];
+            if(v==null || !isFinite(v)){
+                out.push(`${label}: --`);
+            } else {
+                out.push(`${label}: ${v>=0?'+':''}${v.toFixed(2)}%`);
+            }
+            const net = Array.isArray(ds.whatIfNetValues) ? ds.whatIfNetValues[c.dataIndex] : null;
+            const delta = Array.isArray(ds.whatIfDeltaValues) ? ds.whatIfDeltaValues[c.dataIndex] : null;
+            const cur = ds.playerCurrency || 'TWD';
+            if(net!=null && isFinite(net)) out.push(`假設淨值: ${fmtRaw(net, cur, cur==='USD'?2:0)}`);
+            if(delta!=null && isFinite(delta)) out.push(`相對實際: ${delta>=0?'+':'-'}${fmtRaw(Math.abs(delta), cur, cur==='USD'?2:0)}`);
+            return out;
+        },
+        labelColor(c){
+            const color = c.dataset.borderColor || '#f2e9ec';
+            return {borderColor: color, backgroundColor: color, borderWidth: 0};
+        }
+    };
+    performanceChart.options.scales.x.ticks = {
+        color:'#7ba5cc',
+        font:{ size:compactChart ? 10 : 11, family:NUMBER_FONT_FAMILY },
+        maxRotation: 0,
+        autoSkipPadding: compactChart ? 12 : 20,
+        maxTicksLimit: compactChart ? 5 : 8
+    };
+    performanceChart.options.scales.y.ticks = {
+        color:'#7ba5cc',
+        font:{ size:compactChart ? 10 : 11, family:NUMBER_FONT_FAMILY },
+        callback: v => (v>=0?'+':'') + v.toFixed(1) + '%'
+    };
+    performanceChart.options.scales.y.suggestedMin = Math.floor((yMin-yPad)*10)/10;
+    performanceChart.options.scales.y.suggestedMax = Math.ceil((yMax+yPad)*10)/10;
+    performanceChart.update('none');
+    renderPerformanceMobileLegend([], compactChart);
+
+    // 3. 說明列
+    if(hintEl){
+        const sgn = v => (v>=0?'+':'');
+        const pctStr = c => `${sgn(c.hypoPct)}${c.hypoPct.toFixed(1)}%`;
+        const amtStr = c => `${c.hypoPnlNative>=0?'+':'-'}${fmtRaw(Math.abs(c.hypoPnlNative), c.currency, c.currency==='USD'?2:0)}`;
+        const netStr = c => fmtRaw(c.hypoNetToday, c.playerCurrency, c.playerCurrency==='USD'?2:0);
+        const diffStr = c => `${c.deltaPlayer>=0?'+':'-'}${fmtRaw(Math.abs(c.deltaPlayer), c.playerCurrency, c.playerCurrency==='USD'?2:0)}`;
+        const netTwdStr = c => fmtRaw(convertCurrency(c.hypoNetToday, c.playerCurrency, 'TWD'), 'TWD');
+        const diffTwdStr = c => {
+            const v = convertCurrency(c.deltaPlayer, c.playerCurrency, 'TWD');
+            return `${v>=0?'+':'-'}${fmtRaw(Math.abs(v), 'TWD')}`;
+        };
+        const whatIfAssetLabel = c => {
+            if(!c) return '';
+            if(isTaiwanStock(c.ticker)){
+                return formatStockDisplayName(c.ticker, c.stockName) || c.stockName || c.ticker;
+            }
+            return c.ticker;
+        };
+        const netCell = (cand, cls, label, fallbackText)=>{
+            if(!cand) return `<div class="wi-net-cell ${cls}">
+                <div class="wi-net-label"><span>${label}</span><span>同一筆</span></div>
+                <div class="wi-net-val">${fallbackText}</div>
+                <div class="wi-net-sub">同一筆交易</div>
+            </div>`;
+            const assetLabel = whatIfAssetLabel(cand);
+            return `<div class="wi-net-cell ${cls}" title="${label} ${esc(assetLabel)} ${pctStr(cand)}">
+                <div class="wi-net-label"><span>${label}</span><span title="${esc(assetLabel)}">${esc(assetLabel)}</span></div>
+                <div class="wi-net-val">${netTwdStr(cand)}</div>
+                <div class="wi-net-sub">${pctStr(cand)}｜差額 ${diffTwdStr(cand)}</div>
+            </div>`;
+        };
+        const rows = playerExtremes.map(group=>{
+            const color = getPlayerColor(group.player.name, playerColors[group.playerIndex % playerColors.length]);
+            const actualNet = calcCurrentNetValue(group.player);
+            const cur = group.player.currency || group.fly.playerCurrency || 'TWD';
+            const actualNetText = fmtRaw(convertCurrency(actualNet, cur, 'TWD'), 'TWD');
+            const escapeCand = group.escape === group.fly ? null : group.escape;
+            return `<div class="wi-net-row" style="--player-color:${color};">
+                <div class="wi-net-player" title="${esc(group.player.name)}">${esc(shortName(group.player.name, 2))}</div>
+                <div class="wi-net-metrics">
+                    <div class="wi-net-cell current">
+                        <div class="wi-net-label"><span>帳戶淨值</span><span>目前實際</span></div>
+                        <div class="wi-net-val">${actualNetText}</div>
+                    </div>
+                    ${netCell(group.fly, 'fly', '賣飛淨值', '')}
+                    ${netCell(escapeCand, 'escape', '逃頂淨值', netTwdStr(group.fly))}
+                </div>
+            </div>`;
+        }).join('');
+        hintEl.innerHTML = `<div class="wi-summary-head">
+                <div class="wi-summary-title">What-if · 續抱至今</div>
+            </div>
+            <div class="wi-net-list">${rows}</div>`;
+        hintEl.classList.add('show');
+    }
+
+    renderWhatIfStatus(cands.length, playerExtremes.length);
+    // 進階戰情室照常更新 (與曲線同源, 不受 What-if 影響)
+    renderAdvancedPanel(allDates, lastTradingDayStr);
+}
+
+// What-if 切換
+function toggleWhatIf(){
+    whatIfMode = !whatIfMode;
+    const btn = document.getElementById('whatif-toggle-btn');
+    if(btn) btn.classList.toggle('active', whatIfMode);
+    // 平滑切換: 重新觸發淡入動畫
+    const chartPg = document.getElementById('cm-page-chart');
+    if(chartPg){ chartPg.classList.remove('adv-fade'); void chartPg.offsetWidth; chartPg.classList.add('adv-fade'); }
+    // 切回正常時清掉說明列, 並還原標題
+    if(!whatIfMode){
+        const hint = document.getElementById('whatif-hint');
+        if(hint){ hint.classList.remove('show'); hint.innerHTML=''; }
+        const statusEl = document.getElementById('chart-status');
+        if(statusEl) statusEl.innerHTML='';
+    }
+    const titleEl = document.getElementById('cm-page-title');
+    if(titleEl && CM_PAGES[cmPage] && CM_PAGES[cmPage].id==='chart'){
+        titleEl.textContent = whatIfMode ? 'What-if · 續抱至今' : CM_PAGES[cmPage].title;
+    }
+    renderPerformanceChart();   // whatIfMode=true 時於函式頂端自動導向 renderWhatIfChart
 }
 
 // ── 績效統計面板 ─────────────────────────────
@@ -3377,7 +3771,54 @@ function buildPerfStatsInner(p, pIdx){
     const avgHold=holds.length?holds.reduce((s,t)=>s+t.hold,0)/holds.length:null;
     let best=null, worst=null;
     tStats.forEach(t=>{ if(!best||t.pnl>best.pnl)best=t; if(!worst||t.pnl<worst.pnl)worst=t; });
-    const fmtTradePnl=(t)=>{ const neg=t.pnl<0; const cls=neg?'text-red-400':'text-emerald-400'; return `<div class="stats-val mono ${cls}">${neg?'-':'+'}${fmtRaw(Math.abs(t.pnl),p.currency)}</div>`; };
+    const fmtTradePnl=(t)=>{ const neg=t.pnl<0; const cls=neg?'text-red-400':'text-emerald-400'; const tk=(t.ticker&&t.ticker!=='--')?esc(t.ticker):'--'; return `<div class="stats-val mono ${cls}">${neg?'-':'+'}${fmtRaw(Math.abs(t.pnl),p.currency)}</div><div class="stats-sub mono">${tk}</div>`; };
+    const fmtTradeMini=(t, label)=>{
+        if(!t) return `<div class="stats-mini-cell"><div class="stats-mini-title">${label}</div><div class="stats-mini-val text-slate-400">--</div><div class="stats-mini-sub">尚無交易</div></div>`;
+        const neg=t.pnl<0;
+        const cls=neg?'text-red-400':'text-emerald-400';
+        const tk=(t.ticker&&t.ticker!=='--')?esc(t.ticker):'--';
+        return `<div class="stats-mini-cell" title="${label} ${tk}">
+            <div class="stats-mini-title">${label}</div>
+            <div class="stats-mini-val ${cls}">${neg?'-':'+'}${fmtRaw(Math.abs(t.pnl),p.currency)}</div>
+            <div class="stats-mini-sub mono">${tk}</div>
+        </div>`;
+    };
+
+    // ── 續抱至今差額: 若該筆平倉後不賣、以相同股數抱到現在的價差損益(玩家貨幣) ──
+    // diff > 0 → 賣出後該股再漲, 賣早了(續抱會多賺); diff < 0 → 賣出後該股下跌, 賣對了(續抱會多虧)
+    const getLatestKnownPrice=(ticker)=>{
+        if(!ticker) return null;
+        for(const pp of participants){
+            const s=(pp.stocks||[]).find(x=>x.ticker===ticker);
+            if(s){ const cp=parseFloat(s.currentPrice)||0; if(cp>0) return cp; }
+        }
+        const hist=(typeof stockHistory!=='undefined'&&stockHistory[ticker])||[];
+        for(let i=hist.length-1;i>=0;i--){ const c=parseFloat(hist[i].close); if(isFinite(c)&&c>0) return c; }
+        return null;
+    };
+    let holdBest=null, holdWorst=null;   // holdBest=賣飛差額最大, holdWorst=逃頂差額最大
+    trades.forEach(t=>{
+        const sh=parseFloat(t.shares)||0;
+        const sp=parseFloat(t.sellPrice)||0;
+        if(!t.ticker || sh<=0 || sp<=0) return;
+        const cur=getLatestKnownPrice(t.ticker);
+        if(cur===null) return;
+        const tCur=getStockCurrency(t.ticker);
+        const diff=convertCurrency((cur-sp)*sh, tCur, p.currency);
+        const rec={ ticker:t.ticker||'--', diff };
+        if(!holdBest || diff>holdBest.diff) holdBest=rec;
+        if(!holdWorst || diff<holdWorst.diff) holdWorst=rec;
+    });
+    const fmtHold=(rec, kind)=>{
+        if(!rec) return '<div class="stats-val mono text-slate-400">--</div><div class="stats-sub">無可評估的平倉交易</div>';
+        const neg=rec.diff<0;
+        const cls=neg?'text-red-400':'text-emerald-400';
+        const tk=esc(rec.ticker);
+        let sub;
+        if(kind==='best') sub = neg ? `${tk}・沒有明顯賣飛, 這筆影響最小` : `${tk}・賣出後續漲, 等於賣飛`;
+        else              sub = neg ? `${tk}・賣出後續跌, 等於逃頂` : `${tk}・沒有明顯逃頂, 這筆仍會多賺`;
+        return `<div class="stats-val mono ${cls}">${neg?'-':'+'}${fmtRaw(Math.abs(rec.diff),p.currency)}</div><div class="stats-sub">${sub}</div>`;
+    };
 
     // ── 月度報酬 (月末淨值 / 前月末淨值 - 1) ──
     const monthMap={};
@@ -3416,12 +3857,19 @@ function buildPerfStatsInner(p, pIdx){
             <div class="stats-sub">${holds.length?`計入 ${holds.length} 筆含建倉日的交易`:'交易需填建倉日期'}</div>
         </div>
         <div class="stats-item">
-            <div class="stats-label">最佳單筆</div>
-            ${best?fmtTradePnl(best):'<div class="stats-val mono text-slate-400">--</div><div class="stats-sub">尚無交易</div>'}
+            <div class="stats-label">單筆交易</div>
+            <div class="stats-mini-pair">
+                ${fmtTradeMini(best,'最佳')}
+                ${fmtTradeMini(worst,'最虧')}
+            </div>
         </div>
         <div class="stats-item">
-            <div class="stats-label">最差單筆</div>
-            ${worst?fmtTradePnl(worst):'<div class="stats-val mono text-slate-400">--</div><div class="stats-sub">尚無交易</div>'}
+            <div class="stats-label">續抱至今賣飛</div>
+            ${fmtHold(holdBest,'best')}
+        </div>
+        <div class="stats-item">
+            <div class="stats-label">續抱至今逃頂</div>
+            ${fmtHold(holdWorst,'worst')}
         </div>
     </div>
     <div class="stats-heatmap-title">月度報酬</div>
@@ -7021,6 +7469,58 @@ const crosshairPlugin = {
     }
 };
 
+const zeroPnlLinePlugin = {
+    id: 'zeroPnlLine',
+    afterDraw(chart){
+        if(!chart.options?.plugins?.zeroPnlLine?.enabled) return;
+        const yScale = chart.scales?.y;
+        const area = chart.chartArea;
+        if(!yScale || !area) return;
+        const zeroY = yScale.getPixelForValue(0);
+        if(!isFinite(zeroY) || zeroY < area.top || zeroY > area.bottom) return;
+        const c = chart.ctx;
+        c.save();
+        c.beginPath();
+        c.setLineDash([6, 5]);
+        c.lineWidth = 1.35;
+        c.strokeStyle = 'rgba(242, 233, 236, .58)';
+        c.moveTo(area.left, zeroY);
+        c.lineTo(area.right, zeroY);
+        c.stroke();
+        c.setLineDash([]);
+        c.restore();
+    }
+};
+let zeroPnlLinePluginRegistered = false;
+function ensureZeroPnlLinePlugin(){
+    if(zeroPnlLinePluginRegistered || typeof Chart === 'undefined') return;
+    Chart.register(zeroPnlLinePlugin);
+    zeroPnlLinePluginRegistered = true;
+}
+
+const whatIfGlowLinePlugin = {
+    id: 'whatIfGlowLine',
+    beforeDatasetDraw(chart, args){
+        const ds = chart.data.datasets[args.index];
+        if(!ds || (!ds.whatIfGlow && !ds.glowLine)) return;
+        const meta = chart.getDatasetMeta(args.index);
+        if(!meta || !meta.dataset) return;
+        const c = chart.ctx;
+        c.save();
+        c.shadowColor = ds.borderColor || '#ffffff';
+        c.shadowBlur = chart.width < 520 ? 6 : 9;
+        c.globalAlpha = ds.whatIfGlow ? 0.76 : 0.5;
+        meta.dataset.draw(c);
+        c.restore();
+    }
+};
+let whatIfGlowLinePluginRegistered = false;
+function ensureWhatIfGlowLinePlugin(){
+    if(whatIfGlowLinePluginRegistered || typeof Chart === 'undefined') return;
+    Chart.register(whatIfGlowLinePlugin);
+    whatIfGlowLinePluginRegistered = true;
+}
+
 // Sticky 迷你排行條
 let miniBarObserverInit = false;
 function ensureMiniBarObserver(){
@@ -7161,18 +7661,19 @@ const endpointLabelPlugin = {
             const el = meta.data[idx];
             if(!el) return;
             const color = (typeof ds.borderColor === 'string') ? ds.borderColor : '#ffffff';
-            items.push({ x: el.x, y: el.y, label: ds.label, color });
+            items.push({ x: el.x, y: el.y, label: ds.displayLabel || ds.label, color });
         });
         if(!items.length) return;
         c.save();
         const compact = chart.width < 520;
-        const labelFontSize = compact ? 9 : 10;
-        const labelHeight = compact ? 16 : 18;
-        const minGap = compact ? 22 : 19;
+        const labelFontSize = compact ? 8.5 : 9.5;
+        const labelHeight = compact ? 15 : 17;
+        const minGap = compact ? 18 : 17;
+        const pulse = (Math.sin(performance.now() / 520) + 1) / 2;
         c.font = `700 ${labelFontSize}px Inter, "Noto Sans TC", sans-serif`;
         // 名稱統一截 2 個字, 標籤靠右對齊成一欄
         items.forEach(it=>{
-            it.short = shortChartName(it.label);
+            it.short = String(it.label || '');
             it.w = c.measureText(it.short).width;
             it.dotY = Math.min(Math.max(it.y, area.top + 5), area.bottom - 5);
             it.ly = it.dotY;
@@ -7190,14 +7691,14 @@ const endpointLabelPlugin = {
         items.forEach(it=>{
             // 端點光暈圓點 (停在曲線終點)
             c.shadowColor = it.color;
-            c.shadowBlur = 9;
+            c.shadowBlur = 8 + pulse * 10;
             c.fillStyle = it.color;
             c.beginPath();
-            c.arc(it.x, it.dotY, compact ? 3 : 3.5, 0, Math.PI*2);
+            c.arc(it.x, it.dotY, (compact ? 2.7 : 3.2) + pulse * 1.25, 0, Math.PI*2);
             c.fill();
             c.shadowBlur = 0;
             // 名字 pill — 全部靠右對齊在畫布右緣
-            const lx = chart.width - it.w - (compact ? 8 : 14);
+            const lx = Math.min(chart.width - it.w - (compact ? 4 : 8), area.right + (compact ? 8 : 12));
             // 引導線: 端點 → pill 左緣
             c.strokeStyle = hexA(it.color, '4d');
             c.lineWidth = 1;
@@ -7216,6 +7717,14 @@ const endpointLabelPlugin = {
             c.fillText(it.short, lx, it.ly + (compact ? 3 : 3.5));
         });
         c.restore();
+        if(!chart.$endpointPulseRaf){
+            chart.$endpointPulseRaf = requestAnimationFrame(()=>{
+                chart.$endpointPulseRaf = null;
+                if(chart.canvas && chart.canvas.isConnected){
+                    try{ chart.draw(); }catch(e){}
+                }
+            });
+        }
     }
 };
 // 進階戰情室頁面骨架屏
@@ -7577,6 +8086,16 @@ function renderCmPage(){
     // 隱藏期間 canvas 尺寸為 0 → 切回時補 resize
     if(pg.id==='chart' && performanceChart){
         requestAnimationFrame(()=>{ try{ performanceChart.resize(); }catch(e){} });
+    }
+    // ── What-if 鈕僅在「投資組合績效曲線」頁顯示; 切到市場頁時收起說明列 ──
+    const wiBtn = document.getElementById('whatif-toggle-btn');
+    if(wiBtn) wiBtn.style.display = (pg.id==='chart') ? '' : 'none';
+    const wiHint = document.getElementById('whatif-hint');
+    if(pg.id==='chart'){
+        if(whatIfMode && titleEl) titleEl.textContent = 'What-if · 續抱至今';
+        if(whatIfMode && wiHint) wiHint.classList.add('show');
+    } else if(wiHint){
+        wiHint.classList.remove('show');
     }
 }
 function cmGoto(delta){
