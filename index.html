@@ -296,9 +296,9 @@
         .holding-pie-title::before{content:'';width:8px;height:8px;border-radius:3px;background:var(--player-color);box-shadow:0 0 14px color-mix(in srgb,var(--player-color) 70%,transparent);}
         .holding-pie-cash{font-size:11px;color:#c2c7d2;font-weight:750;padding:4px 8px;border-radius:999px;background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.06);white-space:nowrap;}
         .holding-pie-body{display:grid;grid-template-columns:1fr;justify-items:center;gap:0;min-width:0;}
-        .holding-pie-canvas-wrap{position:relative;width:min(250px,82%);width:clamp(190px,78cqw,250px);max-width:100%;aspect-ratio:1;filter:drop-shadow(0 18px 24px rgba(0,0,0,.46));}
+        .holding-pie-canvas-wrap{position:relative;width:min(250px,82%);width:clamp(190px,78cqw,250px);max-width:100%;aspect-ratio:1;filter:drop-shadow(0 0 12px rgba(192,175,177,.32)) drop-shadow(0 18px 24px rgba(0,0,0,.46));}
         .holding-pie-canvas-wrap canvas{display:block;width:100%!important;height:100%!important;}
-        .holding-pie-canvas-wrap::before{content:'';position:absolute;inset:29%;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,.06),rgba(255,255,255,.018) 58%,transparent 60%);border:1px solid rgba(255,255,255,.055);}
+        .holding-pie-canvas-wrap::before{content:'';position:absolute;inset:26%;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,.055),rgba(255,255,255,.016) 55%,transparent 64%);border:1px solid rgba(255,255,255,.05);box-shadow:0 0 34px rgba(192,175,177,.18);}
         .holding-pie-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;}
         .holding-pie-center-num{font-family:var(--number-font);font-size:28px;font-weight:900;color:#fff;line-height:1;text-shadow:0 0 22px color-mix(in srgb,var(--player-color) 30%,transparent);}
         .holding-pie-center-lbl{font-size:11px;color:#c6cbd4;margin-top:5px;letter-spacing:.04em;font-weight:850;}
@@ -1655,7 +1655,7 @@ const firebaseConfig={apiKey:"AIzaSyB0JZSBEgE11JQvPINRIHkztapNazgCrPU",authDomai
 if(!firebase.apps.length)firebase.initializeApp(firebaseConfig);
 const db=firebase.database();
 // ── 應用版本: 每次部署新版時更新此字串, Service Worker 快取會自動換代 ──
-const APP_VERSION = '2026.06.19-whatif-07';
+const APP_VERSION = '2026.06.23-pie-colors-03';
 const NUMBER_FONT_FAMILY = '"Inter", "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
 if(typeof Chart !== 'undefined') Chart.defaults.font.family = NUMBER_FONT_FAMILY;
 // ── Firebase 匿名驗證 ─────────────────────────
@@ -1789,7 +1789,18 @@ let whatIfMode=false;
 let chartRenderTimer=null;
 let holdingPieCharts={}; // {playerName: Chart instance}
 let pokerChart=null;
-const HOLDING_PIE_COLORS = ['#C0AFB1','#77595E','#988083','#463639','#766269'];
+const PLAYER_TWO_THEME_COLOR = '#C0AFB1';
+const HOLDING_PIE_COLORS = ['#998D85','#36454F','#BDC4D4','#4C5568','#514F4F','#413836','#B1A09F'];
+function getHoldingPieColor(index){
+    return HOLDING_PIE_COLORS[index % HOLDING_PIE_COLORS.length];
+}
+function normalizeHoldingPieColor(color, fallbackIndex=0){
+    const c = String(color || '').trim().toUpperCase();
+    return HOLDING_PIE_COLORS.includes(c) ? c : getHoldingPieColor(fallbackIndex);
+}
+function randomHoldingPieColor(){
+    return getHoldingPieColor(Math.floor(Math.random() * HOLDING_PIE_COLORS.length));
+}
 function shortPieTickerLabel(label){
     const raw = String(label || '').replace('現金','CASH').trim();
     return raw.replace(/\.(TW|TWO)$/i,'').replace(/\s+/g,'').slice(0,7) || '--';
@@ -1811,7 +1822,7 @@ const holdingPieLabelPlugin = {
         meta.data.forEach((arc, i)=>{
             const value = Number(dataset.data[i] || 0);
             const pct = value / total * 100;
-            if(pct < 5) return;
+            if(pct < 7) return;
             const props = arc.getProps(['x','y','startAngle','endAngle','innerRadius','outerRadius'], true);
             const angle = (props.startAngle + props.endAngle) / 2;
             const cos = Math.cos(angle);
@@ -1821,7 +1832,7 @@ const holdingPieLabelPlugin = {
             const pctY = props.y + sin * midR;
             const pctFont = Math.max(10, Math.min(13, chart.width * .046));
             const labelFont = Math.max(8, Math.min(10, chart.width * .036));
-            const labelGap = Math.max(9, Math.min(18, chart.width * .055));
+            const labelGap = Math.max(22, Math.min(32, chart.width * .095)) + (Math.abs(sin) > .72 ? 8 : 0);
             ctx.font = `800 ${pctFont}px ${NUMBER_FONT_FAMILY}`;
             ctx.fillStyle = '#fff';
             ctx.textAlign = 'center';
@@ -1834,12 +1845,43 @@ const holdingPieLabelPlugin = {
             ctx.fillStyle = 'rgba(230,234,242,.86)';
             const labelText = shortPieTickerLabel(chart.data.labels[i]);
             const labelWidth = ctx.measureText(labelText).width;
-            let safeX = Math.max(5, Math.min(chart.width - 5, labelX));
             let align = cos > .22 ? 'left' : (cos < -.22 ? 'right' : 'center');
-            if(safeX + labelWidth > chart.width - 5) align = 'right';
-            if(safeX - labelWidth < 5) align = 'left';
+            let safeX = labelX;
+            if(align === 'left'){
+                safeX = Math.max(8, Math.min(chart.width - labelWidth - 8, safeX));
+            } else if(align === 'right'){
+                safeX = Math.max(labelWidth + 8, Math.min(chart.width - 8, safeX));
+            } else {
+                safeX = Math.max(8 + labelWidth / 2, Math.min(chart.width - 8 - labelWidth / 2, safeX));
+            }
+            let safeY = Math.max(12, Math.min(chart.height - 12, labelY));
             ctx.textAlign = align;
-            ctx.fillText(labelText, safeX, labelY);
+            ctx.fillText(labelText, safeX, safeY);
+        });
+        ctx.restore();
+    }
+};
+
+const holdingPieGlowPlugin = {
+    id: 'holdingPieGlowPlugin',
+    afterDatasetsDraw(chart){
+        const opts = chart.options?.plugins?.holdingPieGlowPlugin || {};
+        if(opts.enabled === false) return;
+        const meta = chart.getDatasetMeta(0);
+        const dataset = chart.data.datasets[0];
+        if(!meta || !dataset || !meta.data?.length) return;
+        const colors = Array.isArray(dataset.backgroundColor) ? dataset.backgroundColor : [];
+        const ctx = chart.ctx;
+        ctx.save();
+        ctx.globalCompositeOperation = 'destination-over';
+        meta.data.forEach((arc, i)=>{
+            ctx.save();
+            ctx.shadowColor = colors[i] || PLAYER_TWO_THEME_COLOR;
+            ctx.shadowBlur = 18;
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = 0;
+            arc.draw(ctx);
+            ctx.restore();
         });
         ctx.restore();
     }
@@ -3772,16 +3814,12 @@ function buildPerfStatsInner(p, pIdx){
     let best=null, worst=null;
     tStats.forEach(t=>{ if(!best||t.pnl>best.pnl)best=t; if(!worst||t.pnl<worst.pnl)worst=t; });
     const fmtTradePnl=(t)=>{ const neg=t.pnl<0; const cls=neg?'text-red-400':'text-emerald-400'; const tk=(t.ticker&&t.ticker!=='--')?esc(t.ticker):'--'; return `<div class="stats-val mono ${cls}">${neg?'-':'+'}${fmtRaw(Math.abs(t.pnl),p.currency)}</div><div class="stats-sub mono">${tk}</div>`; };
-    const fmtTradeMini=(t, label)=>{
-        if(!t) return `<div class="stats-mini-cell"><div class="stats-mini-title">${label}</div><div class="stats-mini-val text-slate-400">--</div><div class="stats-mini-sub">尚無交易</div></div>`;
+    const fmtTradeSingle=(t)=>{
+        if(!t) return `<div class="stats-val mono text-slate-400">--</div><div class="stats-sub">尚無交易</div>`;
         const neg=t.pnl<0;
         const cls=neg?'text-red-400':'text-emerald-400';
         const tk=(t.ticker&&t.ticker!=='--')?esc(t.ticker):'--';
-        return `<div class="stats-mini-cell" title="${label} ${tk}">
-            <div class="stats-mini-title">${label}</div>
-            <div class="stats-mini-val ${cls}">${neg?'-':'+'}${fmtRaw(Math.abs(t.pnl),p.currency)}</div>
-            <div class="stats-mini-sub mono">${tk}</div>
-        </div>`;
+        return `<div class="stats-val mono ${cls}">${neg?'-':'+'}${fmtRaw(Math.abs(t.pnl),p.currency)}</div><div class="stats-sub mono">${tk}</div>`;
     };
 
     // ── 續抱至今差額: 若該筆平倉後不賣、以相同股數抱到現在的價差損益(玩家貨幣) ──
@@ -3856,12 +3894,13 @@ function buildPerfStatsInner(p, pIdx){
             <div class="stats-val mono ${avgHold===null?'text-slate-400':'text-white'}">${avgHold===null?'--':avgHold.toFixed(1)+' 天'}</div>
             <div class="stats-sub">${holds.length?`計入 ${holds.length} 筆含建倉日的交易`:'交易需填建倉日期'}</div>
         </div>
-        <div class="stats-item">
-            <div class="stats-label">單筆交易</div>
-            <div class="stats-mini-pair">
-                ${fmtTradeMini(best,'最佳')}
-                ${fmtTradeMini(worst,'最虧')}
-            </div>
+        <div class="stats-item stats-trade-item">
+            <div class="stats-label">單筆交易 · 最佳</div>
+            ${fmtTradeSingle(best)}
+        </div>
+        <div class="stats-item stats-trade-item">
+            <div class="stats-label">單筆交易 · 最虧</div>
+            ${fmtTradeSingle(worst)}
         </div>
         <div class="stats-item">
             <div class="stats-label">續抱至今賣飛</div>
@@ -4084,10 +4123,10 @@ function renderHoldingPie(playerName, sliceData, totalHoldings){
             datasets: [{
                 data: dataArr,
                 backgroundColor: colors,
-                borderColor: 'rgba(3,3,6,.98)',
-                borderWidth: 2,
-                borderRadius: 4,
-                spacing: 1,
+                borderColor: 'transparent',
+                borderWidth: 0,
+                borderRadius: 6,
+                spacing: 0,
                 hoverOffset: 10
             }]
         },
@@ -4096,10 +4135,11 @@ function renderHoldingPie(playerName, sliceData, totalHoldings){
             maintainAspectRatio: false,
             cutout: '66%',
             animation: { duration: 650, easing:'easeOutQuart' },
-            layout: { padding: { top: 28, right: 34, bottom: 26, left: 34 } },
+            layout: { padding: { top: 42, right: 48, bottom: 42, left: 48 } },
             interaction: { mode:'nearest', intersect:true },
             plugins: {
                 legend: { display: false },
+                holdingPieGlowPlugin: { enabled: true },
                 tooltip: {
                     backgroundColor: 'rgba(62,62,66,.96)',
                     borderColor: 'rgba(255,255,255,.12)',
@@ -4126,7 +4166,7 @@ function renderHoldingPie(playerName, sliceData, totalHoldings){
                 }
             }
         },
-        plugins: [holdingPieLabelPlugin]
+        plugins: [holdingPieGlowPlugin, holdingPieLabelPlugin]
     });
 }
 
@@ -4729,11 +4769,11 @@ function renderDashboard(){
         // sliceData = [{ticker, mv, color}]，圖例只顯示前 6 大持股(其餘合併為「其他」)
         let pieHTML = '';
         if(stocks.length > 0){
-            const stockSlices = stocks.map(s=>{
+            const stockSlices = stocks.map((s, si)=>{
                 const lp=getLatestStockPrice(s);
                 const sCur=getStockCurrency(s.ticker)||s.currency||p.currency;
                 const mvRaw=(s.shares||0)*lp;
-                return { ticker: s.ticker||'--', mv: Math.max(0, convertCurrency(mvRaw, sCur, p.currency)) };
+                return { ticker: s.ticker||'--', mv: Math.max(0, convertCurrency(mvRaw, sCur, p.currency)), color: normalizeHoldingPieColor(s.pieColor, si) };
             }).filter(x=>x.mv>0).sort((a,b)=>b.mv-a.mv);
 
             // 現金 slice (持有現金 autoCash; 若為負數=融資, 不顯示為 slice)
@@ -4743,7 +4783,7 @@ function renderDashboard(){
 
             // 著色
             pieSlices.forEach((s,i)=>{
-                s.color = s.isCash ? '#475569' : HOLDING_PIE_COLORS[i % HOLDING_PIE_COLORS.length];
+                s.color = s.color || getHoldingPieColor(i);
             });
 
             const totalPieMV = pieSlices.reduce((sum,s)=>sum+s.mv,0);
@@ -5815,13 +5855,15 @@ function executeClosePosition(){
             }
         });
         if(lots.length === 0 || tShares <= 0) return;
+        const pieColor = normalizeHoldingPieColor(s.dataset.pieColor, newStocks.length);
         const obj = {
             ticker: t,
             shares: tShares,
             buyPrice: tCost / tShares,
             currentPrice: cp,
             currency: getStockCurrency(t),
-            lots
+            lots,
+            pieColor
         };
         if(earliest) obj.buyDate = earliest;
         newStocks.push(obj);
@@ -5960,6 +6002,7 @@ function addStockSlot(data={}){
     const num=container.querySelectorAll('.stock-slot').length+1;
     // 是否為從既有資料載入(才能平倉) — 只有 data 有 ticker 或 lots 才視為既有
     const isExisting = !!(data && (data.ticker || (Array.isArray(data.lots) && data.lots.length>0)));
+    const slotPieColor = data.pieColor ? normalizeHoldingPieColor(data.pieColor, num-1) : (isExisting ? getHoldingPieColor(num-1) : randomHoldingPieColor());
     // 取出 lots: 優先用 data.lots, 沒有則用舊欄位合成一筆
     let lots = Array.isArray(data.lots) && data.lots.length>0 ? data.lots : null;
     if(!lots){
@@ -5975,6 +6018,7 @@ function addStockSlot(data={}){
     }
     const slot=document.createElement('div');slot.className='stock-slot';slot.dataset.slotId=id;
     slot.dataset.existing = isExisting ? '1' : '0';
+    slot.dataset.pieColor = slotPieColor;
     slot.dataset.stockName = formatStockDisplayName(data.ticker||'', data.stockName||'');
     const closeBtnHTML = isExisting
         ? `<button type="button" onclick="openClosePositionModal(${id})" 
@@ -6217,13 +6261,15 @@ function saveData(){
         const avgPrice = totalCost / totalShares;
         // 永遠以 ticker 為準, 強制覆蓋 currency
         const forcedCur = getStockCurrency(ticker);
+        const pieColor = normalizeHoldingPieColor(slot.dataset.pieColor, newStocks.length);
         const obj = {
             ticker,
             shares: totalShares,
             buyPrice: avgPrice,
             currentPrice,
             currency: forcedCur,
-            lots
+            lots,
+            pieColor
         };
         if(earliestDate) obj.buyDate = earliestDate;
         const displayStockName = formatStockDisplayName(ticker, slot.dataset.stockName);
@@ -7919,15 +7965,15 @@ function computeLiveStats(p, pIdx){
     // 圓餅 slices (鏡像 render: 依市值排序大→小 + 現金 slice)
     let pieSlices = [];
     if(stocks.length > 0){
-        const stockSlices = stocks.map(s=>{
+        const stockSlices = stocks.map((s, si)=>{
             const lp=getLatestStockPrice(s);
             const sCur=getStockCurrency(s.ticker)||s.currency||p.currency;
-            return { ticker:s.ticker||'--', mv: Math.max(0, convertCurrency((s.shares||0)*lp, sCur, p.currency)) };
+            return { ticker:s.ticker||'--', mv: Math.max(0, convertCurrency((s.shares||0)*lp, sCur, p.currency)), color: normalizeHoldingPieColor(s.pieColor, si) };
         }).filter(x=>x.mv>0).sort((a,b)=>b.mv-a.mv);
         pieSlices = [...stockSlices];
         const cashMV = Math.max(0, autoCash);
         if(cashMV > 0) pieSlices.push({ticker:'現金', mv:cashMV, isCash:true});
-        pieSlices.forEach((s,i)=>{ s.color = s.isCash ? '#475569' : HOLDING_PIE_COLORS[i % HOLDING_PIE_COLORS.length]; });
+        pieSlices.forEach((s,i)=>{ s.color = s.color || getHoldingPieColor(i); });
     }
     return {
         pIdx, name:p.name, cur:p.currency, netVal, valTWD, valUSD,
